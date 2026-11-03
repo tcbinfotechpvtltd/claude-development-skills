@@ -31,7 +31,7 @@ DEFAULT_CONFIG = {
 
 # ---------------------------------------------------------------- patterns
 SECRET_PATH = re.compile(
-    r"""(?:^|[\s/'"=:(])(?:"""
+    r"""(?:^|[\s/'"=:(@])(?:"""
     r"""\.env(?!\.(?:example|sample|template|dist|defaults)\b)(?:\.[\w.-]+)?"""
     r"""|id_(?:rsa|ed25519|ecdsa|dsa)(?!\.pub)"""
     r"""|[\w.-]+\.(?:pem|p12|pfx|keystore|jks|ppk)"""
@@ -41,8 +41,13 @@ SECRET_PATH = re.compile(
     r""")(?=$|[\s'";|&)<>])""",
     re.I,
 )
-NEVER_READ = re.compile(r"\.claude/\.credentials\.json|security\s+(?:find-(?:generic|internet)-password\b.*\s-w\b|dump-keychain)")
+CLAUDE_CREDS = ".claude/.credentials.json"
+NEVER_READ = re.compile(r"\.claude/\.credentials\.json")
+KEYCHAIN_DUMP = re.compile(r"\bsecurity\s+(?:find-(?:generic|internet)-password\b.*\s-w\b|dump-keychain)")
 READ_VERBS = re.compile(r"(?:^|[\s;&|(`$'\"])(?:cat|less|more|head|tail|bat|strings|xxd|od|hexdump|base64|grep|egrep|rg|awk|sed|cut|sort|cp|scp|rsync|open|pbcopy|curl|nl|tac|jq|yq|python3?|node|php|ruby)\b")
+# commands that print, copy or send a file named in their own arguments
+READ_CMDS = set("cat less more head tail bat strings xxd od hexdump base64 grep egrep rg awk sed cut sort cp scp rsync "
+                "open pbcopy curl nl tac jq yq zip tar".split())
 
 SECRET_CONTENT = [
     ("aws-key", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
@@ -74,7 +79,7 @@ BASH_RULES = [
      "would delete the filesystem root, a system directory or the home directory"),
     ("disk-destroy", "deny", re.compile(r"\bmkfs(?:\.\w+)?\b|\bdd\b[^\n;|&]*\bof=/dev/(?:r?disk|sd|nvme|hd)|\bdiskutil\s+(?:erase\w*|zero\w*|partitionDisk|reformat)\b|:\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:"),
      "destroys disks/partitions or is a fork bomb"),
-    ("credential-dump", "deny", NEVER_READ, "reads Claude/OS keychain credentials"),
+    ("credential-dump", "deny", KEYCHAIN_DUMP, "dumps OS keychain secrets"),
     ("git-force-push", "ask", re.compile(r"\bgit\b[^\n;|&]*\bpush\b(?:(?!--force-with-lease)[^\n;|&])*?(?:\s--force(?![-\w])|\s-f\b|\s-[a-zA-Z]*f[a-zA-Z]*\b|\s\+[\w./:-]+)"),
      "force-push rewrites remote history"),
     ("git-delete-remote", "ask", re.compile(r"\bgit\b[^\n;|&]*\bpush\b[^\n;|&]*(?:\s--delete\b|\s-d\b|\s:[\w./-]+)"),
@@ -239,8 +244,22 @@ def check_push(cmd, cwd, cfg):
     return None
 
 
+def secret_reads(cmd):
+    """(credential file, secret file) printed/copied/sent by a command naming it in its own argv."""
+    creds = secret = False
+    for argv in segments(cmd):
+        if os.path.basename(argv[0]) in READ_CMDS:
+            args = " " + " ".join(argv[1:])
+            creds = creds or CLAUDE_CREDS in args
+            secret = secret or bool(SECRET_PATH.search(args))
+    return creds, secret
+
+
 def check_bash(cmd, cwd, project, cfg):
     off = set(cfg.get("disabled_rules") or [])
+    creds, secret = secret_reads(cmd)
+    if creds:
+        return "deny", "credential-dump: reads Claude's own OAuth credentials"
     for rid, decision, rx, reason in BASH_RULES:
         if rid not in off and rx.search(cmd):
             return decision, "%s: %s" % (rid, reason)
@@ -272,8 +291,8 @@ def check_bash(cmd, cwd, project, cfg):
     if re.search(r"\b(?:mysql|mariadb|psql|sqlite3|bench|frappe\.db|execute)\b", cmd) and any(
             SQL_UNSCOPED.search(st) and not re.search(r"(?i)\bwhere\b", st) for st in cmd.split(";")):
         return "ask", "sql-unscoped: UPDATE/DELETE without WHERE"
-    if SECRET_PATH.search(cmd) and READ_VERBS.search(cmd):
-        return "ask", "secret-read: prints/copies a secrets file (its values would enter the transcript)"
+    if secret and "secret-read" not in off:
+        return "ask", "secret-read: prints/copies/sends a secrets file (its values would enter the transcript)"
     if GLOBAL_CONFIG_FILES.search(cmd) and SHELL_WRITE.search(cmd) and "eng-os install" not in cmd and "eng-os restore" not in cmd:
         return "ask", "global-config: edits live global Claude config; change ~/claude/eng-os and run `eng-os install` instead"
     return None
