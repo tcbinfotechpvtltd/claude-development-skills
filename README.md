@@ -56,6 +56,7 @@ Levers built in:
 Recommended, not applied (outside engineering scope or your call):
 - `marketing-skills@marketingskills` is enabled globally (36 skills) but was not invoked in the analysed transcripts. Disable it globally (`"enabledPlugins": {"marketing-skills@marketingskills": false}`) and enable it per project where you do marketing work.
 - The desktop org plugins (marketing, HR, product, sales…) and many claude.ai connectors (Apollo, Canva, Gamma, Gmail, Calendar, Drive…) are listed in every coding session. Toggle them off per session in the app's connector menu when coding.
+- Effort: thinking is always on and the main model is Opus. For routine or mechanical sessions, `/effort medium` (or `"effortLevel": "medium"` in settings) cuts output and thinking tokens. Keep high effort for design, security and hard debugging. This is left as your per-session choice rather than a global default.
 - The Homebrew CLI is 2.0.53 (the app bundles 2.1.309) and its OAuth login expired in July: `brew upgrade claude-code` then `claude /login` to use the terminal and `eng-os eval --run`.
 
 ## 5. Project-level instructions

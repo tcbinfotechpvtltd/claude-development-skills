@@ -262,6 +262,9 @@ def cmd_install(args):
         if dry:
             print("dry run: nothing written")
             return 0
+        if not changed and merged == live_settings and not legacy and os.path.exists(MANIFEST):
+            print("already up to date: nothing written, no backup needed")
+            return cmd_verify([])
 
         bid = backup([t for t in targets if not t.startswith(BACKUPS)], "pre-install")
         print("  backup: %s" % tilde(os.path.join(BACKUPS, bid)))
