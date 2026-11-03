@@ -4,15 +4,12 @@
 Runs on Bash, file tools and MCP tools. For each call it may:
   deny  - catastrophic or never-legitimate actions (the user can still run them by hand)
   ask   - destructive, irreversible, outward-facing, production or secret-exposing actions
-  add context - project CLAUDE.md for subprojects touched via Bash (which the harness
-          does not load on its own when files are read with cat/sed/grep)
 Anything else passes through with no output (zero context cost).
 
 Fail-open by design: an internal error never blocks work; it is logged to
 ~/.claude/eng-os/state/guard-errors.log and surfaced by `eng-os verify`.
 Python 3.9 compatible, stdlib only. Unit tests: tests/guard_cases.json.
 """
-import hashlib
 import json
 import os
 import re
@@ -29,7 +26,6 @@ MARK = "[eng-os guard]"
 DEFAULT_CONFIG = {
     "protected_branches": ["main", "master", "prod", "production", "live", "uat", "release"],
     "block_claude_coauthor": True,
-    "project_context_max_chars": 6000,
     "disabled_rules": [],
 }
 
@@ -133,7 +129,6 @@ MCP_ASK = [
     (re.compile(r"apollo_(?:emailer_messages_send_now|emailer_campaigns_approve|emailer_campaigns_add_contact_ids|email_account_purchase_create|domain_purchase\w*)$"), "sends outreach or buys something in Apollo"),
     (re.compile(r"__(?:delete|delete_[a-z_]+|trash_file)$"), "deletes data in an external service"),
 ]
-NATIVE_CTX_TOOLS = ("Read", "Write", "Edit", "MultiEdit", "NotebookEdit")
 MCP_SKIP = re.compile(r"^mcp__(?:ccd_|Claude_Browser__|claude-in-chrome__|computer-use__|visualize__|terminal__|scheduled-tasks__list|mcp-registry__)")
 
 
@@ -148,14 +143,9 @@ def load_config():
     return cfg
 
 
-def emit(decision=None, reason=None, context=None):
-    out = {"hookEventName": "PreToolUse"}
-    if decision:
-        out["permissionDecision"] = decision
-        out["permissionDecisionReason"] = "%s %s" % (MARK, reason)
-    if context:
-        out["additionalContext"] = context
-    print(json.dumps({"hookSpecificOutput": out}))
+def emit(decision, reason):
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision,
+                                             "permissionDecisionReason": "%s %s" % (MARK, reason)}}))
 
 
 def norm(path, cwd):
@@ -344,63 +334,6 @@ def check_mcp(tool, inp):
     return None
 
 
-# ------------------------------------------------- project CLAUDE.md context
-def project_context(tool, inp, cwd, root, session, cfg):
-    """Return CLAUDE.md text of a subproject touched via Bash, once per session."""
-    if tool == "Bash":
-        c = inp.get("command", "")
-        tokens = re.findall(r"(?:~|\.{1,2}|/)?[\w@.+-]*/[\w@.+/-]*", c)
-        tokens += re.findall(r"(?:\bcd|\bgit\s+-C)\s+[\"']?([^\s;&|\"']+)", c)
-    else:
-        tokens = [inp.get("file_path") or inp.get("notebook_path") or inp.get("path") or ""]
-    found = []
-    for t in tokens[:40]:
-        p = norm(t, cwd)
-        d = p if os.path.isdir(p) else os.path.dirname(p)
-        if under(d, os.path.join(HOME, ".claude")):
-            continue  # Claude's own config dir: the global CLAUDE.md is already loaded
-        stop = root if under(d, root) else HOME
-        chain = []
-        for _ in range(8):  # every CLAUDE.md between the session root (exclusive) and the file
-            if not d or d == stop or not under(d, stop) or d == "/":
-                break
-            for name in ("CLAUDE.md", os.path.join(".claude", "CLAUDE.md")):
-                f = os.path.join(d, name)
-                if os.path.isfile(f):
-                    chain.append(f)
-                    break
-            d = os.path.dirname(d)
-        found.extend(reversed(chain))  # outermost first
-    if not found:
-        return None
-    os.makedirs(STATE, exist_ok=True)
-    sfile = os.path.join(STATE, "ctx-%s.json" % hashlib.sha1((session or "none").encode()).hexdigest()[:16])
-    try:
-        with open(sfile) as fh:
-            seen = set(json.load(fh))
-    except (OSError, ValueError):
-        seen = set()
-    new = [f for f in dict.fromkeys(found) if f not in seen]
-    if not new:
-        return None
-    with open(sfile, "w") as fh:
-        json.dump(sorted(seen | set(new)), fh)
-    if tool in NATIVE_CTX_TOOLS:
-        return None  # the harness loads nested CLAUDE.md itself for these; just record it
-    parts, limit = [], int(cfg.get("project_context_max_chars", 6000))
-    for f in new:
-        rel = f.replace(HOME, "~")
-        try:
-            body = open(f, errors="replace").read()
-        except OSError:
-            continue
-        if len(body) <= limit:
-            parts.append("eng-os: project instructions from %s (this command touches that project; they apply to all work there):\n%s" % (rel, body.strip()))
-        else:
-            parts.append("eng-os: %s holds project instructions (%d chars). Read it with the Read tool before changing files in that project." % (rel, len(body)))
-    return "\n\n".join(parts) or None
-
-
 # ---------------------------------------------------------------- main
 def main():
     raw = sys.stdin.read()
@@ -422,16 +355,8 @@ def main():
     if verdict and verdict[0] == "deny":
         emit("deny", verdict[1] + ". If it is truly intended, the user can run it themselves.")
         return 0
-    ctx = None
-    if tool in ("Bash", "Read", "Write", "Edit", "MultiEdit", "NotebookEdit", "Grep", "Glob"):
-        try:
-            ctx = project_context(tool, inp, cwd, os.path.normpath(root), data.get("session_id"), cfg)
-        except Exception as e:  # context injection must never block a tool call
-            log_error("context", e)
     if verdict:
-        emit("ask", verdict[1], ctx)
-    elif ctx:
-        emit(context=ctx)
+        emit("ask", verdict[1])
     return 0
 
 

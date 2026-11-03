@@ -1,5 +1,5 @@
 {
-  "_doc": "Guard unit cases. Placeholders: {ROOT}=sandbox project (CLAUDE_PROJECT_DIR), {HOME}=real home, {AWS}/{GH}/{PRIVKEY}/{RZP}=fake secrets built at runtime. expect: allow|ask|deny|context. Cases run in order (context cases share state).",
+  "_doc": "Guard unit cases. Placeholders: {ROOT}=sandbox project (CLAUDE_PROJECT_DIR), {HOME}=real home, {AWS}/{GH}/{PRIVKEY}/{RZP}=fake secrets built at runtime. expect: allow|ask|deny.",
   "cases": [
     ["bash", "git status", "allow"],
     ["bash", "git push origin feature/x", "allow"],
@@ -123,16 +123,6 @@
     ["mcp", "mcp__ccd_session_mgmt__delete_session", {"id": "x"}, "allow"],
     ["mcp", "mcp__Claude_Browser__navigate", {"url": "https://x"}, "allow"],
 
-    ["ctx", "s1", "bash", "cat {ROOT}/sub/app.py", "context", "SUB-CANARY"],
-    ["ctx", "s1", "bash", "sed -n 1,5p {ROOT}/sub/app.py", "allow"],
-    ["ctx", "s2", "bash", "cd sub && ls", "context", "SUB-CANARY"],
-    ["ctx", "s3", "read", "{ROOT}/sub/app.py", "allow"],
-    ["ctx", "s3", "bash", "cat sub/app.py", "allow"],
-    ["ctx", "s4", "bash", "cat {ROOT}/README.md", "allow"],
-    ["ctx", "s4", "grep", "{ROOT}/sub", "context", "SUB-CANARY"],
-    ["ctx", "s5", "bash", "head big/notes.md", "context", "Read it with the Read tool"],
-    ["ctx", "s6", "bash", "git -C subrepo push origin main", "ask", "git-protected-push"],
-    ["ctx", "s7", "bash", "cat sub/inner/deep.py", "context", "INNER-CANARY"],
-    ["ctx", "s8", "bash", "cat sub/inner/deep.py", "context", "SUB-CANARY"]
+    ["bash", "git -C subrepo push origin main", "ask", "git-protected-push"]
   ]
 }

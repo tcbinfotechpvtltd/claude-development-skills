@@ -1,7 +1,6 @@
 {
   "protected_branches": ["main", "master", "prod", "production", "live", "uat", "release"],
   "block_claude_coauthor": true,
-  "project_context_max_chars": 6000,
   "audit_interval_days": 30,
   "disabled_rules": []
 }

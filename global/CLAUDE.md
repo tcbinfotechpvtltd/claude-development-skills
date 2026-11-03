@@ -54,7 +54,7 @@ On a material conflict follow the higher level and say so in one line. If a requ
 Load only what the task needs; skip skills for trivial edits. Skills a project CLAUDE.md lists as required are mandatory there.
 
 ## 7. Projects, git and continuity
-- Before changing a project, read its `CLAUDE.md` files (the guard injects nested ones when you touch a subproject via the shell). Use the Read tool for files you will edit.
+- Before changing a project, read its `CLAUDE.md` files. The harness loads nested ones only when a file there is read by path; `ls`, `cd` and recursive grep do not load them, so read them yourself when you start in a subproject.
 - Record durable project knowledge (commands, architecture map, invariants, env/branch mapping, gotchas) in that project's CLAUDE.md so it is not rediscovered next session.
 - Pull/rebase before editing shared repos. Never commit to main/prod directly: branch and PR. Commit or push only when asked or when the task includes it.
 - Commits are authored `Rishab Gupta <gotorishab@gmail.com>` with no Claude co-author or attribution lines. Never commit secrets, dumps, `.env` files or large binaries.
