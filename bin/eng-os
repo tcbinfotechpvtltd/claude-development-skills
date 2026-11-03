@@ -1,0 +1,597 @@
+#!/usr/bin/env python3
+"""eng-os: install, verify and maintain the global Claude Code engineering system.
+
+  eng-os install [--dry-run]   back up live config, stage, validate, apply, write manifest
+  eng-os verify                static health checks (zero tokens): drift, settings, hooks, budgets, duplication
+  eng-os test                  guard + session hook unit tests in a throwaway sandbox (zero tokens)
+  eng-os status                installed version, audit date, backups
+  eng-os backups               list backups
+  eng-os restore [ID|latest]   restore the live config captured by a backup (default: latest)
+  eng-os audit-done            record that a periodic review was completed
+  eng-os usage [...]           token/tool efficiency from local transcripts (see eng-os-usage.py)
+  eng-os eval [...]            behavioural scenarios against real sessions (see eng-os-eval.py)
+
+The repo (where this file lives, or manifest["repo"] when run from the installed copy) is
+the single source of truth. Never edit the live copies; edit the repo and re-install.
+Python 3.9 compatible, stdlib only.
+"""
+import datetime
+import hashlib
+import json
+import os
+import py_compile
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+HOME = os.path.expanduser("~")
+CLAUDE = os.path.join(HOME, ".claude")
+ENGOS = os.path.join(CLAUDE, "eng-os")
+MANIFEST = os.path.join(ENGOS, "manifest.json")
+BACKUPS = os.path.join(ENGOS, "backups")
+HERE = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+# Legacy items replaced by eng-os (addyosmani/agent-skills pack copied into ~/.claude on 2026-06-20).
+# They are moved to the backup on first install, never deleted. Agents are kept (heavily used).
+LEGACY = (
+    ["skills/" + s for s in (
+        "api-and-interface-design browser-testing-with-devtools ci-cd-and-automation code-review-and-quality "
+        "code-simplification context-engineering debugging-and-error-recovery deprecation-and-migration "
+        "documentation-and-adrs doubt-driven-development frontend-ui-engineering git-workflow-and-versioning "
+        "idea-refine incremental-implementation interview-me observability-and-instrumentation "
+        "performance-optimization planning-and-task-breakdown security-and-hardening shipping-and-launch "
+        "source-driven-development spec-driven-development test-driven-development using-agent-skills").split()]
+    + ["commands/" + c + ".md" for c in "build code-simplify dev plan review ship spec test webperf".split()]
+    + ["hooks/" + h for h in ("SDD-CACHE.md", "SIMPLIFY-IGNORE.md", "sdd-cache-post.sh", "sdd-cache-pre.sh",
+                               "session-start-test.sh", "session-start.sh", "simplify-ignore-test.sh", "simplify-ignore.sh")]
+)
+LEGACY_HOOK_COMMANDS = ("hooks/session-start.sh", "hooks/sdd-cache", "hooks/simplify-ignore")
+BUDGET = {"claude_md_chars": 9000, "claude_md_lines": 200, "skill_desc_chars": 600, "skill_body_chars": 14000,
+          "rule_chars": 5000}
+
+
+def repo_root():
+    if os.path.isdir(os.path.join(HERE, "global")):
+        return HERE
+    try:
+        return json.load(open(MANIFEST))["repo"]
+    except (OSError, ValueError, KeyError):
+        sys.exit("eng-os: cannot locate the eng-os repo")
+
+
+def sha(path):
+    with open(path, "rb") as fh:
+        return hashlib.sha256(fh.read()).hexdigest()
+
+
+def tilde(p):
+    return p.replace(HOME, "~", 1) if p.startswith(HOME) else p
+
+
+def now():
+    return datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
+
+def load_json(path, default=None):
+    try:
+        with open(path) as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return default
+
+
+def frontmatter(path):
+    text = open(path, errors="replace").read()
+    m = re.match(r"---\n(.*?)\n---\n?(.*)", text, re.S)
+    if not m:
+        return None, text
+    fm, key = {}, None
+    for line in m.group(1).splitlines():
+        mm = re.match(r"^([\w-]+):\s*(.*)$", line)
+        if mm:
+            key = mm.group(1)
+            fm[key] = mm.group(2).strip().strip('"')
+        elif key and re.match(r"^\s+-\s+", line):  # YAML list item under the last key
+            fm[key] = (fm[key] + " " if fm[key] else "") + line.split("-", 1)[1].strip().strip('"')
+    return fm, m.group(2)
+
+
+# ------------------------------------------------------------------ plan
+def build_plan(src):
+    """Return list of (src_file, live_file) for everything eng-os manages."""
+    g = os.path.join(src, "global")
+    plan = [(os.path.join(g, "CLAUDE.md"), os.path.join(CLAUDE, "CLAUDE.md"))]
+    for sub, dest in (("eng-os", ENGOS), ("rules", os.path.join(CLAUDE, "rules")),
+                      ("skills", os.path.join(CLAUDE, "skills")), ("agents", os.path.join(CLAUDE, "agents"))):
+        base = os.path.join(g, sub)
+        for dp, _, files in os.walk(base):
+            for f in files:
+                if f.endswith((".pyc", ".DS_Store")):
+                    continue
+                s = os.path.join(dp, f)
+                plan.append((s, os.path.join(dest, os.path.relpath(s, base))))
+    for d in ("bin", "tests", "templates"):
+        for dp, _, files in os.walk(os.path.join(src, d)):
+            for f in files:
+                if not f.endswith(".pyc"):
+                    s = os.path.join(dp, f)
+                    plan.append((s, os.path.join(ENGOS, os.path.relpath(s, src))))
+    return plan
+
+
+def managed_skill_dirs(src):
+    return [os.path.join(CLAUDE, "skills", d) for d in os.listdir(os.path.join(src, "global", "skills"))]
+
+
+def merge_settings(live, frag):
+    out = json.loads(json.dumps(live))  # deep copy
+    hooks = out.setdefault("hooks", {})
+    for event in list(hooks):
+        kept = []
+        for entry in hooks[event]:
+            cmds = [h.get("command", "") for h in entry.get("hooks", [])]
+            if any("eng-os/hooks/" in c or any(l in c for l in LEGACY_HOOK_COMMANDS) for c in cmds):
+                continue
+            kept.append(entry)
+        if kept:
+            hooks[event] = kept
+        else:
+            del hooks[event]
+    for event, entries in (frag.get("hooks") or {}).items():
+        hooks.setdefault(event, []).extend(entries)
+    for kind, rules in ((frag.get("permissions") or {}).items()):
+        if isinstance(rules, list):
+            cur = out.setdefault("permissions", {}).setdefault(kind, [])
+            cur.extend(r for r in rules if r not in cur)
+    for k, v in frag.items():
+        if k not in ("hooks", "permissions"):
+            out[k] = v
+    return out
+
+
+def validate_stage(stage):
+    errs = []
+    for dp, _, files in os.walk(stage):
+        for f in files:
+            p = os.path.join(dp, f)
+            if f.endswith(".py") or (f == "eng-os" and "bin" in dp):
+                try:
+                    py_compile.compile(p, cfile=os.path.join(tempfile.gettempdir(), "engos-check.pyc"), doraise=True)
+                except py_compile.PyCompileError as e:
+                    errs.append("syntax: %s: %s" % (p, e.msg))
+            elif f.endswith(".json"):
+                if load_json(p) is None:
+                    errs.append("invalid json: " + p)
+            elif f == "SKILL.md":
+                fm, _ = frontmatter(p)
+                if not fm or not fm.get("name") or not fm.get("description"):
+                    errs.append("skill frontmatter missing name/description: " + p)
+                elif fm["name"] != os.path.basename(dp):
+                    errs.append("skill name %r != dir %r" % (fm["name"], os.path.basename(dp)))
+    return errs
+
+
+def backup(paths, tag):
+    bid = now() + "-" + tag
+    root = os.path.join(BACKUPS, bid)
+    entries = []
+    for p in sorted(set(paths)):
+        rel = os.path.relpath(p, CLAUDE)
+        exists = os.path.lexists(p)
+        entries.append({"path": rel, "existed": exists, "dir": os.path.isdir(p)})
+        if exists:
+            dst = os.path.join(root, "files", rel)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if os.path.isdir(p):
+                shutil.copytree(p, dst, symlinks=True)
+            else:
+                shutil.copy2(p, dst)
+    os.makedirs(root, exist_ok=True)
+    with open(os.path.join(root, "backup.json"), "w") as fh:
+        json.dump({"id": bid, "created": datetime.datetime.now().isoformat(timespec="seconds"),
+                   "entries": entries}, fh, indent=1)
+    return bid
+
+
+def restore(bid):
+    root = os.path.join(BACKUPS, bid)
+    meta = load_json(os.path.join(root, "backup.json"))
+    if not meta:
+        sys.exit("no such backup: " + bid)
+    for e in meta["entries"]:
+        live = os.path.join(CLAUDE, e["path"])
+        if os.path.abspath(live).startswith(BACKUPS):
+            continue
+        if os.path.isdir(live) and not os.path.islink(live):
+            shutil.rmtree(live)
+        elif os.path.lexists(live):
+            os.remove(live)
+        if e["existed"]:
+            src = os.path.join(root, "files", e["path"])
+            os.makedirs(os.path.dirname(live), exist_ok=True)
+            if e["dir"]:
+                shutil.copytree(src, live, symlinks=True)
+            else:
+                shutil.copy2(src, live)
+    for e in meta["entries"]:  # drop directories the install created that are now empty
+        d = os.path.dirname(os.path.join(CLAUDE, e["path"]))
+        while not e["existed"] and d.startswith(CLAUDE + "/") and not d.startswith(ENGOS) and os.path.isdir(d) and not os.listdir(d):
+            os.rmdir(d)
+            d = os.path.dirname(d)
+    print("restored backup %s (%d paths)" % (bid, len(meta["entries"])))
+
+
+def cmd_install(args):
+    dry = "--dry-run" in args
+    src = repo_root()
+    plan = build_plan(src)
+    frag = load_json(os.path.join(src, "global", "settings.json"))
+    if frag is None:
+        sys.exit("global/settings.json is missing or invalid")
+    settings_path = os.path.join(CLAUDE, "settings.json")
+    live_settings = load_json(settings_path, {})
+    if live_settings is None:
+        sys.exit("~/.claude/settings.json is not valid JSON; fix it before installing")
+    merged = merge_settings(live_settings, frag)
+
+    stage = tempfile.mkdtemp(prefix="engos-stage-")
+    try:
+        for s, d in plan:
+            t = os.path.join(stage, os.path.relpath(d, CLAUDE))
+            os.makedirs(os.path.dirname(t), exist_ok=True)
+            shutil.copy2(s, t)
+        with open(os.path.join(stage, "settings.json"), "w") as fh:
+            json.dump(merged, fh, indent=2)
+        errs = validate_stage(stage)
+        if errs:
+            print("\n".join("FAIL " + e for e in errs))
+            sys.exit("install aborted: staged files failed validation; live config untouched")
+        legacy = [os.path.join(CLAUDE, l) for l in LEGACY if os.path.lexists(os.path.join(CLAUDE, l))]
+        targets = sorted(set([d for _, d in plan] + managed_skill_dirs(src) + [settings_path] + legacy
+                             + [os.path.join(ENGOS, x) for x in ("hooks", "bin", "tests", "templates", "manifest.json", "config.json")]))
+        changed = [d for s, d in plan if not os.path.exists(d) or sha(s) != sha(d)]
+        print("eng-os install from %s" % tilde(src))
+        print("  files: %d managed, %d new/changed" % (len(plan), len(changed)))
+        for d in changed[:40]:
+            print("    ~ " + tilde(d))
+        print("  settings.json: %s" % ("changed" if merged != live_settings else "unchanged"))
+        if legacy:
+            print("  legacy items to archive (moved into the backup, restorable): %d" % len(legacy))
+        if dry:
+            print("dry run: nothing written")
+            return 0
+
+        bid = backup([t for t in targets if not t.startswith(BACKUPS)], "pre-install")
+        print("  backup: %s" % tilde(os.path.join(BACKUPS, bid)))
+        try:
+            for l in legacy:
+                shutil.rmtree(l) if os.path.isdir(l) and not os.path.islink(l) else os.remove(l)
+            for sk in managed_skill_dirs(src):
+                if os.path.isdir(sk):
+                    shutil.rmtree(sk)
+            for sub in ("hooks", "bin", "tests", "templates"):
+                p = os.path.join(ENGOS, sub)
+                if os.path.isdir(p):
+                    shutil.rmtree(p)
+            for s, d in plan:
+                os.makedirs(os.path.dirname(d), exist_ok=True)
+                tmp = d + ".engos-tmp"
+                shutil.copy2(s, tmp)
+                os.replace(tmp, d)
+            for d in (os.path.join(ENGOS, "hooks"), os.path.join(ENGOS, "bin")):
+                for f in os.listdir(d):
+                    os.chmod(os.path.join(d, f), 0o755)
+            tmp = settings_path + ".engos-tmp"
+            with open(tmp, "w") as fh:
+                json.dump(merged, fh, indent=2)
+                fh.write("\n")
+            os.chmod(tmp, 0o600)
+            os.replace(tmp, settings_path)
+            old = load_json(MANIFEST, {}) or {}
+            man = {
+                "version": open(os.path.join(src, "VERSION")).read().strip(),
+                "repo": src,
+                "installed_at": datetime.datetime.now().isoformat(timespec="seconds"),
+                "last_audit": old.get("last_audit") or datetime.date.today().isoformat(),
+                "backup": bid,
+                "files": {tilde(d): sha(d) for _, d in plan},
+            }
+            man["files"][tilde(settings_path)] = sha(settings_path)
+            with open(MANIFEST, "w") as fh:
+                json.dump(man, fh, indent=1)
+        except Exception as e:
+            print("install failed (%r); rolling back" % e)
+            restore(bid)
+            return 1
+        print("installed eng-os %s" % man["version"])
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+    return cmd_verify([])
+
+
+# ------------------------------------------------------------------ verify
+def cmd_verify(args):
+    res = []
+
+    def check(ok, msg, level="FAIL"):
+        res.append(("PASS" if ok else level, msg))
+
+    man = load_json(MANIFEST)
+    check(man is not None, "manifest present (%s)" % tilde(MANIFEST))
+    if man:
+        drift = [p for p, h in man["files"].items()
+                 if not os.path.exists(os.path.expanduser(p)) or sha(os.path.expanduser(p)) != h]
+        check(not drift, "installed files match reviewed install" + (": drift in %s" % ", ".join(drift[:6]) if drift else ""), "WARN")
+    st = load_json(os.path.join(CLAUDE, "settings.json"))
+    check(st is not None, "~/.claude/settings.json is valid JSON")
+    st = st or {}
+    cmds = [h.get("command", "") for es in (st.get("hooks") or {}).values() for e in es for h in e.get("hooks", [])]
+    check(any("eng-os/hooks/guard.py" in c for c in cmds), "guard hook wired in settings")
+    check(any("eng-os/hooks/session_start.py" in c for c in cmds), "session-start hook wired in settings")
+    check(not any(l in c for c in cmds for l in LEGACY_HOOK_COMMANDS), "no legacy agent-skills hooks wired", "WARN")
+    for c in cmds:
+        for p in re.findall(r'"\$HOME/([^"]+\.py)"', c):
+            check(os.path.isfile(os.path.join(HOME, p)), "hook file exists: ~/" + p)
+    pre = (st.get("hooks") or {}).get("PreToolUse", [])
+    matchers = [e.get("matcher", "") for e in pre if any("guard.py" in h.get("command", "") for h in e.get("hooks", []))]
+    for tool in ("Bash", "Read", "Write", "Edit", "mcp__x__send_message"):
+        check(any(re.fullmatch(m if any(ch in m for ch in ".*[]()?+") else "|".join(map(re.escape, m.split("|"))), tool)
+                  for m in matchers), "guard matcher covers %s" % tool)
+    for py in ("/usr/bin/python3", shutil.which("python3") or ""):
+        if py and os.path.exists(py):
+            for h in ("guard.py", "session_start.py"):
+                p = os.path.join(ENGOS, "hooks", h)
+                r = subprocess.run([py, "-c", "import sys; compile(open(sys.argv[1]).read(), sys.argv[1], 'exec')", p],
+                                   capture_output=True, text=True)
+                check(r.returncode == 0, "%s compiles under %s" % (h, py))
+    errlog = os.path.join(ENGOS, "state", "guard-errors.log")
+    n = sum(1 for _ in open(errlog)) if os.path.exists(errlog) else 0
+    check(n == 0, "guard error log empty (%d entries in %s)" % (n, tilde(errlog)), "WARN")
+
+    cm = os.path.join(CLAUDE, "CLAUDE.md")
+    if os.path.exists(cm):
+        t = open(cm).read()
+        check(len(t) <= BUDGET["claude_md_chars"] and t.count("\n") <= BUDGET["claude_md_lines"],
+              "global CLAUDE.md within budget (%d chars ~%d tokens, %d lines)" % (len(t), len(t) // 4, t.count("\n")))
+    else:
+        check(False, "global CLAUDE.md present")
+
+    skills_dir = os.path.join(CLAUDE, "skills")
+    listing = 0
+    names = {}
+    for d in sorted(os.listdir(skills_dir)) if os.path.isdir(skills_dir) else []:
+        p = os.path.join(skills_dir, d, "SKILL.md")
+        if not os.path.isfile(p):
+            continue
+        fm, body = frontmatter(p)
+        if not fm:
+            check(False, "skill %s has frontmatter" % d)
+            continue
+        desc = fm.get("description", "") + fm.get("when_to_use", "")
+        if fm.get("disable-model-invocation", "").lower() != "true":
+            listing += len(desc) + len(d) + 4
+        names[fm.get("name", d)] = d
+        managed = man and any(k.startswith("~/.claude/skills/%s/" % d) for k in man["files"])
+        if managed:
+            check(fm.get("name") == d, "skill %s: name matches dir" % d)
+            check(len(desc) <= BUDGET["skill_desc_chars"], "skill %s: description %d chars <= %d" % (d, len(desc), BUDGET["skill_desc_chars"]), "WARN")
+            check(len(body) <= BUDGET["skill_body_chars"], "skill %s: body %d chars (~%d tokens) <= budget" % (d, len(body), len(body) // 4), "WARN")
+            for ref in re.findall(r"\]\(([\w./-]+\.md)\)", body):
+                check(os.path.exists(os.path.join(skills_dir, d, ref)), "skill %s: referenced file %s exists" % (d, ref))
+    res.append(("INFO", "user skill listing ~%d chars (~%d tokens) across %d skills" % (listing, listing // 4, len(names))))
+
+    rules_dir = os.path.join(CLAUDE, "rules")
+    always = 0
+    for f in sorted(os.listdir(rules_dir)) if os.path.isdir(rules_dir) else []:
+        p = os.path.join(rules_dir, f)
+        fm, body = frontmatter(p)
+        scoped = bool(fm and fm.get("paths"))
+        if not scoped:
+            always += len(body)
+        check(len(body) <= BUDGET["rule_chars"], "rule %s %s, %d chars" % (f, "path-scoped" if scoped else "ALWAYS loaded", len(body)), "WARN")
+    base = len(open(cm).read()) if os.path.exists(cm) else 0
+    res.append(("INFO", "always-loaded eng-os text ~%d tokens (CLAUDE.md + unscoped rules) + ~%d tokens skill listing" % ((base + always) // 4, listing // 4)))
+
+    # duplication: identical normalised sentences (>= 9 words) across managed text files
+    seen, dups = {}, []
+    files = [cm] + [os.path.join(dp, f) for root in (skills_dir, rules_dir) if os.path.isdir(root)
+                    for dp, _, fs in os.walk(root) for f in fs if f.endswith(".md")]
+    if man:
+        files = [f for f in files if tilde(f) in man["files"]]
+    for f in files:
+        for s in re.split(r"(?<=[.!?])\s+|\n", open(f, errors="replace").read()):
+            k = re.sub(r"[^a-z0-9 ]", "", s.lower()).strip()
+            if len(k.split()) >= 9:
+                if k in seen and seen[k] != f:
+                    dups.append((tilde(seen[k]), tilde(f), s.strip()[:70]))
+                seen.setdefault(k, f)
+    check(not dups, "no duplicated instructions across CLAUDE.md/skills/rules" + ("" if not dups else ": %d, e.g. %s | %s | %s" % ((len(dups),) + dups[0])), "WARN")
+
+    width = max(len(m) for _, m in res)
+    for lvl, msg in res:
+        print("%-4s %s" % (lvl, msg))
+    fails = sum(1 for l, _ in res if l == "FAIL")
+    warns = sum(1 for l, _ in res if l == "WARN")
+    print("verify: %d checks, %d fail, %d warn" % (len(res), fails, warns))
+    return 1 if fails else 0
+
+
+# ------------------------------------------------------------------ test
+def fake_secrets():
+    return {
+        "{AWS}": "AKIA" + "Z7Q2EXAMPLEKEY4X",
+        "{GH}": "ghp_" + "Ab3" * 12,
+        "{PRIVKEY}": "-----BEGIN " + "OPENSSH PRIVATE KEY-----\nb3BlbnNzaA\n-----END OPENSSH PRIVATE KEY-----",
+        "{RZP}": "rzp_" + "live_" + "Ab12Cd34Ef56Gh",
+    }
+
+
+def cmd_test(args):
+    src = repo_root()
+    hooks = os.path.join(src, "global", "eng-os", "hooks") if "--installed" not in args else os.path.join(ENGOS, "hooks")
+    py = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else sys.executable
+    for a in args:
+        if a.startswith("--python="):
+            py = a.split("=", 1)[1]
+    cases = load_json(os.path.join(src, "tests", "guard_cases.json"))["cases"]
+    tmp = tempfile.mkdtemp(prefix="engos-test-")
+    root = os.path.realpath(os.path.join(tmp, "proj"))
+    state = os.path.join(tmp, "state")
+    os.makedirs(os.path.join(root, "sub"))
+    os.makedirs(os.path.join(root, "big"))
+    os.makedirs(state)
+    shutil.copy(os.path.join(src, "global", "eng-os", "config.json"), state)
+    open(os.path.join(root, "README.md"), "w").write("root\n")
+    open(os.path.join(root, "sub", "CLAUDE.md"), "w").write("# Sub project\nSUB-CANARY: use Decimal for money.\n")
+    open(os.path.join(root, "sub", "app.py"), "w").write("print('x')\n")
+    os.makedirs(os.path.join(root, "sub", "inner"))
+    open(os.path.join(root, "sub", "inner", "CLAUDE.md"), "w").write("INNER-CANARY: nested rules.\n")
+    open(os.path.join(root, "sub", "inner", "deep.py"), "w").write("x = 1\n")
+    open(os.path.join(root, "big", "CLAUDE.md"), "w").write("# Big\n" + "rule line\n" * 900)
+    open(os.path.join(root, "big", "notes.md"), "w").write("n\n")
+    subprocess.run(["git", "init", "-q", "-b", "main", os.path.join(root, "subrepo")], check=True)
+    env = dict(os.environ, ENGOS_HOME=state, CLAUDE_PROJECT_DIR=root)
+    subs = dict(fake_secrets(), **{"{ROOT}": root, "{HOME}": HOME})
+
+    def fill(x):
+        if isinstance(x, str):
+            for k, v in subs.items():
+                x = x.replace(k, v)
+            return x
+        if isinstance(x, dict):
+            return {k: fill(v) for k, v in x.items()}
+        return x
+
+    passed, failed = 0, []
+    for i, c in enumerate(cases):
+        session = "unit-%d" % i
+        if c[0] == "ctx":
+            session, c = c[1], c[2:]
+        kind = c[0]
+        if kind == "bash":
+            tool, inp, rest = "Bash", {"command": fill(c[1])}, c[2:]
+        elif kind == "read":
+            tool, inp, rest = "Read", {"file_path": fill(c[1])}, c[2:]
+        elif kind == "grep":
+            tool, inp, rest = "Grep", {"pattern": "x", "path": fill(c[1])}, c[2:]
+        elif kind in ("write", "edit"):
+            tool = "Write" if kind == "write" else "Edit"
+            inp = {"file_path": fill(c[1]), ("content" if kind == "write" else "new_string"): fill(c[2])}
+            if kind == "edit":
+                inp["old_string"] = "x"
+            rest = c[3:]
+        else:
+            tool, inp, rest = c[1], fill(c[2]), c[3:]
+        expect, needle = rest[0], (rest[1] if len(rest) > 1 else "")
+        payload = {"session_id": session, "tool_name": tool, "tool_input": inp, "cwd": root,
+                   "hook_event_name": "PreToolUse", "permission_mode": "bypassPermissions"}
+        r = subprocess.run([py, os.path.join(hooks, "guard.py")], input=json.dumps(payload),
+                           capture_output=True, text=True, env=env, timeout=20)
+        out = json.loads(r.stdout) if r.stdout.strip() else {}
+        hso = out.get("hookSpecificOutput", {})
+        got = hso.get("permissionDecision") or ("context" if hso.get("additionalContext") else "allow")
+        text = (hso.get("permissionDecisionReason", "") + " " + hso.get("additionalContext", ""))
+        ok = got == expect and (needle in text if needle else True) and r.returncode == 0
+        if ok:
+            passed += 1
+        else:
+            failed.append("  #%d %s %s: expected %s%s, got %s %s" % (
+                i, tool, json.dumps(inp)[:90], expect, "(%s)" % needle if needle else "", got, text.strip()[:120]))
+    errlog = os.path.join(state, "guard-errors.log")
+    errors = open(errlog).read() if os.path.exists(errlog) else ""
+
+    # session_start: silent when fresh, speaks when audit is due or files drift
+    ss = os.path.join(hooks, "session_start.py")
+    def run_ss(source="startup"):
+        r = subprocess.run([py, ss], input=json.dumps({"source": source}), capture_output=True, text=True, env=env, timeout=20)
+        return r.stdout.strip()
+    probe = os.path.join(tmp, "probe.txt")
+    open(probe, "w").write("a")
+    man = {"last_audit": datetime.date.today().isoformat(), "files": {probe: sha(probe)}}
+    json.dump(man, open(os.path.join(state, "manifest.json"), "w"))
+    ss_cases = [("fresh install is silent", run_ss() == "")]
+    man["last_audit"] = "2000-01-01"
+    json.dump(man, open(os.path.join(state, "manifest.json"), "w"))
+    ss_cases.append(("overdue audit announced", "self-audit is due" in run_ss()))
+    ss_cases.append(("silent on resume/compact", run_ss("compact") == ""))
+    open(probe, "w").write("tampered")
+    ss_cases.append(("drift announced", "differ from the reviewed install" in run_ss()))
+    for name, ok in ss_cases:
+        if ok:
+            passed += 1
+        else:
+            failed.append("  session_start: " + name)
+
+    shutil.rmtree(tmp, ignore_errors=True)
+    total = len(cases) + len(ss_cases)
+    print("guard/session tests (%s): %d/%d passed" % (py, passed, total))
+    if failed:
+        print("\n".join(failed))
+    if errors:
+        print("guard internal errors:\n" + errors)
+    return 0 if not failed and not errors else 1
+
+
+# ------------------------------------------------------------------ misc
+def cmd_status(args):
+    man = load_json(MANIFEST)
+    if not man:
+        print("eng-os not installed")
+        return 1
+    bks = sorted(os.listdir(BACKUPS)) if os.path.isdir(BACKUPS) else []
+    print("eng-os %s installed %s from %s" % (man["version"], man["installed_at"], tilde(man["repo"])))
+    print("last audit: %s   backups: %d (latest %s)" % (man.get("last_audit"), len(bks), bks[-1] if bks else "-"))
+    return 0
+
+
+def cmd_backups(args):
+    for b in sorted(os.listdir(BACKUPS)) if os.path.isdir(BACKUPS) else []:
+        meta = load_json(os.path.join(BACKUPS, b, "backup.json"), {})
+        print("%s  %d paths" % (b, len(meta.get("entries", []))))
+    return 0
+
+
+def cmd_restore(args):
+    bks = sorted(os.listdir(BACKUPS)) if os.path.isdir(BACKUPS) else []
+    if not bks:
+        sys.exit("no backups")
+    bid = args[0] if args and args[0] != "latest" else bks[-1]
+    pre = backup([os.path.join(CLAUDE, e["path"]) for e in load_json(os.path.join(BACKUPS, bid, "backup.json"))["entries"]],
+                 "pre-restore")
+    print("current state saved as backup %s" % pre)
+    restore(bid)
+    return 0
+
+
+def cmd_audit_done(args):
+    man = load_json(MANIFEST)
+    if not man:
+        sys.exit("eng-os not installed")
+    man["last_audit"] = datetime.date.today().isoformat()
+    with open(MANIFEST, "w") as fh:
+        json.dump(man, fh, indent=1)
+    print("last_audit = " + man["last_audit"])
+    return 0
+
+
+def delegate(script, args):
+    return subprocess.call([sys.executable, os.path.join(os.path.dirname(os.path.realpath(__file__)), script)] + args)
+
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
+        print(__doc__)
+        return 0
+    cmd, args = sys.argv[1], sys.argv[2:]
+    table = {"install": cmd_install, "verify": cmd_verify, "test": cmd_test, "status": cmd_status,
+             "backups": cmd_backups, "restore": cmd_restore, "audit-done": cmd_audit_done,
+             "usage": lambda a: delegate("eng-os-usage.py", a), "eval": lambda a: delegate("eng-os-eval.py", a)}
+    if cmd not in table:
+        sys.exit("unknown command %r (see eng-os --help)" % cmd)
+    return table[cmd](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

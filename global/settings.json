@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python3 \"$HOME/.claude/eng-os/hooks/session_start.py\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Read|Write|Edit|MultiEdit|NotebookEdit|Grep|Glob",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$HOME/.claude/eng-os/hooks/guard.py\"", "timeout": 10 }
+        ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$HOME/.claude/eng-os/hooks/guard.py\"", "timeout": 10 }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "deny": ["Read(~/.claude/.credentials.json)"]
+  },
+  "attribution": { "commit": "", "pr": "" }
+}
