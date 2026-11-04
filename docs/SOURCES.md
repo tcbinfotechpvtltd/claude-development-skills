@@ -92,3 +92,77 @@ Primary RBI pages were read for the Digital Lending Directions; DPDP Rules conte
 | RBI NBFC Cybersecurity, Technology: Risk, Resilience and Assurance Framework Directions, 2026 | RBI/DoS/2026-27/461 | 2026-07-31 | fintech-lending, eng-security/standards.md | https://www.rbi.org.in/Scripts/BS_ViewMasDirections.aspx?id=13592 | 2026-11-04 |
 | RBI NBFC Managing Risks in Outsourcing Directions, 2025 | RBI/DOR/2025-26/363 | 2025-11-28 | fintech-lending, eng-security/standards.md | https://rbi.org.in/scripts/BS_ViewMasDirections.aspx?id=12941 | 2026-11-04 |
 | Digital Personal Data Protection Rules, 2025 (G.S.R. 846(E)) | as notified; Rule 4 from 2026-11-13, core rules from 2027-05-13 | 2025-11-13 | fintech-lending, eng-security/standards.md | https://static.pib.gov.in/WriteReadData/specificdocs/documents/2025/nov/doc20251117695301.pdf | 2026-11-04 |
+
+## Delivery and project management
+| Standard | Edition in use | Published | Used in | URL | Checked |
+|---|---|---|---|---|---|
+| The Scrum Guide | 2020 (still current) | 2020-11 | eng-delivery | https://scrumguides.org/scrum-guide.html | 2026-11-04 |
+| The Kanban Guide | v2025.5 | 2025-05 | eng-delivery | https://kanbanguides.org/english/ | 2026-11-04 |
+| PMI PMBOK Guide | 8th edition (domains per PMI's announcement; PMI pages refuse automated access) | 2025-11 | eng-delivery | https://www.pmi.org/standards/pmbok | 2026-11-04 |
+| PRINCE2 | 7th edition | 2023-09 | eng-delivery | https://www.peoplecert.org/browse-certifications/project-programme-and-portfolio-management/PRINCE2-2 | 2026-11-04 |
+| Manifesto for Agile Software Development | original, 12 principles | 2001 | eng-delivery | https://agilemanifesto.org/principles.html | 2026-11-04 |
+| Three-point (PERT) estimation; cone of uncertainty | reference articles | not applicable | eng-delivery | https://en.wikipedia.org/wiki/Three-point_estimation | 2026-11-04 |
+
+## Coding standards
+| Standard | Edition in use | Published | Used in | URL | Checked |
+|---|---|---|---|---|---|
+| PEP 8 Style Guide for Python Code | living document | last modified 2025-04-04 | eng-review/coding-standards.md | https://peps.python.org/pep-0008/ | 2026-11-04 |
+| Ruff (Python linter and formatter) | 0.17 | 2026-10-26 | coding-standards.md | https://docs.astral.sh/ruff/ | 2026-11-04 |
+| PHP-FIG PER Coding Style | 3.1 (extends and replaces PSR-12) | not shown | coding-standards.md, custom-apps/php-ci3.md | https://www.php-fig.org/per/coding-style/ | 2026-11-04 |
+| PHP_CodeSniffer | 4.0.4 | 2026-08-06 | coding-standards.md | https://github.com/PHPCSStandards/PHP_CodeSniffer/releases | 2026-11-04 |
+| ESLint | 10 (flat config) | 2026-10-30 (10.14) | coding-standards.md | https://eslint.org/docs/latest/use/configure/configuration-files | 2026-11-04 |
+| typescript-eslint | 8.72 | 2026-10-26 | coding-standards.md | https://typescript-eslint.io/users/configs | 2026-11-04 |
+| Prettier | 3.9 | 2026-06-27 | coding-standards.md | https://prettier.io/blog/ | 2026-11-04 |
+| Effective Dart; lints / flutter_lints | lints 6.1, flutter_lints 6.0 | not shown | coding-standards.md | https://dart.dev/effective-dart | 2026-11-04 |
+| Frappe repo lint setup (ruff, ESLint, Prettier, commitlint) | develop branch | not applicable | coding-standards.md | https://github.com/frappe/frappe/blob/develop/.pre-commit-config.yaml | 2026-11-04 |
+
+## GitHub
+| Standard | Edition in use | Published | Used in | URL | Checked |
+|---|---|---|---|---|---|
+| GitHub rulesets and protected branches | live docs | not shown | eng-ship/github.md | https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets | 2026-11-04 |
+| GitHub code owners | live docs | not shown | github.md | https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners | 2026-11-04 |
+| Dependabot (alerts, security and version updates) | live docs | not shown | github.md | https://docs.github.com/en/code-security/dependabot | 2026-11-04 |
+| Secret scanning and push protection | live docs | not shown | github.md | https://docs.github.com/en/code-security/secret-scanning | 2026-11-04 |
+| GitHub Actions secure use (hardening) and OIDC | live docs | not shown | github.md, rule ci-deploy | https://docs.github.com/en/actions/reference/security/secure-use | 2026-11-04 |
+| Artifact attestations | live docs | not shown | github.md | https://docs.github.com/en/actions/concepts/security/artifact-attestations | 2026-11-04 |
+| GitHub flow | live docs | not shown | github.md | https://docs.github.com/en/get-started/using-github/github-flow | 2026-11-04 |
+| Trivy supply-chain compromise advisory | GHSA-69fq-xp46-6x23 / CVE-2026-33634 | 2026-03-21 | github.md, eng-testing/tooling.md | https://github.com/aquasecurity/trivy/security/advisories/GHSA-69fq-xp46-6x23 | 2026-11-04 |
+
+## Test tooling and quality targets
+| Standard | Edition in use | Published | Used in | URL | Checked |
+|---|---|---|---|---|---|
+| WCAG | 2.2 Recommendation (3.0 is a working draft) | 2023-10-05, updated 2024-12-12 | eng-testing/tooling.md | https://www.w3.org/TR/WCAG22/ | 2026-11-04 |
+| Core Web Vitals (LCP, INP, CLS) | current thresholds | not shown | tooling.md, custom-apps/nextjs.md | https://web.dev/articles/vitals | 2026-11-04 |
+| Playwright | 1.64 | 2026-10-14 | tooling.md | https://playwright.dev/docs/release-notes | 2026-11-04 |
+| Vitest / Jest | Vitest 5.1, Jest 30.5 | 2026-11-02 / 2026-09-18 | tooling.md | https://vitest.dev/guide/ | 2026-11-04 |
+| pytest | 9.2 | 2026-10-27 | tooling.md | https://pypi.org/project/pytest/ | 2026-11-04 |
+| PHPUnit | 13 (PHP 8.4+); 12 (PHP 8.3+) | 2026-02-06 | tooling.md | https://phpunit.de/supported-versions.html | 2026-11-04 |
+| Flutter testing (unit, widget, integration_test, goldens) | live docs | not shown | tooling.md, custom-apps/flutter.md | https://docs.flutter.dev/testing/overview | 2026-11-04 |
+| Grafana k6 | 2.3 | 2026-09-21 | tooling.md | https://grafana.com/docs/k6/latest/ | 2026-11-04 |
+| Pact contract testing | specification v4 (v3 widely supported) | not shown | tooling.md | https://docs.pact.io/ | 2026-11-04 |
+| ZAP by Checkmarx / Semgrep CE / gitleaks / Trivy | 2.17 / 1.183 / 8.30 / 0.76 | 2025-12-15 to 2026-10-29 | tooling.md | https://www.zaproxy.org/download/ | 2026-11-04 |
+
+## Custom-app runtimes and frameworks
+| Standard | Edition in use | Published | Used in | URL | Checked |
+|---|---|---|---|---|---|
+| Next.js (and upgrade guides, data-security guide) | 16.4 | 2026-10-06 | custom-apps/nextjs.md | https://nextjs.org/blog/next-16-4 | 2026-11-04 |
+| React | 19.3 | 2026-09-09 | custom-apps | https://react.dev/versions | 2026-11-04 |
+| Node.js release schedule | 26 Active LTS; 24, 22 maintenance | 2026-10-28 | custom-apps | https://github.com/nodejs/Release/blob/main/schedule.json | 2026-11-04 |
+| TypeScript | 7.0 | 2026-06-18 | custom-apps | https://devblogs.microsoft.com/typescript/ | 2026-11-04 |
+| Flutter / Dart (and app-architecture guide) | Flutter 3.47, Dart 3.13 | 2026-10-29 | custom-apps/flutter.md | https://docs.flutter.dev/app-architecture/guide | 2026-11-04 |
+| PHP supported versions | 8.2–8.5 | not applicable | custom-apps/php-ci3.md | https://www.php.net/supported-versions.php | 2026-11-04 |
+| CodeIgniter 3 / CodeIgniter 4 | 3.1.13 (legacy) / 4.7 | 2022-03-03 / 2026-11 | custom-apps/php-ci3.md | https://github.com/bcit-ci/CodeIgniter | 2026-11-04 |
+| Python release status | 3.15 latest; 3.11 oldest with security fixes | 2026-10-25 | custom-apps/python.md | https://www.python.org/downloads/ | 2026-11-04 |
+
+## Odoo
+| Standard | Edition in use | Published | Used in | URL | Checked |
+|---|---|---|---|---|---|
+| Odoo supported versions | 20.0 latest (support to 2029-09); 19.0, 18.0 supported; 17.0 out of standard support | 2026-09 | odoo | https://www.odoo.com/documentation/19.0/administration/standard_extended_support.html | 2026-11-04 |
+| Odoo coding guidelines | 20.0 | 2026-09 | odoo, eng-review/coding-standards.md | https://www.odoo.com/documentation/20.0/contributing/development/coding_guidelines.html | 2026-11-04 |
+| Odoo ORM changelog | 20.0 (covers 17 to 20) | 2026-09 | odoo | https://www.odoo.com/documentation/20.0/developer/reference/backend/orm/changelog.html | 2026-11-04 |
+| Odoo security reference and HTTP routes | 20.0 | 2026-09 | odoo, eng-security/stacks.md | https://www.odoo.com/documentation/20.0/developer/reference/backend/security.html | 2026-11-04 |
+| Odoo testing and CLI reference | 20.0 | 2026-09 | odoo, eng-testing/tooling.md | https://www.odoo.com/documentation/20.0/developer/reference/backend/testing.html | 2026-11-04 |
+| Odoo upgrade scripts, upgrade service, upgrade-util | 20.0 | 2026-09 | odoo | https://www.odoo.com/documentation/20.0/developer/reference/upgrades/upgrade_scripts.html | 2026-11-04 |
+| Odoo performance reference | 20.0 | 2026-09 | odoo | https://www.odoo.com/documentation/20.0/developer/reference/backend/performance.html | 2026-11-04 |
+| PHP-CS-Fixer rule sets (`@PER-CS`) | 3.95 | 2026-09-22 | eng-review/coding-standards.md | https://github.com/PHP-CS-Fixer/PHP-CS-Fixer/blob/master/doc/ruleSets/index.rst | 2026-11-04 |
+| Odoo `neutralize` command and module loading (reinit) | 19.0 source | 2026-08-17 build | odoo | https://github.com/odoo/odoo/blob/19.0/odoo/cli/neutralize.py | 2026-11-04 |

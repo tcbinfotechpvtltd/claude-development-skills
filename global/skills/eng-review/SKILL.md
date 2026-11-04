@@ -13,7 +13,7 @@ Read the full diff (`git diff` / `git diff --staged`), not your memory of it, pl
 - **Scope**: no unrelated edits, debug prints, commented-out code, stray files, formatting churn, secrets, generated artifacts.
 - **Security**: the section 2 checklist of skill `eng-security` for anything touching auth, input, data or integrations.
 - **Compatibility**: public APIs, schemas, config keys, URLs, and data formats unchanged or migrated.
-- **Quality**: clear names, comments that explain why, duplication, function size, error handling, logging without PII, consistency with the codebase and its style guide; docs updated when behaviour or setup changes.
+- **Quality**: clear names, comments that explain why, duplication, function size, error handling, logging without PII, consistency with the codebase and its style guide ([coding-standards.md](coding-standards.md): official guide, formatter and linter per language); docs updated when behaviour or setup changes.
 - **Tests**: new behaviour and fixed bugs covered; suites actually run with results.
 - **Ops**: migration, config/env changes, feature flags, rollback documented.
 

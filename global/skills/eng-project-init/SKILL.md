@@ -19,7 +19,7 @@ Work from the project root given as the argument (default: the current project).
 
 ## 2. Write
 - Start from `~/.claude/eng-os/templates/project/CLAUDE.md`. Fill every section from evidence. Leave a section out rather than writing guesses; list genuine unknowns under "Open questions" for the user.
-- **Required skills** line: choose from the global skill list by domain and stack (for example a Frappe lending app gets `eng-security, fintech-lending, frappe-erpnext`).
+- **Required skills** line: choose from the global skill list by domain and stack (for example a Frappe lending app gets `eng-security, fintech-lending, frappe-erpnext`; an Odoo implementation `odoo`; a Next.js, CodeIgniter 3, Flutter or Python app `custom-apps`; any client project with a scope and deadlines `eng-delivery`).
 - Invariants: only rules specific to this project (business rules, tenancy, data ownership). Global rules stay global.
 - If an existing CLAUDE.md exists: preserve its project knowledge, remove what duplicates the global file, and fix what is stale. Show the user the diff summary.
 - Path-specific guidance in a big repo (for example migrations, a legacy module, generated code) goes to `.claude/rules/<topic>.md` with `paths:` frontmatter, so it loads only when those files are touched.

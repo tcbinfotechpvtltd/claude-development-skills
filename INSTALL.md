@@ -32,7 +32,7 @@ eng-os sets up Claude Code with TCB's engineering standards: global instructions
 | Path | Change |
 |---|---|
 | `~/.claude/CLAUDE.md` | Replaced by the TCB standards, with your name and email in the commit rule. **Your existing file is kept**: its text is saved to `~/.claude/eng-os/personal.md` and appended as section 9. To change it later, edit `personal.md` and re-install |
-| `~/.claude/skills/` | Adds `eng-design`, `eng-security`, `eng-testing`, `eng-review`, `eng-ship`, `frappe-erpnext`, `fintech-lending`, `eng-project-init`, `eng-os-review`. A skill of yours with one of these names is replaced (it is in the backup). Your other skills are untouched |
+| `~/.claude/skills/` | Adds `eng-design`, `eng-security`, `eng-testing`, `eng-review`, `eng-ship`, `eng-delivery`, `frappe-erpnext`, `odoo`, `custom-apps`, `fintech-lending`, `eng-project-init`, `eng-os-review`. A skill of yours with one of these names is replaced (it is in the backup). Your other skills are untouched |
 | `~/.claude/rules/` | Adds 3 rules that load only when matching files are touched (Frappe code, DB migrations/SQL, CI/infra files) |
 | `~/.claude/settings.json` | Merged; your other keys stay. Adds: a guard hook on tool calls, a session-start check, a deny rule on Claude's own login file, and `attribution` off (no Claude co-author lines) |
 | `~/.claude/eng-os/` | Hooks, CLI, tests, templates, your `user.json` (identity) and backups |

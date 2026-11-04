@@ -19,7 +19,7 @@ On a material conflict follow the higher level and say so in one line. If a requ
 ## 3. How to engineer
 - Understand before changing: read the relevant code, tests, conventions and recent history. Fix root causes, not symptoms; reproduce a bug before fixing it.
 - Non-trivial work (more than one file, schema, API, auth, money): restate goal and acceptance criteria, surface missing requirements and edge cases, give a brief plan (files, approach, risks, verification), then build in small verifiable steps.
-- Smallest correct diff in the existing style. No drive-by refactors, unrelated edits, speculative abstractions or new dependencies without a stated need.
+- Smallest correct diff in the existing style (the repo's linter and formatter first, then the language's official guide: [coding-standards.md](skills/eng-review/coding-standards.md)). No drive-by refactors, unrelated edits, speculative abstractions or new dependencies without a stated need.
 - Preserve behaviour and backward compatibility (APIs, schemas, data, config) unless changing it is the goal; then provide a migration path.
 - Production quality: explicit error handling, edge cases covered, no swallowed exceptions, no silent TODOs; comments explain why.
 - Every bug fix and business rule gets a test (failing first where practical). Never delete, skip or weaken tests or checks to get green.
@@ -48,6 +48,9 @@ On a material conflict follow the higher level and say so in one line. If a requ
 | Before commit, PR or handoff; reviewing code or an audit | `eng-review` |
 | CI/CD, deploys, releases, versioning, changelogs, migrations on shared data, servers, infra, monitoring, backups | `eng-ship` |
 | Frappe, ERPNext, HRMS apps, bench, doctypes | `frappe-erpnext` |
+| Odoo modules, models, views, QWeb reports, odoo-bin, upgrades | `odoo` |
+| Custom apps: Next.js/React/Node, PHP CodeIgniter 3, Flutter, Python services | `custom-apps` |
+| Scoping, estimates, plans, status reports, risks, change requests, UAT, client handoff | `eng-delivery` |
 | Loans, ledgers, money movement, KYC, NBFC/LSP, payment or bureau integrations | `fintech-lending` |
 | Repo without a CLAUDE.md, or user asks to set one up | `eng-project-init` |
 | eng-os audit due, or improving these instructions | `eng-os-review` |

@@ -1,6 +1,24 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.4.0 — 2026-11-04
+- New skills, each researched against official sources:
+  - `odoo`: versions 17 to 20; Odoo 20 released Sept 2026, 17.0 out of standard support. Covers module layout and naming, breaking ORM and view changes per version, `ir.access` in 20, security, controllers, QWeb, tests, migration scripts, the upgrade service and performance.
+  - `custom-apps`, with one file per stack:
+    - Next.js 16.4: upgrade traps, Cache Components, Server Action security.
+    - Flutter 3.47: official MVVM architecture.
+    - PHP and CodeIgniter 3: legacy status; PHP 8.2 security support ends 2026-12-31.
+    - Python services.
+    - A runtime support table with end-of-life dates.
+  - `eng-delivery`: scope, three-point estimates, Scrum (2020), Kanban (v2025.5), staged plans (PRINCE2 7), Definition of Done, RAID log, status template (PMBOK 8 domains), change control, UAT, go-live and handoff.
+- New reference files:
+  - `eng-review/coding-standards.md`: PEP 8 and Ruff, PER Coding Style 3.1, ESLint 10 with typescript-eslint and Prettier, Effective Dart, Frappe's lint setup.
+  - `eng-ship/github.md`: rulesets, CODEOWNERS, Dependabot, secret scanning and push protection, Actions hardening (SHA pinning, after the March 2026 Trivy action compromise), OIDC, attestations, GitHub Flow.
+  - `eng-testing/tooling.md`: tools per stack, WCAG 2.2, Core Web Vitals, k6, Pact, security scanners, mutation testing.
+- Global routing table: rows for `odoo`, `custom-apps` and `eng-delivery`, plus a coding-standards pointer. `eng-project-init` suggests the new skills. `stacks.md` Odoo section updated for 18 to 20.
+- `docs/SOURCES.md`: 103 entries.
+- README: per-area detail (custom apps, ERPNext, Odoo, coding, testing, GitHub, DevOps, SDLC, project management, security, tokens).
+
 ## 0.3.0 — 2026-11-04
 - Shareable with other developers ([INSTALL.md](INSTALL.md)). Commit identity is per user: `install --name= --email=`, saved in `~/.claude/eng-os/user.json`, written into the global CLAUDE.md at install (`{{GIT_AUTHOR}}`). No personal names, paths or usernames remain in installed files.
 - An existing global CLAUDE.md that eng-os did not write is kept: saved to `~/.claude/eng-os/personal.md` and appended as section 9 on every install.
