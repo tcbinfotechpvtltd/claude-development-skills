@@ -8,9 +8,9 @@ eng-os sets up Claude Code with TCB's engineering standards: global instructions
 - `python3` 3.9 or newer on your PATH, and `git`.
 
 ## Install (about 5 minutes)
-1. Put the repo somewhere permanent; installed copies point back to it. If you cloned the shared repo:
+1. Put the repo somewhere permanent; installed copies point back to it. Clone the private TCB repo (ask the maintainer for access):
    ```bash
-   git clone <eng-os repo URL> ~/claude/eng-os
+   git clone https://github.com/tcbinfotechpvtltd/claude-development-skills.git ~/claude/eng-os
    ```
    If you received a zip, unzip it to `~/claude/eng-os`.
 2. Run the self-tests (no Claude tokens used). Expect `126/126 passed`:
