@@ -1,6 +1,16 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.7.1 — 2026-11-04
+- **Generic for any project**: nothing in the hooks, skills, tests or docs names a specific project or server.
+  - Example project names became neutral.
+  - Test hosts became `appserver`.
+  - The ad-spend guard covers any ad-platform MCP server (`ads-spend`), not one particular tool.
+- **Detection recognises any common stack**: Laravel, WordPress, PHP, Django, React Native, Java/Kotlin, .NET, Go, Rust, Ruby and iOS. Stacks without a dedicated skill get the general skills, with their conventions recorded in the project CLAUDE.md.
+- **Projects outside git** without a CLAUDE.md are offered `/eng-project-init`, which recommends version control.
+- **Learning loop**: detected stacks are counted per machine (`state/stacks-seen.json`), so `/eng-os-review` can propose skills for stacks that keep appearing.
+- Tests: 153.
+
 ## 0.7.0 — 2026-11-04
 - **Skills apply automatically; nobody names them.**
   - **Project detection** at session start: Frappe/ERPNext, Odoo, Next.js, Node, Flutter, CodeIgniter 3 and Python from project files; lending from the project CLAUDE.md. A repo without a CLAUDE.md is offered `/eng-project-init`.

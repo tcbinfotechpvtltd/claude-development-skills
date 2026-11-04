@@ -20,6 +20,7 @@ Compare with the previous rows in `<repo>/docs/metrics.md` (repo path: `$E statu
 - Baseline context at turn 1 rising (new plugins, MCP servers, skills, longer CLAUDE.md).
 - Subagent share of input tokens, repeated reads, tool errors, compactions.
 - Skills never invoked (description or trigger table wrong, or skill not needed), or invoked when irrelevant.
+- Stacks this machine works on that have no stack-specific skill: `~/.claude/eng-os/state/stacks-seen.json` (entries with `"skill": null`). A stack that keeps appearing across developers is a candidate for a new skill.
 - `guard-errors.log` entries and guard decisions in transcripts: false positives (annoying asks) and misses (risky commands that ran without a gate).
 
 ## 2. Check for drift in the platform

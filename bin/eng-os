@@ -664,6 +664,15 @@ def cmd_test(args):
     ss_cases.append(("a workspace of several projects stays silent", run_ss_cwd(ws) == ""))
     open(os.path.join(ws, "CLAUDE.md"), "w").write("**Domain risk**: <e.g. moves money / stores KYC>\nUses skill fintech-lending")
     ss_cases.append(("no lending match from placeholders or skill names", "fintech-lending" not in run_ss_cwd(ws)))
+    lar = os.path.join(tmp, "laravel_app")
+    os.makedirs(lar)
+    open(os.path.join(lar, "artisan"), "w").write("")
+    open(os.path.join(lar, "composer.json"), "w").write("{}")
+    out = run_ss_cwd(lar)
+    ss_cases.append(("uncovered stack named, general skills apply", "Laravel" in out and "no stack-specific" in out and "PHP +" not in out))
+    ss_cases.append(("project outside git without CLAUDE.md is offered eng-project-init", "not under version control" in out and "eng-project-init" in out))
+    seen_file = os.path.join(state, "state", "stacks-seen.json")
+    ss_cases.append(("detected stacks counted for the review", os.path.exists(seen_file) and "Laravel" in open(seen_file).read()))
     # prompt router: names the matching skills once per session
     pr = os.path.join(hooks, "prompt_router.py")
     def route(prompt, sid="s1"):

@@ -3,8 +3,8 @@
   - the periodic self-audit is due (manifest.last_audit older than audit_interval_days)
   - installed eng-os files were edited outside `eng-os install` (checksum drift)
   - a newer eng-os release tag exists on the repo's remote (checked at most once a week)
-  - the session's project uses a stack that has an eng-os skill (Frappe, Odoo, Next.js, Flutter, CodeIgniter 3, Python),
-    or is a git repo without a CLAUDE.md
+  - the session's project uses a recognisable stack (with or without a stack-specific eng-os skill),
+    or is a project (git or not) without a CLAUDE.md. Nothing here names a specific project.
 Also prunes per-session guard state older than 3 days. Fail-open, Python 3.9 compatible.
 """
 import hashlib
@@ -88,7 +88,40 @@ def stack_markers(d, look_into_addons=False):
         found.append(("Flutter", "custom-apps (flutter.md)"))
     if os.path.exists(j("application", "config", "config.php")) and os.path.isdir(j("system", "core")):
         found.append(("PHP CodeIgniter 3", "custom-apps (php-ci3.md)"))
+    if '"react-native"' in pkg:
+        found.append(("React Native", "custom-apps"))
+    if os.path.exists(j("manage.py")):
+        found.append(("Django", "custom-apps (python.md)"))
+    # Stacks without a stack-specific eng-os skill: the general skills still apply.
+    try:
+        names = os.listdir(d)
+    except OSError:
+        names = []
+    other = [("Laravel", os.path.exists(j("artisan")) and os.path.exists(j("composer.json"))),
+             ("WordPress", os.path.exists(j("wp-config.php")) or os.path.isdir(j("wp-content"))),
+             ("PHP", os.path.exists(j("composer.json")) and not found),
+             ("Java/Kotlin", any(n in names for n in ("pom.xml", "build.gradle", "build.gradle.kts"))),
+             ("C#/.NET", any(n.endswith((".csproj", ".sln")) for n in names)),
+             ("Go", "go.mod" in names), ("Rust", "Cargo.toml" in names), ("Ruby", "Gemfile" in names),
+             ("iOS (Swift)", any(n.endswith(".xcodeproj") for n in names))]
+    found.extend((name, None) for name, hit in other if hit and not (name == "PHP" and any(f[0] == "Laravel" for f in found)))
     return found
+
+
+def record_stacks(state, found):
+    """Count detected stacks per machine, so the periodic review can see which stacks still lack a skill."""
+    path = os.path.join(state, "stacks-seen.json")
+    try:
+        with open(path) as fh:
+            seen = json.load(fh)
+    except (OSError, ValueError):
+        seen = {}
+    for name, skill in found:
+        entry = seen.setdefault(name, {"sessions": 0, "skill": skill})
+        entry["sessions"] += 1
+    os.makedirs(state, exist_ok=True)
+    with open(path, "w") as fh:
+        json.dump(seen, fh, indent=1)
 
 
 def detect_project(cwd):
@@ -113,16 +146,27 @@ def detect_project(cwd):
             found.extend(x for x in f if x not in found)
     if not found and (os.path.exists(j("pyproject.toml")) or os.path.exists(j("requirements.txt"))):
         found.append(("Python", "custom-apps (python.md)"))
+    try:
+        record_stacks(os.path.join(ENGOS, "state"), found)
+    except Exception:
+        pass
     notes = []
-    if found:
+    covered = [(n, s) for n, s in found if s]
+    uncovered = [n for n, s in found if not s]
+    if covered:
         notes.append("this project looks like %s; the eng-os skill for it is %s." % (
-            " + ".join(name for name, _ in found), ", ".join("`%s`" % s for _, s in found)))
+            " + ".join(n for n, _ in covered), ", ".join("`%s`" % s for _, s in covered)))
+    if uncovered:
+        notes.append("this project uses %s, which has no stack-specific eng-os skill: the general eng-os skills apply, "
+                     "and its conventions belong in the project CLAUDE.md." % " + ".join(uncovered))
     brief = read_head(j("CLAUDE.md")) + read_head(j(".claude", "CLAUDE.md"))
     facts = "\n".join(line for line in brief.splitlines() if "<e.g." not in line).replace("fintech-lending", "")
     if re.search(r"\b(loans?|lending|nbfc|lsp|disburs\w*|kyc|ledger)\b", facts, re.I):
         notes.append("its CLAUDE.md describes lending or KYC work, which skill `fintech-lending` covers.")
-    if os.path.isdir(j(".git")) and not brief:
-        notes.append("this git repo has no CLAUDE.md yet; `/eng-project-init` creates one with the docs set and templates.")
+    is_git = os.path.isdir(j(".git"))
+    if not brief and (is_git or found):
+        notes.append("this project has no CLAUDE.md yet%s; `/eng-project-init` creates one with the docs set and templates."
+                     % ("" if is_git else " and is not under version control"))
     return notes
 
 

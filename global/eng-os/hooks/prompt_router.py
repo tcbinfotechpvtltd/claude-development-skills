@@ -16,7 +16,7 @@ ROUTES = [
     ("fintech-lending", r"loans?|lending|nbfc|lsp|disburs\w*|repayments?|emi|interest rate|ledgers?|kyc|ekyc|bureau|cibil|crif|"
                         r"account aggregator|e-?nach|e-?sign|payouts?|razorpay|payment gateway|rbi|dpdp"),
     ("frappe-erpnext", r"frappe|erpnext|bench|doctypes?|hrms"),
-    ("odoo", r"odoo|openeducat"),
+    ("odoo", r"odoo"),
     ("custom-apps", r"next\.?js|react|node\.?js|flutter|dart|codeigniter|ci3|php|fastapi|django|python (script|service)"),
     ("eng-security", r"auth\w*|login|passwords?|otp|sessions?|permissions?|roles?|access control|secur\w*|vulnerab\w*|xss|"
                      r"sql injection|csrf|tokens?|secrets?|encrypt\w*|uploads?|pii|aadhaar|webhooks?|pentest"),

@@ -368,10 +368,13 @@ def check_file_tool(tool, inp, cwd):
 def check_mcp(tool, inp):
     if MCP_SKIP.search(tool):
         return None
-    if tool.startswith("mcp__meta-ads__meta_") and ("_create_" in tool or "_update_" in tool):
+    parts = tool.split("__")
+    server, action = (parts[1] if len(parts) > 2 else ""), parts[-1]
+    if re.search(r"(^|[-_])ads?($|[-_])|adwords|advertis", server, re.I) and re.search(r"create|update|mutate|status|enable", action, re.I):
         blob = json.dumps(inp).lower()
-        if '"active"' in blob or ("_update_" in tool and re.search(r"budget|bid_amount|bid_strategy", blob)):
-            return "ask", "meta-ads: activates delivery or changes spend on a live ad account"
+        updating = re.search(r"update|mutate|status", action, re.I)
+        if '"active"' in blob or '"enabled"' in blob or (updating and re.search(r"budget|bid_amount|bid_strategy|bidding", blob)):
+            return "ask", "ads-spend: activates delivery or changes spend on a live ad account"
         return None
     for rx, why in MCP_ASK:
         if rx.search(tool):

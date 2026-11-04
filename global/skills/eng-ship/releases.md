@@ -1,6 +1,6 @@
 # Versioning, commits, branches, changelogs and release notes
 
-A repo's existing convention wins (e.g. PSL tags `release-YYYY-MM-DD`). Use these defaults for new repos and repos without a convention, and record the choice in the project CLAUDE.md.
+A repo's existing convention wins (for example date tags such as `release-YYYY-MM-DD`). Use these defaults for new repos and repos without a convention, and record the choice in the project CLAUDE.md.
 
 ## Versioning (SemVer 2.0.0)
 - Declare what the public API is: endpoints, request/response and webhook schemas, config keys, CLI flags, exported library functions.

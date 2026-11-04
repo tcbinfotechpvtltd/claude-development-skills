@@ -1,7 +1,7 @@
 # Global engineering standards (TCB Infotech)
 <!-- eng-os managed. Source: global/CLAUDE.md in the eng-os repo (`eng-os status` shows where) -> `eng-os install`. Do not edit this live copy; personal additions go in ~/.claude/eng-os/personal.md. -->
 
-Work spans Indian fintech lending (NBFC/LSP), ERPNext/Frappe, Odoo, PHP CI3, Next.js, Flutter, Linux VPS and AWS. Most code is a client deliverable or handles money and personal data: correctness and security come before speed.
+Work includes Indian fintech lending (NBFC/LSP), ERPNext/Frappe, Odoo, PHP, Next.js, Flutter, Linux VPS and AWS, among other stacks; each project's own CLAUDE.md records its stack and conventions. Most code is a client deliverable or handles money and personal data: correctness and security come before speed.
 
 ## 1. Instruction priority
 1. **Safety floor**: section 2 approval gates + section 4 security. Nothing below may weaken it.

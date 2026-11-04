@@ -9,11 +9,11 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 ## At a glance
 | | |
 |---|---|
-| Version | 0.7.0 |
+| Version | 0.7.1 |
 | Works with | Claude Code desktop app and CLI. Verified on macOS with 2.1.309; Linux and WSL should work but have not been tested |
 | Applies to | every project you open with Claude Code on your machine, automatically: nobody has to name a skill |
 | Cost per session | about 3.4k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
-| Quality checks | 148 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
+| Quality checks | 153 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
 | Standards | 129 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
 | Undo | one command restores your previous Claude setup exactly |
 
@@ -49,7 +49,7 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 
 ### How the right skills load without anyone asking
 Nobody types a skill name. Four layers make the right skill load on its own:
-1. **Project detection** (session start): eng-os recognises Frappe/ERPNext, Odoo, Next.js, Node, Flutter, CodeIgniter 3 and Python projects from their files, and lending work from the project CLAUDE.md, then names the matching skills. A git repo without a CLAUDE.md is offered `/eng-project-init`.
+1. **Project detection** (session start): eng-os recognises Frappe/ERPNext, Odoo, Next.js, Node, Flutter, CodeIgniter 3 and Python projects from their files, and lending work from the project CLAUDE.md, then names the matching skills. Other stacks (Laravel, WordPress, Django, React Native, Java, .NET, Go, Rust, Ruby, iOS) are named too: the general skills apply and their conventions go in the project's own CLAUDE.md. Any project without a CLAUDE.md, in git or not, is offered `/eng-project-init`. Detection works from file types only: eng-os never names or assumes a specific project, so projects can come and go.
 2. **Prompt routing** (every request): keywords in the request ("loan", "deploy", "failing test", "user manual", "estimate", "Odoo"...) name the matching skills. Each skill is named at most once per session (about 40 tokens), and it stays silent when nothing matches.
 3. **Path rules** (whenever matching files are touched): short must-follow rules load and point to their skill.
 4. **The global instructions** tell Claude to load whatever those layers name, plus a trigger table for everything else.
@@ -71,7 +71,7 @@ These load automatically when Claude touches matching files, even if no skill wa
 ### Safety guard
 A hook checks every Claude tool call in about 50 ms and costs no tokens:
 - **Refuses** catastrophic actions, such as wiping a home or system folder, dumping the keychain, or commits with a Claude co-author trailer.
-- **Asks you first** before force-pushes, pushes to `main`/`prod`/`uat`, `reset --hard`, deploys, `DROP`/`TRUNCATE`, state-changing SSH, printing `.env` files, sending email or messages, and ad changes that spend money.
+- **Asks you first** before force-pushes, pushes to `main`/`prod`/`uat`, `reset --hard`, deploys, `DROP`/`TRUNCATE`, state-changing SSH, printing `.env` files, sending email or messages, and ad-platform changes that spend money.
 - **Stays silent** for everything else.
 
 The prompts appear even in bypass-permissions mode (verified). Details are in [section 3](#3-the-guard-deterministic-safety-layer).
@@ -488,7 +488,7 @@ Across 700+ transcripts, the 24 previously installed generic skills were invoked
 Fail-open (a crash never blocks work; errors are logged to `~/.claude/eng-os/state/guard-errors.log`), Python 3.9-compatible, stdlib only, ~50 ms per call. 122 guard cases in `tests/guard_cases.json` plus 4 session-hook cases.
 
 - **Deny** (the user can still run these by hand): wiping `/`, home or system dirs; `mkfs`/`dd` to disks; fork bombs; reading Claude's OAuth credentials or dumping the keychain; git commits carrying a `Co-Authored-By: Claude` trailer (your rule).
-- **Ask** (approval prompt): force-push, direct push to protected branches (`main master prod production live uat release*`), `reset --hard`, `clean -f`, discarding changes, deleting branches; `gh pr merge`/repo delete/releases/secrets; DROP/TRUNCATE, UPDATE/DELETE without WHERE, writes to non-local databases; `bench drop-site/reinstall/restore`; docker volume deletion; terraform/kubectl/helm/aws/gcloud changes and deploys; package publishing; `sudo`; world-writable chmod; `curl | sh`; crontab/launchctl/authorized_keys changes; any state-changing SSH command (deploys, restarts, git pull, migrations, SQL, redirects, remote scripts) and reading remote secrets files; scp/rsync uploads and `rsync --delete`; recursive deletes outside the project/temp dirs, of whole repos, `.git`, or unexpanded variables; printing `.env`/keys/credentials files; writing content that looks like a real credential (except into `.env`); editing live global Claude config; SSH config. MCP: sending email/messages, calendar invites, sharing files, deletes in external services, Apollo sends and purchases, Meta Ads changes that set `ACTIVE` or change budgets/bids.
+- **Ask** (approval prompt): force-push, direct push to protected branches (`main master prod production live uat release*`), `reset --hard`, `clean -f`, discarding changes, deleting branches; `gh pr merge`/repo delete/releases/secrets; DROP/TRUNCATE, UPDATE/DELETE without WHERE, writes to non-local databases; `bench drop-site/reinstall/restore`; docker volume deletion; terraform/kubectl/helm/aws/gcloud changes and deploys; package publishing; `sudo`; world-writable chmod; `curl | sh`; crontab/launchctl/authorized_keys changes; any state-changing SSH command (deploys, restarts, git pull, migrations, SQL, redirects, remote scripts) and reading remote secrets files; scp/rsync uploads and `rsync --delete`; recursive deletes outside the project/temp dirs, of whole repos, `.git`, or unexpanded variables; printing `.env`/keys/credentials files; writing content that looks like a real credential (except into `.env`); editing live global Claude config; SSH config. MCP: sending email/messages, calendar invites, sharing files, deletes in external services, Apollo sends and purchases, ad-platform changes (Meta, Google and similar) that set campaigns live or change budgets/bids.
 - Everything else passes silently.
 
 Tune it in `global/eng-os/config.json` (protected branches, `disabled_rules`), then re-install.
