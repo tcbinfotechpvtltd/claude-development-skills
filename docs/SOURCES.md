@@ -200,3 +200,6 @@ Primary RBI pages were read for the Digital Lending Directions; DPDP Rules conte
 | Odoo implementation methodology guide | Nov 2020 edition | 2020-11 | erp-implementation.md | https://www.odoo.com/web/content/27370198 | 2026-11-04 |
 | Microsoft Dynamics 365 Success by Design and cutover guidance | live docs (5 phases) | 2026-08-04 | erp-implementation.md | https://learn.microsoft.com/en-us/dynamics365/guidance/implementation-guide/success-by-design | 2026-11-04 |
 | SAP Activate (phases, fit-to-standard) | as described by SAP LeanIX (SAP pages refuse automated access) | not shown | erp-implementation.md | https://www.leanix.net/en/wiki/ea/sap-activate-explore-phase-activities | 2026-11-04 |
+| Claude Code data usage (training on Free/Pro/Max when Model Improvement is on; Team/Enterprise commercial terms) | live docs | not shown | docs/COMPANY-ROLLOUT.md, ENGINEERING-POLICY.md | https://code.claude.com/docs/en/data-usage | 2026-11-04 |
+| Anthropic privacy center: model training and retention (5 years on, 30 days off) | live pages | not shown | docs/COMPANY-ROLLOUT.md | https://privacy.claude.com/en/articles/10023580-is-my-data-used-for-model-training | 2026-11-04 |
+| Claude Team plan | live page | not shown | docs/COMPANY-ROLLOUT.md | https://support.claude.com/en/articles/9266767-what-is-the-team-plan | 2026-11-04 |

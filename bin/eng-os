@@ -714,12 +714,12 @@ def cmd_update(args):
     latest = releases[-1][1]
     if git("rev-parse", "HEAD") != git("rev-list", "-n", "1", latest):
         if subprocess.run(["git", "-C", src, "merge-base", "--is-ancestor", latest, "HEAD"]).returncode == 0:
-            print("the repo is ahead of the latest release %s (a maintainer clone): left as it is; run `install` yourself" % latest)
+            print("the repo is ahead of the latest release %s (a maintainer clone): left as it is; run `install` yourself" % latest, flush=True)
             return 0
         git("checkout", "--quiet", latest)
-        print("switched the repo to release %s" % latest)
+        print("switched the repo to release %s" % latest, flush=True)
     else:
-        print("the repo is at release %s" % latest)
+        print("the repo is at release %s" % latest, flush=True)
     cli = [sys.executable, os.path.join(src, "bin", "eng-os")]
     if subprocess.run(cli + ["test"]).returncode:
         sys.exit("eng-os: tests failed on %s; nothing installed" % latest)

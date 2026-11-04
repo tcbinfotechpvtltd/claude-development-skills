@@ -1,6 +1,12 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.6.0 — 2026-11-04
+- For individual Claude plans, where there is no central admin console:
+  - `eng-os update` switches the repo to the latest release tag, runs the tests, shows the install preview and installs after confirmation. It leaves a maintainer clone that is ahead of the latest release untouched.
+  - The session-start hook says, at most once a week, when a newer release is published (no prompts, silent on any failure). There are 3 new tests (129 in total).
+- Data on individual plans: the policy, the install guide and the rollout guide now require **Model Improvement** off and no `/feedback` from client work. They describe what a Team plan changes, and an optional machine-level lock (not built). Facts are from Anthropic's data-usage and privacy pages.
+
 ## 0.5.0 — 2026-11-04
 - **Testing**:
   - `eng-testing/test-types.md`: the minimum tests per change, and a map of 25 test types (what each catches, when, how).

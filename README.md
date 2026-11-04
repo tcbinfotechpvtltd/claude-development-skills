@@ -9,11 +9,11 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 ## At a glance
 | | |
 |---|---|
-| Version | 0.5.0 |
+| Version | 0.6.0 |
 | Works with | Claude Code desktop app and CLI. Verified on macOS with 2.1.309; Linux and WSL should work but have not been tested |
 | Applies to | every project you open with Claude Code on your machine, with no per-project setup |
 | Cost per session | about 3.4k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
-| Quality checks | 126 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
+| Quality checks | 129 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
 | Standards | 129 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
 | Undo | one command restores your previous Claude setup exactly |
 
@@ -62,10 +62,10 @@ A hook checks every Claude tool call in about 50 ms and costs no tokens:
 The prompts appear even in bypass-permissions mode (verified). Details are in [section 3](#3-the-guard-deterministic-safety-layer).
 
 ### Session check
-A start-of-session hook stays silent unless the monthly review is due or someone edited the installed files directly.
+A start-of-session hook stays silent unless the monthly review is due, someone edited the installed files directly, or (checked at most once a week) a newer eng-os release has been published.
 
 ### Command-line tool (`bin/eng-os`)
-`install` (backup, validation, rollback), `verify` (health check), `test`, `status`, `backups`, `restore`, `usage` (token and tool metrics from your local transcripts), `eval` (scores a real session against test scenarios), `audit-done`.
+`install` (backup, validation, rollback), `update` (latest release tag, tests, preview, then install), `verify` (health check), `test`, `status`, `backups`, `restore`, `usage` (token and tool metrics from your local transcripts), `eval` (scores a real session against test scenarios), `audit-done`.
 
 ### Templates
 - `templates/project/`: the project `CLAUDE.md`, and `claude-settings.json` (the installed-check every project repo gets).
@@ -430,6 +430,7 @@ Working habits that cut waste (global instructions section 8):
 - The guard matches command patterns. A cleverly disguised command or a script it cannot see can get past it, so it is a safety net, not a sandbox.
 - With nobody at the keyboard (`claude -p`, unattended sessions), an approval prompt either stops the work or waits for you.
 - It does not make anyone's software or organisation "compliant". It raises the floor and makes gaps visible.
+- On individual Claude plans, whether Anthropic may train on your sessions is each person's account setting. eng-os cannot enforce it, so the policy requires it off ([COMPANY-ROLLOUT.md](docs/COMPANY-ROLLOUT.md)).
 
 Full list: [section 8](#8-limitations-what-claude-code-cannot-guarantee).
 
