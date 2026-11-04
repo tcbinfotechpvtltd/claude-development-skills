@@ -135,3 +135,11 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | The exact one-liner, against a bare copy of the repo with a newer release tag | first run installed that release; second run was already up to date; the clone sits on the release tag |
 | Bug found and fixed | a fresh clone on `main` was mistaken for a maintainer copy because `main` is ahead of the last tag. Now only an existing copy with unreleased work (another branch, or commits not on origin/main) is left alone. The same rule applies in `eng-os update`. |
 | Not verified | a real employee machine; Windows without WSL (not supported); private-repo sign-in prompts (depend on each person's GitHub setup) |
+
+## 14. Release 0.8.1: shorter install command (2026-11-04)
+| Check | Result |
+|---|---|
+| The shorter install command against the real private GitHub repo (throwaway home, GitHub login through `gh`) | cloned, installed v0.8.0: 13 skills, 9 rules; `verify` 102 checks, 0 fail, 0 warn |
+| The update command `bash ~/.eng-os/install.sh` | "updating", release v0.8.0, 0 files changed |
+| The install command run a second time | git stops with "already exists" before anything runs; nothing changes |
+| Not verified | a real employee machine; Windows without WSL (not supported) |

@@ -53,9 +53,13 @@ Package the skills and hooks as a plugin in this repo. Each employee adds the ma
 Managed settings take precedence over user and project settings.
 
 ## One command for every employee
-Share this; it installs, and when run again, updates (details in [INSTALL.md](../INSTALL.md)):
+Share this install command (details in [INSTALL.md](../INSTALL.md)):
 ```bash
-( [ -d ~/.eng-os ] || git clone https://github.com/tcbinfotechpvtltd/claude-development-skills.git ~/.eng-os ) && bash ~/.eng-os/install.sh
+git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-os && bash ~/.eng-os/install.sh
+```
+To update, when Claude says a release is out:
+```bash
+bash ~/.eng-os/install.sh
 ```
 
 ## Private or public repo

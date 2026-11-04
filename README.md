@@ -5,14 +5,14 @@ Set it up once on each employee's machine, and from then on **every Claude Code 
 ### How it reaches every employee
 1. **One-time setup per employee**: paste this one command into a terminal (macOS, Linux or WSL; in VS Code use the built-in terminal):
    ```bash
-   ( [ -d ~/.eng-os ] || git clone https://github.com/tcbinfotechpvtltd/claude-development-skills.git ~/.eng-os ) && bash ~/.eng-os/install.sh
+   git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-os && bash ~/.eng-os/install.sh
    ```
    It downloads the latest release, asks for your name and work email if git does not already know them, runs the self-tests, then installs and configures everything in your Claude Code: the global instructions, all skills, the rules, the safety guard and the automatic hooks. Claude Code in VS Code, the desktop app and the terminal share the same configuration, so one install covers all three. Details: [INSTALL.md](INSTALL.md).
 2. **Automatic from then on**:
    - in every Claude Code chat: the desktop app's Code tab, the terminal CLI and the IDE extensions;
    - for every project, current or future, in git or not;
    - with nothing to call, remember or switch on.
-3. **Updates**: Claude says when a new release is out, at most once a week. Running the same command again installs it, after running the tests.
+3. **Updates**: Claude says when a new release is out, at most once a week. `bash ~/.eng-os/install.sh` installs it, after running the tests.
 
 On individual Claude plans no one can install software on someone else's machine, so step 1 is the one thing each employee does themselves. eng-os works inside Claude Code only: regular claude.ai chats and the mobile app do not read these files.
 
