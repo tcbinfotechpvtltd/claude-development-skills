@@ -6,7 +6,7 @@
 - Use `frappe.get_list` (permission-aware) rather than `frappe.get_all` (ignores permissions) when results reach a user.
 - Jinja in print formats/web pages: `{{ value }}` is escaped in web templates, but `| safe` and HTML fields render raw; sanitize with `frappe.utils.html_utils.clean_html`.
 - File doctype: `is_private=1` for KYC and financial documents; public files are world-readable by URL.
-- Keep Server Scripts and System Console off in production; restrict `Administrator`; enforce strong password policy and 2FA for System Managers; rotate the Administrator password after any suspected breach (a real ERPNext breach at TCB came in through the Administrator account and Server Scripts).
+- Keep Server Scripts and System Console off in production; restrict `Administrator`; enforce strong password policy and 2FA for System Managers; rotate the Administrator password after any suspected breach (both let an administrator account run code on the server).
 - `site_config.json` holds the DB password and `encryption_key`; never commit or print it; losing `encryption_key` makes Password fields unrecoverable.
 
 ## PHP / CodeIgniter 3

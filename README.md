@@ -3,12 +3,16 @@
 Set it up once on each employee's machine, and from then on **every Claude Code chat, in every project, follows TCB's engineering standards automatically**. Nobody calls a skill or configures anything per project: eng-os recognises the project and the request, then applies the right skills, rules and safety checks by itself. It is security first, works from evidence, gets on with routine work by itself, asks before anything risky, and keeps token use low. It covers Frappe/ERPNext, Odoo, PHP CodeIgniter 3, Next.js, Flutter, Linux VPS/AWS and Indian digital lending.
 
 ### How it reaches every employee
-1. **One-time setup per employee** ([INSTALL.md](INSTALL.md), one command, about 5 minutes). It installs and configures everything in that person's Claude Code: the global instructions, all skills, the rules, the safety guard and the automatic hooks.
+1. **One-time setup per employee**: paste this one command into a terminal (macOS, Linux or WSL; in VS Code use the built-in terminal):
+   ```bash
+   ( [ -d ~/.eng-os ] || git clone https://github.com/tcbinfotechpvtltd/claude-development-skills.git ~/.eng-os ) && bash ~/.eng-os/install.sh
+   ```
+   It downloads the latest release, asks for your name and work email if git does not already know them, runs the self-tests, then installs and configures everything in your Claude Code: the global instructions, all skills, the rules, the safety guard and the automatic hooks. Claude Code in VS Code, the desktop app and the terminal share the same configuration, so one install covers all three. Details: [INSTALL.md](INSTALL.md).
 2. **Automatic from then on**:
    - in every Claude Code chat: the desktop app's Code tab, the terminal CLI and the IDE extensions;
    - for every project, current or future, in git or not;
    - with nothing to call, remember or switch on.
-3. **Updates**: Claude says when a new release is out, at most once a week, and `bin/eng-os update` installs it after running the tests.
+3. **Updates**: Claude says when a new release is out, at most once a week. Running the same command again installs it, after running the tests.
 
 On individual Claude plans no one can install software on someone else's machine, so step 1 is the one thing each employee does themselves. eng-os works inside Claude Code only: regular claude.ai chats and the mobile app do not read these files.
 
@@ -19,10 +23,10 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 ## At a glance
 | | |
 |---|---|
-| Version | 0.7.1 |
+| Version | 0.8.0 |
 | Works with | Claude Code desktop app and CLI. Verified on macOS with 2.1.309; Linux and WSL should work but have not been tested |
 | Applies to | every Claude Code chat and every project on the machine (desktop app, terminal, IDE), automatically: nobody calls a skill |
-| Setup | one command per employee, once; updates with `eng-os update` after a weekly reminder |
+| Setup | one command per employee, once; the same command updates it after a weekly reminder |
 | Cost per session | about 3.4k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
 | Quality checks | 153 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
 | Standards | 129 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
