@@ -493,6 +493,14 @@ Fail-open (a crash never blocks work; errors are logged to `~/.claude/eng-os/sta
 
 Tune it in `global/eng-os/config.json` (protected branches, `disabled_rules`), then re-install.
 
+**Personal trusted projects**: a developer can create `~/.claude/eng-os/local.json` (never written by the installer, never shared) with `trusted_projects` entries. Inside a listed local project, this turns off only these approval prompts:
+- `git-protected-push`
+- `git-discard`
+- `sql-destructive`
+- `docker-destructive`
+
+Secrets, remote servers, infra and deploys, publishing, sudo, force-push and every hard block stay on everywhere.
+
 ## 4. Token-efficiency strategy
 Measured baseline (last 30 days before install, `eng-os usage`): turn-1 context **~83k tokens** median, peak context ~387k median, cache-read share 98.5%, **subagents 40% of all input tokens** (almost all on Opus), 24% of `Read` calls were repeats, and skills were almost never invoked.
 

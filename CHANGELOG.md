@@ -1,9 +1,6 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
-## Unreleased
-- Guard: optional personal `~/.claude/eng-os/local.json` (never written by install) with `trusted_projects`. For commands run in, or `cd`/`git -C` into, a listed path, it can switch off only `git-protected-push`, `git-discard`, `sql-destructive` and `docker-destructive`. Secrets, remote, infra, publish, sudo, force-push and all deny rules stay on. There are 6 new tests (135 in total).
-
 ## 0.7.0 — 2026-11-04
 - **Skills apply automatically; nobody names them.**
   - **Project detection** at session start: Frappe/ERPNext, Odoo, Next.js, Node, Flutter, CodeIgniter 3 and Python from project files; lending from the project CLAUDE.md. A repo without a CLAUDE.md is offered `/eng-project-init`.
@@ -11,7 +8,8 @@ Material changes to the global system. Every install is also backed up under `~/
   - **6 new path rules**: odoo, nextjs, flutter, php-ci3, tests, docs (9 in total). Each states the must-follow points and names its skill.
   - **Global instructions** section 6 tells Claude to load whatever these layers name.
 - Hook messages are phrased as facts, as the Claude Code docs recommend.
-- Tests: 148 (19 new for detection and routing). `verify` also checks the router is wired and compiles.
+- Tests: 148 (13 new for detection and routing). `verify` also checks the router is wired and compiles.
+- Guard: optional personal `~/.claude/eng-os/local.json` (never written by install) with `trusted_projects`. For commands run in, or `cd`/`git -C` into, a listed path, it can switch off only `git-protected-push`, `git-discard`, `sql-destructive` and `docker-destructive`. Secrets, remote, infra, publish, sudo, force-push and all deny rules stay on. It adds 6 tests.
 
 ## 0.6.0 — 2026-11-04
 - For individual Claude plans, where there is no central admin console:
