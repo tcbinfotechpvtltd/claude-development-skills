@@ -86,3 +86,13 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | Maintainer machine | reinstalled with his identity; second install "already up to date"; tests 126/126 on Python 3.9 and 3.14 |
 | Shared files scanned | no personal paths, emails, IPs, account ids or key-shaped strings (only Anthropic's noreply address in test cases) |
 | Not verified | Linux and WSL installs; a real second machine; Claude Code versions other than 2.1.309 |
+
+## 9. Release 0.4.0: full area coverage (2026-11-04)
+| Check | Result |
+|---|---|
+| Research | 5 research subagents (Sonnet) confirmed Odoo 17–20, app stacks, coding standards and GitHub security, delivery standards, test tooling on official sites; 48 new rows in `docs/SOURCES.md` (103 total); unconfirmed facts left out or marked |
+| Unit tests | `bin/eng-os test`: 126/126 |
+| Install | backup `20261104-115830-pre-install`; `verify` 82 checks, 0 fail, 0 warn (all new reference links resolve) |
+| Token cost | always loaded ~1,970 tokens (CLAUDE.md) + ~1,100 tokens (12 eng-os skill descriptions), about +500 over 0.3.0 for three new skills and routing rows; new detail sits in on-demand files |
+| Independent review | a fresh Sonnet reviewer found 12 issues (5 practical: missing `odoo-bin neutralize` on database copies, wrong `--reinit` description confirmed against the local Odoo 19 source, `NEXT_PUBLIC_*` vs build-once, PHPUnit forcing PHP upgrades, an incomplete Flutter build flag; 7 consistency); all fixed, reinstalled, `verify` 0 fail |
+| Not verified | behaviour of the new skills in real Odoo, Next.js, Flutter and delivery work (measure with `eng-os usage` at the next review) |

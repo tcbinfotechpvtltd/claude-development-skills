@@ -17,28 +17,29 @@
 - Uploads via the Upload library with `allowed_types`, `max_size`, `encrypt_name = TRUE`, stored outside `FCPATH`; check MIME by content.
 - `ENVIRONMENT` = `production` on live servers (hides errors); `display_errors` off; `log_threshold` without PII.
 - Keys and credentials in environment or `env_keys.php` outside git; never `config.php` committed with real values.
-- CI3 is end-of-life: pin PHP to a supported version, track known CVEs, and plan isolation (WAF, minimal exposure).
+- CI3 is legacy (last release 3.1.13, security fixes only): keep PHP on a supported version, track known CVEs, and limit exposure (WAF, admin paths restricted).
 
 ## Next.js / Node
 - Server Actions and Route Handlers are public endpoints: authenticate and authorize inside each one; validate input with a schema (zod).
 - Never expose secrets through `NEXT_PUBLIC_*`; server-only modules marked `import "server-only"`.
 - `dangerouslySetInnerHTML` only with sanitized HTML (DOMPurify); CSP with nonces for inline scripts.
-- Middleware is not an authorization layer by itself; re-check in the handler.
+- Proxy (called middleware before Next.js 16) is not an authorization layer by itself; re-check in the handler.
 - Cookies: `httpOnly`, `secure`, `sameSite`; CSRF protection for cookie-auth mutations outside Server Actions.
 - Prisma/Drizzle raw queries via tagged templates only (`$queryRaw\`...\``), never `$queryRawUnsafe` with input.
 - Image/remote patterns allow-listed; `fetch` to user-supplied URLs goes through an SSRF allow-list.
 
 ## Odoo
-- `sudo()` bypasses record rules and ACLs: use only for a documented reason, after checking the caller's rights.
-- Controllers: `auth='user'` by default; `auth='public'` only with explicit validation; `csrf=True` for POST.
-- Raw SQL via `self.env.cr.execute(query, params)` with params; never `%` formatting.
-- Define `ir.model.access.csv` and record rules for every new model (multi-company rules included).
+Full procedures, per version: skill `odoo`.
+- `sudo()` skips access rights and record rules (and can cross companies): document why, check the caller first, never return sudo'ed records.
+- Controllers default to `auth='user'`; `public`/`none` need explicit validation; CSRF protects `type='http'` POSTs but not JSON-RPC routes.
+- Parameterised queries through the ORM or the `SQL` wrapper only; domains built with `Domain`, never from concatenated input.
+- Access for every new model: `ir.model.access.csv` plus record rules up to 19, `ir.access` in 20, with multi-company rules; `groups=` on sensitive fields.
 
 ## Flutter / mobile
 - No secrets or vendor API keys in the app bundle; the backend proxies privileged calls.
 - Tokens in `flutter_secure_storage` (Keychain/Keystore), never SharedPreferences.
 - TLS only; consider certificate pinning for lending/KYC flows; reject cleartext (`usesCleartextTraffic=false`).
-- Obfuscate release builds (`--obfuscate --split-debug-info`), disable debug logging of PII, guard screenshots on sensitive screens (FLAG_SECURE).
+- Obfuscate release builds (`--obfuscate --split-debug-info=build/symbols`, keeping the symbols for crash reports), disable debug logging of PII, guard screenshots on sensitive screens (FLAG_SECURE).
 - Server-side validation remains the authority; the app is untrusted.
 - Requirements and tests: OWASP MASVS v2.1.0 and MASTG v2.0.0 (see [standards.md](standards.md)).
 

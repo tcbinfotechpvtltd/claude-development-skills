@@ -1,6 +1,6 @@
 ---
 name: eng-testing
-description: Test strategy, test-first bug fixing and systematic root-cause debugging. Use when writing or fixing tests, when a test, build or deploy fails, when behaviour differs from expectations, for flaky tests, or when deciding what and how much to test.
+description: Test strategy, test-first bug fixing and systematic root-cause debugging, with test tooling per stack and accessibility, web performance, load, contract, security-scan and mutation checks. Use when writing or fixing tests, when a test, build or deploy fails, when behaviour differs from expectations, for flaky tests, or when deciding what and how much to test.
 ---
 
 # Testing and debugging
@@ -18,7 +18,7 @@ description: Test strategy, test-first bug fixing and systematic root-cause debu
 - Arrange-act-assert (or given-when-then); assert observable behaviour, not implementation details; prefer readable tests over DRY ones.
 - Deterministic: freeze time, seed randomness, no network to real vendors, no ordering dependence; isolated data per test (transactions or fixtures).
 - Boundary cases: zero, negative, max, empty, null, unicode, duplicate submission, concurrent update, timezone edges (IST vs UTC, month end, leap year).
-- Use the project's existing framework and helpers (pytest, `bench run-tests`, PHPUnit, Jest/Vitest, Playwright, flutter_test). Don't introduce a second framework.
+- Use the project's existing framework and helpers (pytest, `bench run-tests`, PHPUnit, Jest/Vitest, Playwright, flutter_test). Don't introduce a second framework. Tooling per stack and the cross-cutting checks (accessibility, Core Web Vitals, load, contract, security scans, mutation testing): [tooling.md](tooling.md).
 
 ## Bug fix protocol (prove it)
 1. Reproduce: get the exact error, input and environment. Write the smallest failing test or script that shows it.

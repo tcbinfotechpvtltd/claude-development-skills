@@ -1,6 +1,6 @@
 ---
 name: eng-ship
-description: Delivery and operations procedure covering CI/CD pipelines, environments, versioning, changelogs, release notes and deploys, rollback, database migrations on shared data, server and cloud infrastructure (VPS, AWS), observability, backups and incident handling. Use when setting up or changing pipelines, deploying, migrating data, provisioning or hardening servers, or adding monitoring.
+description: Delivery and operations procedure covering CI/CD pipelines, environments, versioning, changelogs, release notes, GitHub repo and Actions security, and deploys, rollback, database migrations on shared data, server and cloud infrastructure (VPS, AWS), observability, backups and incident handling. Use when setting up or changing pipelines, deploying, migrating data, provisioning or hardening servers, or adding monitoring.
 ---
 
 # Shipping and operations
@@ -15,6 +15,9 @@ lint + format check → type check (where applicable) → unit/integration tests
 
 ## Versions, commits, PRs, changelogs and release notes
 Read [releases.md](releases.md) when versioning, tagging, writing a CHANGELOG or release notes, setting up PR templates, or choosing a commit/branch convention.
+
+## GitHub repository and Actions security
+Read [github.md](github.md) when creating or hardening a repo, writing or reviewing workflows, or setting branch rulesets, CODEOWNERS, Dependabot, secret scanning or cloud credentials for CI.
 
 ## Release checklist (before any production deploy)
 1. What exactly changes (commits, migrations, config, infra) and the blast radius.
