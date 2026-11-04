@@ -125,3 +125,13 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | Detection on real projects | Run against the maintainer's real folders: an Odoo 19 install with an addons folder, an ERPNext bench, two Next.js apps, a Frappe app repo without a CLAUDE.md, a workspace holding many projects, and the eng-os repo. Every stack was recognised; the workspace and eng-os stayed silent after two false results found in this run were fixed. Nothing in the hooks names a specific project. |
 | Install | `verify` 102 checks, 0 fail, 0 warn (the router wiring and compilation are checked) |
 | Not verified | That Claude actually loads every named skill in real sessions. The hooks only name them, and the global instructions ask Claude to load them. The next sessions show it; measure with `eng-os usage` (skills column) at the review. |
+
+## 13. Release 0.8.0: one-command install (2026-11-04)
+| Check | Result |
+|---|---|
+| Fresh machine (throwaway home with no eng-os or git identity; name and email from the environment) | cloned, switched to the latest release, ran the self-tests, installed: 13 skills, 9 rules, 3 hook events, identity written; `verify` 0 fail |
+| Same command again | "updating", already up to date, identity remembered, no questions |
+| No identity, piped, no terminal | stops with a clear message; nothing installed |
+| The exact one-liner, against a bare copy of the repo with a newer release tag | first run installed that release; second run was already up to date; the clone sits on the release tag |
+| Bug found and fixed | a fresh clone on `main` was mistaken for a maintainer copy because `main` is ahead of the last tag. Now only an existing copy with unreleased work (another branch, or commits not on origin/main) is left alone. The same rule applies in `eng-os update`. |
+| Not verified | a real employee machine; Windows without WSL (not supported); private-repo sign-in prompts (depend on each person's GitHub setup) |

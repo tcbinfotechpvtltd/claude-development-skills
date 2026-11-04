@@ -1,6 +1,18 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.8.0 — 2026-11-04
+- **One command installs everything**, and updates it when run again: `install.sh`, run through `git clone ... ~/.eng-os && bash ~/.eng-os/install.sh`. It:
+  - checks git and Python;
+  - downloads the latest release;
+  - asks for the name and email once when git does not know them (or reads `ENG_OS_NAME` and `ENG_OS_EMAIL`);
+  - runs the self-tests;
+  - installs into `~/.claude`, which Claude Code in VS Code, the desktop app and the terminal all read.
+  - It works for a private repo (the employee's GitHub login) or a public one.
+- **Fresh downloads always switch to the latest release.** `install.sh` and `eng-os update` now leave alone only a maintainer copy with unreleased work (another branch, or commits that are not on origin/main).
+- README, INSTALL and the rollout guide open with the one command. The rollout guide recommends a private repo and lists what to do before ever making it public.
+- `stacks.md`: the Frappe Server Scripts note is phrased generally.
+
 ## 0.7.1 — 2026-11-04
 - **Generic for any project**: nothing in the hooks, skills, tests or docs names a specific project or server.
   - Example project names became neutral.

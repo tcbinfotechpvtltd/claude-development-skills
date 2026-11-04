@@ -8,26 +8,23 @@ eng-os sets up Claude Code with TCB's engineering standards: global instructions
 - `python3` 3.9 or newer on your PATH, and `git` with access to the private repo (`gh auth login`).
 - On an individual Claude plan (Pro or Max): turn **Model Improvement** off at [claude.ai/settings/data-privacy-controls](https://claude.ai/settings/data-privacy-controls) before any client work ([why](docs/COMPANY-ROLLOUT.md)).
 
-## Install (about 5 minutes)
-1. Put the repo somewhere permanent; installed copies point back to it. Clone the private TCB repo (ask the maintainer for access):
-   ```bash
-   git clone https://github.com/tcbinfotechpvtltd/claude-development-skills.git ~/claude/eng-os
-   ```
-   If you received a zip, unzip it to `~/claude/eng-os`.
-2. Run the self-tests (no Claude tokens used). Expect `126/126 passed`:
-   ```bash
-   cd ~/claude/eng-os && bin/eng-os test
-   ```
-3. Preview the install with your own commit identity. It lists every file it will write:
-   ```bash
-   bin/eng-os install --dry-run --name="Your Name" --email=you@example.com
-   ```
-4. Install. Your current config is backed up first:
-   ```bash
-   bin/eng-os install --name="Your Name" --email=you@example.com
-   ```
-5. Start a new Claude Code session. Hooks and skills apply at once; the global instructions load in new sessions.
-6. Check: `bin/eng-os verify` should end with `0 fail`. In a new session, ask Claude *"What is the instruction priority in your global CLAUDE.md?"*. It should start with the safety floor.
+## Install with one command (about 2 minutes)
+In a terminal (macOS, Linux or WSL; in VS Code use **Terminal → New Terminal**):
+```bash
+( [ -d ~/.eng-os ] || git clone https://github.com/tcbinfotechpvtltd/claude-development-skills.git ~/.eng-os ) && bash ~/.eng-os/install.sh
+```
+- **What it does**: it downloads the latest release into `~/.eng-os` and asks for your name and work email (used for your git commits) if git does not already know them. Then it runs the self-tests and installs, backing up your current Claude config first.
+- **Then**: restart Claude Code (in VS Code: **Developer: Reload Window**). Every chat in every project now follows the standards; you never call a skill.
+- **Private repo**: git signs you in to GitHub. If it asks for a password, run `gh auth login` once (GitHub CLI), then run the command again. Your GitHub account needs read access to the repo.
+- **Updating**: run the same command again. It switches to the latest release, re-runs the tests and installs. Claude reminds you when a release is out.
+- **Unattended setup**: set `ENG_OS_NAME` and `ENG_OS_EMAIL` to skip the questions.
+- **Windows without WSL**: not supported yet.
+
+### Manual install (same result)
+1. `git clone https://github.com/tcbinfotechpvtltd/claude-development-skills.git ~/.eng-os && cd ~/.eng-os`
+2. Switch to the latest release: `git checkout $(git tag --list 'v*' --sort=-v:refname | head -n 1)`
+3. `bin/eng-os test`, then `bin/eng-os install --dry-run --name="Your Name" --email=you@example.com`
+4. `bin/eng-os install --name="Your Name" --email=you@example.com`, then restart Claude Code.
 
 ## What changes on your machine
 | Path | Change |
@@ -55,7 +52,7 @@ Read the [engineering policy](docs/ENGINEERING-POLICY.md): it is what every TCB 
 - The guard only sees Claude's tool calls. For repos you do not trust, also use Claude Code's sandbox setting or a container.
 
 ## Updating and changing it
-- Update with `bin/eng-os update`. It fetches the release tags, switches to the latest release (never an untested commit), runs the tests, shows the install preview and asks before installing. Claude reminds you at session start, at most once a week, when a new release is published. Your identity is remembered.
+- Update by running the install command again, or with `~/.eng-os/bin/eng-os update`. Both switch to the latest release (never an untested commit), run the tests and install. Claude reminds you at session start, at most once a week, when a new release is published. Your identity is remembered.
 - Never edit the live copies in `~/.claude` (the guard asks first). Change the repo on a branch, run `bin/eng-os test`, and open a pull request for the maintainer. Everyone installs from the default branch.
 - `docs/SOURCES.md` lists every external standard the skills cite, with the date each was last checked. `eng-os verify` warns when one is older than 120 days.
 

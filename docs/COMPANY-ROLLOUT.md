@@ -52,6 +52,22 @@ Package the skills and hooks as a plugin in this repo. Each employee adds the ma
 
 Managed settings take precedence over user and project settings.
 
+## One command for every employee
+Share this; it installs, and when run again, updates (details in [INSTALL.md](../INSTALL.md)):
+```bash
+( [ -d ~/.eng-os ] || git clone https://github.com/tcbinfotechpvtltd/claude-development-skills.git ~/.eng-os ) && bash ~/.eng-os/install.sh
+```
+
+## Private or public repo
+**Keep it private, and give each employee read access.** The command works either way, because `git clone` uses each person's GitHub login.
+
+Making it public would expose:
+- the full git history, including earlier internal versions;
+- the maintainer's email on every commit;
+- TCB's internal policy and the exact rules of its safety guard.
+
+If you ever publish it, publish a fresh copy without history (a new repo with one initial commit), add a LICENSE, and review the docs for anything internal first.
+
 ## Optional: a machine-level lock (not built)
 On individual plans the strongest control is a root-owned `managed-settings.json` on each machine, written once with `sudo`. It could:
 - block bypass mode (`permissions.disableBypassPermissionsMode`);
