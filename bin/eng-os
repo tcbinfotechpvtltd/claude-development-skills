@@ -404,6 +404,7 @@ def cmd_verify(args):
     cmds = [h.get("command", "") for es in (st.get("hooks") or {}).values() for e in es for h in e.get("hooks", [])]
     check(any("eng-os/hooks/guard.py" in c for c in cmds), "guard hook wired in settings")
     check(any("eng-os/hooks/session_start.py" in c for c in cmds), "session-start hook wired in settings")
+    check(any("eng-os/hooks/prompt_router.py" in c for c in cmds), "prompt-router hook wired in settings")
     check(not any(l in c for c in cmds for l in LEGACY_HOOK_COMMANDS), "no legacy agent-skills hooks wired", "WARN")
     for c in cmds:
         for p in re.findall(r'"\$HOME/([^"]+\.py)"', c):
@@ -415,7 +416,7 @@ def cmd_verify(args):
                   for m in matchers), "guard matcher covers %s" % tool)
     for py in ("/usr/bin/python3", shutil.which("python3") or ""):
         if py and os.path.exists(py):
-            for h in ("guard.py", "session_start.py"):
+            for h in ("guard.py", "session_start.py", "prompt_router.py"):
                 p = os.path.join(ENGOS, "hooks", h)
                 r = subprocess.run([py, "-c", "import sys; compile(open(sys.argv[1]).read(), sys.argv[1], 'exec')", p],
                                    capture_output=True, text=True)
@@ -533,6 +534,10 @@ def cmd_test(args):
     os.makedirs(os.path.join(root, "big"))
     os.makedirs(state)
     shutil.copy(os.path.join(src, "global", "eng-os", "config.json"), state)
+    os.makedirs(os.path.join(root, "trusted"))
+    with open(os.path.join(state, "local.json"), "w") as fh:  # sudo/fs-wipe are listed to prove they cannot be trusted off
+        json.dump({"trusted_projects": [{"path": os.path.join(root, "trusted"),
+                                         "rules": ["git-protected-push", "sql-destructive", "sudo", "fs-wipe"]}]}, fh)
     open(os.path.join(root, "README.md"), "w").write("root\n")
     open(os.path.join(root, "sub", "CLAUDE.md"), "w").write("# Sub project\nSUB-CANARY: use Decimal for money.\n")
     open(os.path.join(root, "sub", "app.py"), "w").write("print('x')\n")
@@ -627,6 +632,50 @@ def cmd_test(args):
     man["version"] = "9.9.9"
     json.dump(man, open(os.path.join(state, "manifest.json"), "w"))
     ss_cases.append(("silent when on the latest release", run_ss() == ""))
+    # project detection at session start
+    def run_ss_cwd(cwd):
+        r = subprocess.run([py, ss], input=json.dumps({"source": "startup", "cwd": cwd}), capture_output=True, text=True, env=env, timeout=20)
+        return r.stdout
+    proj = os.path.join(tmp, "odoo_proj")
+    os.makedirs(os.path.join(proj, "my_module"))
+    os.makedirs(os.path.join(proj, ".git"))
+    open(os.path.join(proj, "my_module", "__manifest__.py"), "w").write("{}")
+    out = run_ss_cwd(proj)
+    ss_cases.append(("Odoo project detected", "`odoo`" in out))
+    ss_cases.append(("repo without CLAUDE.md is offered eng-project-init", "eng-project-init" in out))
+    web = os.path.join(tmp, "web")
+    os.makedirs(web)
+    open(os.path.join(web, "package.json"), "w").write('{"dependencies": {"next": "16.4.5"}}')
+    open(os.path.join(web, "CLAUDE.md"), "w").write("# Loan app\nDisbursal and KYC flows")
+    out = run_ss_cwd(web)
+    ss_cases.append(("Next.js and lending detected", "nextjs.md" in out and "fintech-lending" in out and "eng-project-init" not in out))
+    ss_cases.append(("home folder is never scanned", run_ss_cwd(os.path.expanduser("~")) == ""))
+    nested = os.path.join(tmp, "erp_site")
+    os.makedirs(os.path.join(nested, "extra-addons", "school_fees"))
+    open(os.path.join(nested, "extra-addons", "school_fees", "__manifest__.py"), "w").write("{}")
+    os.makedirs(os.path.join(nested, "app"))
+    open(os.path.join(nested, "app", "package.json"), "w").write('{"dependencies": {"next": "16.4.5"}}')
+    out = run_ss_cwd(nested)
+    ss_cases.append(("stacks one level down detected", "`odoo`" in out and "nextjs.md" in out))
+    ws = os.path.join(tmp, "workspace")
+    for name in ("a", "b", "c"):
+        os.makedirs(os.path.join(ws, name))
+        open(os.path.join(ws, name, "package.json"), "w").write("{}")
+    ss_cases.append(("a workspace of several projects stays silent", run_ss_cwd(ws) == ""))
+    open(os.path.join(ws, "CLAUDE.md"), "w").write("**Domain risk**: <e.g. moves money / stores KYC>\nUses skill fintech-lending")
+    ss_cases.append(("no lending match from placeholders or skill names", "fintech-lending" not in run_ss_cwd(ws)))
+    # prompt router: names the matching skills once per session
+    pr = os.path.join(hooks, "prompt_router.py")
+    def route(prompt, sid="s1"):
+        r = subprocess.run([py, pr], input=json.dumps({"prompt": prompt, "session_id": sid}), capture_output=True, text=True, env=env, timeout=20)
+        return r.stdout
+    out = route("the odoo invoice report test is failing after the upgrade")
+    ss_cases.append(("router: odoo + testing", "`odoo`" in out and "`eng-testing`" in out))
+    ss_cases.append(("router: skills not repeated in a session", route("another failing odoo test") == ""))
+    ss_cases.append(("router: a new skill is still routed", "`eng-docs`" in route("now update the user manual")))
+    ss_cases.append(("router: silent for small talk", route("thanks, that looks good") == ""))
+    ss_cases.append(("router: silent for slash commands", route("/eng-review please check it", "s2") == ""))
+    ss_cases.append(("router: lending", "`fintech-lending`" in route("add an EMI schedule to the loan sanction screen", "s3")))
     for name, ok in ss_cases:
         if ok:
             passed += 1

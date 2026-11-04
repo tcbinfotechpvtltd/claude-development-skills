@@ -6,7 +6,7 @@ paths:
   - "**/patches/**"
 ---
 # eng-os rule: Frappe / ERPNext code
-Applies because a Frappe app file is being touched. Full procedures: skill `frappe-erpnext`.
+Applies because a Frappe app file is being touched. Full procedures: skill `frappe-erpnext` (load it if it is not loaded yet).
 - `@frappe.whitelist()` methods check permission explicitly (`frappe.has_permission`, `doc.check_permission`, `frappe.only_for`) before reading or writing; `allow_guest=True` only for truly public endpoints, with input validation and rate limiting.
 - No `ignore_permissions=True` / `ignore_user_permissions` unless the reason is documented in a comment and the caller is already authorized.
 - `frappe.db.sql` only with `%(name)s` / `%s` parameters, never f-strings or concatenation; prefer `frappe.qb`, or `frappe.get_list` (permission-aware) when results reach a user.
