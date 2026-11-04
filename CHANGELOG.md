@@ -4,6 +4,15 @@ Material changes to the global system. Every install is also backed up under `~/
 ## Unreleased
 - Guard: optional personal `~/.claude/eng-os/local.json` (never written by install) with `trusted_projects`. For commands run in, or `cd`/`git -C` into, a listed path, it can switch off only `git-protected-push`, `git-discard`, `sql-destructive` and `docker-destructive`. Secrets, remote, infra, publish, sudo, force-push and all deny rules stay on. There are 6 new tests (135 in total).
 
+## 0.7.0 — 2026-11-04
+- **Skills apply automatically; nobody names them.**
+  - **Project detection** at session start: Frappe/ERPNext, Odoo, Next.js, Node, Flutter, CodeIgniter 3 and Python from project files; lending from the project CLAUDE.md. A repo without a CLAUDE.md is offered `/eng-project-init`.
+  - **New `prompt_router.py` UserPromptSubmit hook**: names the matching skills from the request's keywords, at most once per skill per session, silent when nothing matches.
+  - **6 new path rules**: odoo, nextjs, flutter, php-ci3, tests, docs (9 in total). Each states the must-follow points and names its skill.
+  - **Global instructions** section 6 tells Claude to load whatever these layers name.
+- Hook messages are phrased as facts, as the Claude Code docs recommend.
+- Tests: 148 (19 new for detection and routing). `verify` also checks the router is wired and compiles.
+
 ## 0.6.0 — 2026-11-04
 - For individual Claude plans, where there is no central admin console:
   - `eng-os update` switches the repo to the latest release tag, runs the tests, shows the install preview and installs after confirmation. It leaves a maintainer clone that is ahead of the latest release untouched.

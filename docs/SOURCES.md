@@ -203,3 +203,5 @@ Primary RBI pages were read for the Digital Lending Directions; DPDP Rules conte
 | Claude Code data usage (training on Free/Pro/Max when Model Improvement is on; Team/Enterprise commercial terms) | live docs | not shown | docs/COMPANY-ROLLOUT.md, ENGINEERING-POLICY.md | https://code.claude.com/docs/en/data-usage | 2026-11-04 |
 | Anthropic privacy center: model training and retention (5 years on, 30 days off) | live pages | not shown | docs/COMPANY-ROLLOUT.md | https://privacy.claude.com/en/articles/10023580-is-my-data-used-for-model-training | 2026-11-04 |
 | Claude Team plan | live page | not shown | docs/COMPANY-ROLLOUT.md | https://support.claude.com/en/articles/9266767-what-is-the-team-plan | 2026-11-04 |
+| Claude Code hooks reference (UserPromptSubmit and SessionStart input and additionalContext; 10,000-character limit) | live docs | not shown | hooks prompt_router.py, session_start.py | https://code.claude.com/docs/en/hooks | 2026-11-04 |
+| Claude Code skills (invocation, frontmatter) and memory (path-scoped rules) | live docs | not shown | global CLAUDE.md section 6, global/rules | https://code.claude.com/docs/en/skills | 2026-11-04 |

@@ -9,11 +9,11 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 ## At a glance
 | | |
 |---|---|
-| Version | 0.6.0 |
+| Version | 0.7.0 |
 | Works with | Claude Code desktop app and CLI. Verified on macOS with 2.1.309; Linux and WSL should work but have not been tested |
-| Applies to | every project you open with Claude Code on your machine, with no per-project setup |
+| Applies to | every project you open with Claude Code on your machine, automatically: nobody has to name a skill |
 | Cost per session | about 3.4k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
-| Quality checks | 129 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
+| Quality checks | 148 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
 | Standards | 129 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
 | Undo | one command restores your previous Claude setup exactly |
 
@@ -47,11 +47,26 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 | `eng-project-init` | a repo with no CLAUDE.md, or a stale one | builds a project CLAUDE.md from the repo: commands, architecture map, invariants, environments, gotchas |
 | `eng-os-review` | monthly (a reminder appears) | measures token use and adherence, checks Claude Code changes, re-checks every cited standard, proposes improvements as a PR |
 
-### Three path-scoped rules
+### How the right skills load without anyone asking
+Nobody types a skill name. Four layers make the right skill load on its own:
+1. **Project detection** (session start): eng-os recognises Frappe/ERPNext, Odoo, Next.js, Node, Flutter, CodeIgniter 3 and Python projects from their files, and lending work from the project CLAUDE.md, then names the matching skills. A git repo without a CLAUDE.md is offered `/eng-project-init`.
+2. **Prompt routing** (every request): keywords in the request ("loan", "deploy", "failing test", "user manual", "estimate", "Odoo"...) name the matching skills. Each skill is named at most once per session (about 40 tokens), and it stays silent when nothing matches.
+3. **Path rules** (whenever matching files are touched): short must-follow rules load and point to their skill.
+4. **The global instructions** tell Claude to load whatever those layers name, plus a trigger table for everything else.
+
+Hooks can name a skill but cannot force it to load, so layers 1–2 are strong prompts and layer 3 guarantees the essential rules arrive.
+
+### Nine path-scoped rules
 These load automatically when Claude touches matching files, even if no skill was invoked:
 - `frappe-erpnext`: `hooks.py`, doctypes and patches (permission checks, parameterised SQL, Server Scripts off).
 - `db-migrations`: migrations, `*.sql` and schema files (reversible and re-runnable, expand-then-contract, approval and a fresh backup before destructive changes).
 - `ci-deploy`: CI workflows, Dockerfiles, compose, Terraform, nginx, Kubernetes (least-privilege tokens, actions pinned to a commit, approval gate on production deploys, non-root containers, written rollback).
+- `odoo`: manifests, access files, views and reports (no core edits, access rules for every model, `sudo()` with a reason, migration scripts, neutralized copies).
+- `nextjs`: routes, actions, proxy and config (authorization inside every action and handler, schema validation, a `server-only` data layer, no secrets in `NEXT_PUBLIC_*`).
+- `flutter`: `pubspec.yaml` and `lib/` (no secrets in the app, secure token storage, minimal permissions, keep the state pattern).
+- `php-ci3`: CodeIgniter 3 controllers, models, libraries, views and config (bound queries, escaped output, CSRF on, no committed keys).
+- `tests`: test files (never weaken tests, deterministic, synthetic data, failing test first).
+- `docs`: `docs/` and CHANGELOG (no secrets or real data, stable requirement ids, append-only log, TO CONFIRM for unconfirmed facts).
 
 ### Safety guard
 A hook checks every Claude tool call in about 50 ms and costs no tokens:
@@ -62,7 +77,7 @@ A hook checks every Claude tool call in about 50 ms and costs no tokens:
 The prompts appear even in bypass-permissions mode (verified). Details are in [section 3](#3-the-guard-deterministic-safety-layer).
 
 ### Session check
-A start-of-session hook stays silent unless the monthly review is due, someone edited the installed files directly, or (checked at most once a week) a newer eng-os release has been published.
+A start-of-session hook names the skills for the project (see above) and otherwise stays silent unless the monthly review is due, someone edited the installed files directly, or (checked at most once a week) a newer eng-os release has been published.
 
 ### Command-line tool (`bin/eng-os`)
 `install` (backup, validation, rollback), `update` (latest release tag, tests, preview, then install), `verify` (health check), `test`, `status`, `backups`, `restore`, `usage` (token and tool metrics from your local transcripts), `eval` (scores a real session against test scenarios), `audit-done`.

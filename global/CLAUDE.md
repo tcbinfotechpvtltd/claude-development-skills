@@ -39,7 +39,8 @@ On a material conflict follow the higher level and say so in one line. If a requ
 - Run the tests, linters and build; exercise the behaviour (command output, HTTP response; for UI changes, check it in a browser when the session has one). Show the evidence; report failures plainly with output.
 - Label status precisely: implemented / tested / verified / not verified. Never claim what you did not observe.
 
-## 6. Skills: invoke when the trigger applies (they never load by themselves)
+## 6. Skills: invoke when the trigger applies
+The user never has to name a skill. At session start and on each request, eng-os hooks name the skills that match the project and the request ("eng-os skill routing"), and path rules load when matching files are touched. Load the named skills with the Skill tool before starting, unless already loaded, clearly unrelated, or the task is trivial.
 | Trigger | Skill |
 |---|---|
 | Designing a feature, system, API or schema; choosing tech; spec/ADR | `eng-design` |

@@ -115,3 +115,13 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | Unit tests | 129/129 on Python 3.9 and 3.14. The 3 new cases cover the weekly update check (newer release announced, at most weekly, silent when current). |
 | `eng-os update` end to end | Throwaway home and clone at v0.5.0 with a newer tag on its origin:<br>• switched to the latest tag, ran the tests, previewed and installed<br>• a second run reported "at release", asked, and installed nothing without a yes |
 | Install on maintainer machine | `verify` 92 checks, 0 fail, 0 warn |
+
+## 12. Release 0.7.0: skills apply automatically (2026-11-04)
+| Check | Result |
+|---|---|
+| Mechanics | Confirmed in the Claude Code hooks, skills and memory docs:<br>• UserPromptSubmit and SessionStart accept `additionalContext` (10,000-character limit, not shown to the user).<br>• No hook can force a skill to load.<br>• Path rules load on Read/Write/Edit of matching files.<br>• Hook text should be phrased as facts. |
+| Unit tests | 148/148 on Python 3.9 and 3.14 (19 new):<br>• Odoo, Next.js and lending detection; stacks one level down<br>• the home folder and workspace folders stay silent<br>• no lending match from template placeholders or skill names<br>• repos without a CLAUDE.md are offered `/eng-project-init`<br>• router: routes once per session, silent for small talk and slash commands |
+| Router on 12 realistic requests | Each lending, ERPNext, Odoo, Next.js, manual, estimate, deploy, setup and Flutter/KYC request was routed to sensible skills. "Refactor this", "what does this regex do" and "rename a variable" stayed silent. The one gap found ("new Odoo module" without design) was fixed. |
+| Detection on real projects | odoo19_edu → `odoo`; officetcb-bench → `frappe-erpnext`; tcb-website → Next.js; kiit-dms → Next.js; intrakore_hr → `frappe-erpnext` plus the `/eng-project-init` offer; ~/claude (workspace) and eng-os → silent. Two false results found in this run were fixed: the workspace was detected as Next.js, and eng-os as lending. |
+| Install | `verify` 102 checks, 0 fail, 0 warn (the router wiring and compilation are checked) |
+| Not verified | That Claude actually loads every named skill in real sessions. The hooks only name them, and the global instructions ask Claude to load them. The next sessions show it; measure with `eng-os usage` (skills column) at the review. |

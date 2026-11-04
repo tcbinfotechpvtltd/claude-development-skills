@@ -3,7 +3,11 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "python3 \"$HOME/.claude/eng-os/hooks/session_start.py\"", "timeout": 10 }
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/eng-os/hooks/session_start.py\"",
+            "timeout": 10
+          }
         ]
       }
     ],
@@ -11,19 +15,43 @@
       {
         "matcher": "Bash|Read|Write|Edit|MultiEdit|NotebookEdit|Grep|Glob",
         "hooks": [
-          { "type": "command", "command": "python3 \"$HOME/.claude/eng-os/hooks/guard.py\"", "timeout": 10 }
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/eng-os/hooks/guard.py\"",
+            "timeout": 10
+          }
         ]
       },
       {
         "matcher": "mcp__.*",
         "hooks": [
-          { "type": "command", "command": "python3 \"$HOME/.claude/eng-os/hooks/guard.py\"", "timeout": 10 }
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/eng-os/hooks/guard.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.claude/eng-os/hooks/prompt_router.py\"",
+            "timeout": 5
+          }
         ]
       }
     ]
   },
   "permissions": {
-    "deny": ["Read(~/.claude/.credentials.json)"]
+    "deny": [
+      "Read(~/.claude/.credentials.json)"
+    ]
   },
-  "attribution": { "commit": "", "pr": "" }
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
 }
