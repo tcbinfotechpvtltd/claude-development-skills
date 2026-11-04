@@ -1,8 +1,100 @@
-# eng-os: global engineering system for Claude Code
+# eng-os: TCB Infotech's engineering system for Claude Code
 
-A small, tested set of instructions, skills, rules and hooks that make every Claude Code session on this machine behave like a careful principal engineer: security first, evidence-based, autonomous on routine work, gated on risky work, and frugal with tokens.
+Install it once and every Claude Code session on your machine works to TCB's engineering standards. It is security first, works from evidence, gets on with routine work by itself, asks before anything risky, and keeps token use low. It covers Frappe/ERPNext, Odoo, PHP CodeIgniter 3, Next.js, Flutter, Linux VPS/AWS and Indian digital lending.
 
-Repo: wherever you cloned eng-os (`eng-os status` shows it; the maintainer's copy is `~/claude/eng-os`), the source of truth. Live copies: `~/.claude/`. **Installing on another machine or for a teammate: [INSTALL.md](INSTALL.md).** Built and verified against Claude Code **2.1.309** (desktop app) on 2026-11-03.
+**New here? Install it with [INSTALL.md](INSTALL.md)** (about 5 minutes). Changes: [CHANGELOG.md](CHANGELOG.md).
+
+## At a glance
+| | |
+|---|---|
+| Version | 0.3.0 |
+| Works with | Claude Code desktop app and CLI. Verified on macOS with 2.1.309; Linux and WSL should work but have not been tested |
+| Applies to | every project you open with Claude Code on your machine, with no per-project setup |
+| Cost per session | about 2.7k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
+| Quality checks | 126 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
+| Standards | 53 external standards, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
+| Undo | one command restores your previous Claude setup exactly |
+
+## What's inside
+
+### Global instructions
+`global/CLAUDE.md` is installed as `~/.claude/CLAUDE.md` and read in every session. Eight short sections:
+1. **Instruction priority**: the safety rules come first, then your request, then project rules. A project can add rules but never relax the safety floor.
+2. **When Claude acts and when it asks**: it does routine, reversible work end to end. It asks before destructive, production, outward-facing, shared-infrastructure or legal/money decisions. Production is read-only unless you say otherwise.
+3. **How to engineer**: understand before changing, fix root causes, make the smallest correct diff, keep compatibility, give every fix a test, and change approach after two failed attempts.
+4. **Security floor**: secrets, authorization on every request, hostile input, signed webhooks, personal and KYC data, dependencies.
+5. **Done means verified**: run it and show the evidence. Status is labelled implemented / tested / verified / not verified.
+6. **Skill routing table**: which skill to load for which task. Description matching alone proved unreliable.
+7. **Projects, git and continuity**: read project CLAUDE.md files, record project knowledge, branch and PR, commit under your own name with no Claude co-author lines, keep a progress file for long work.
+8. **Token efficiency**: targeted reads, parallel tool calls, cheaper models for mechanical subagent work, one task per session.
+
+### Nine skills (loaded only when the task needs them)
+| Skill | Used for | What it brings |
+|---|---|---|
+| `eng-design` | features, systems, APIs, data models, tech choices | requirements before solutions, 2–3 options with trade-offs, a design checklist (data, state machines, APIs, integrations, consistency, failure modes), C4 diagrams, ADRs, Twelve-Factor, an AWS Well-Architected final pass |
+| `eng-security` + `stacks.md` + `standards.md` | auth, input, uploads, secrets, PII/KYC, payments, new endpoints, dependencies, servers, audits | STRIDE threat model; controls for each OWASP Top 10:2025 category; NIST 800-63B-4 password and MFA rules; CERT-In logging; pitfalls for Frappe, CI3, Next.js, Odoo, Flutter and Linux; a map of which standard governs which work (ASVS 5.0, API, mobile, LLM and agentic AI, supply chain, CIS, PCI DSS, ISO 27001, NIST CSF) |
+| `eng-testing` | writing or fixing tests, debugging failures, flaky tests | risk-based test selection, test pyramid rules, contract tests, fix-with-a-failing-test protocol, step-by-step root-cause debugging |
+| `eng-review` | before a commit, PR or handoff; code reviews and audits | self-review checklist based on Google's engineering practices, independent subagent review, an "audit until dry" loop, severity rubric, report format |
+| `eng-ship` + `releases.md` | CI/CD, deploys, releases, migrations on shared data, servers, monitoring, backups, incidents | CI gates, a production release checklist with rollback, SemVer, Conventional Commits, Keep a Changelog, GitHub release notes, SLOs and error budgets, DORA metrics, backups, blameless postmortems |
+| `frappe-erpnext` | Frappe, ERPNext, HRMS and custom apps, bench | site isolation, permission-safe APIs, DocType JSON and patches, bench workflows, v15/v16 gotchas |
+| `fintech-lending` | anything that moves money, computes loan amounts or stores borrower data | money as decimals, append-only double-entry ledgers, loan state machines, disbursal gates, vendor adapters and webhooks, RBI Digital Lending Directions 2025, DPDP Rules 2025, RBI NBFC cyber and outsourcing directions |
+| `eng-project-init` | a repo with no CLAUDE.md, or a stale one | builds a project CLAUDE.md from the repo: commands, architecture map, invariants, environments, gotchas |
+| `eng-os-review` | monthly (a reminder appears) | measures token use and adherence, checks Claude Code changes, re-checks every cited standard, proposes improvements as a PR |
+
+### Three path-scoped rules
+These load automatically when Claude touches matching files, even if no skill was invoked:
+- `frappe-erpnext`: `hooks.py`, doctypes and patches (permission checks, parameterised SQL, Server Scripts off).
+- `db-migrations`: migrations, `*.sql` and schema files (reversible and re-runnable, expand-then-contract, approval and a fresh backup before destructive changes).
+- `ci-deploy`: CI workflows, Dockerfiles, compose, Terraform, nginx, Kubernetes (least-privilege tokens, actions pinned to a commit, approval gate on production deploys, non-root containers, written rollback).
+
+### Safety guard
+A hook checks every Claude tool call in about 50 ms and costs no tokens:
+- **Refuses** catastrophic actions, such as wiping a home or system folder, dumping the keychain, or commits with a Claude co-author trailer.
+- **Asks you first** before force-pushes, pushes to `main`/`prod`/`uat`, `reset --hard`, deploys, `DROP`/`TRUNCATE`, state-changing SSH, printing `.env` files, sending email or messages, and ad changes that spend money.
+- **Stays silent** for everything else.
+
+The prompts appear even in bypass-permissions mode (verified). Details are in [section 3](#3-the-guard-deterministic-safety-layer).
+
+### Session check
+A start-of-session hook stays silent unless the monthly review is due or someone edited the installed files directly.
+
+### Command-line tool (`bin/eng-os`)
+`install` (backup, validation, rollback), `verify` (health check), `test`, `status`, `backups`, `restore`, `usage` (token and tool metrics from your local transcripts), `eval` (scores a real session against test scenarios), `audit-done`.
+
+### Templates
+- `templates/project/CLAUDE.md`: the project instructions template.
+- `templates/release/`: `CHANGELOG.md`, GitHub `release.yml` and `pull_request_template.md`, ready to copy into a repo.
+
+### Documentation
+| File | What it holds |
+|---|---|
+| [INSTALL.md](INSTALL.md) | install, what changes on your machine, updating, undo, troubleshooting |
+| [docs/SOURCES.md](docs/SOURCES.md) | every external standard cited, with edition, date, link and when it was last checked |
+| [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) | each requirement mapped to where it is implemented and how far it is proven |
+| [docs/VERIFICATION.md](docs/VERIFICATION.md) | test and live-session evidence for every release |
+| [docs/metrics.md](docs/metrics.md) | token and efficiency measurements over time |
+| [CHANGELOG.md](CHANGELOG.md) | what changed in each version |
+
+## Why it is good
+- **Safety is enforced, not hoped for.** Risky actions are stopped by a hook that runs on every tool call, not by a sentence the model might forget. 126 automated cases cover it, and it was verified live in bypass mode.
+- **Built on current standards, with sources.** 53 standards are named with their edition and the date each was confirmed on its official site: OWASP, NIST, CIS, MITRE, CISA, SLSA, PCI, ISO, Google SRE and DORA, RBI, DPDP and CERT-In. Nothing is quoted from memory, and a health-check warning plus the monthly review keep them current.
+- **Made for TCB's real work.** The stack pitfalls, lending rules and severity examples come from TCB projects, audits and incidents, not generic advice.
+- **Cheap to run.** About 2.7k tokens per session. Detail lives in files that load only when needed. The 24-skill pack it replaced was used once in more than 700 sessions.
+- **Honest results.** Claude must show evidence, label what is not verified, and never call anything "secure".
+- **The same standards for everyone.** Each developer still commits under their own name and keeps their own personal instructions. Improvements come in as pull requests.
+- **Safe to install and remove.** Every install that changes anything takes a backup first, validates before writing and rolls back on error. A restore gives back the exact previous setup. A broken settings file is refused, never overwritten.
+- **Keeps itself up to date.** The monthly review, source-freshness check and drift detection flag what needs attention.
+- **Private.** Nothing is sent anywhere; usage metrics come from transcripts on your own machine.
+
+## Limits (honest)
+- Instructions and skills guide the model; they cannot force it. Only the guard and permission settings are hard controls.
+- The guard matches command patterns. A cleverly disguised command or a script it cannot see can get past it, so it is a safety net, not a sandbox.
+- With nobody at the keyboard (`claude -p`, unattended sessions), an approval prompt either stops the work or waits for you.
+- It does not make anyone's software or organisation "compliant". It raises the floor and makes gaps visible.
+
+Full list: [section 8](#8-limitations-what-claude-code-cannot-guarantee).
+
+# Technical reference
 
 ## 1. Design principles
 1. **Deterministic where it matters, instructions where judgment is needed.** Dangerous actions are gated by a hook, not by hoping the model remembers a sentence.
