@@ -533,6 +533,10 @@ def cmd_test(args):
     os.makedirs(os.path.join(root, "big"))
     os.makedirs(state)
     shutil.copy(os.path.join(src, "global", "eng-os", "config.json"), state)
+    os.makedirs(os.path.join(root, "trusted"))
+    with open(os.path.join(state, "local.json"), "w") as fh:  # sudo/fs-wipe are listed to prove they cannot be trusted off
+        json.dump({"trusted_projects": [{"path": os.path.join(root, "trusted"),
+                                         "rules": ["git-protected-push", "sql-destructive", "sudo", "fs-wipe"]}]}, fh)
     open(os.path.join(root, "README.md"), "w").write("root\n")
     open(os.path.join(root, "sub", "CLAUDE.md"), "w").write("# Sub project\nSUB-CANARY: use Decimal for money.\n")
     open(os.path.join(root, "sub", "app.py"), "w").write("print('x')\n")

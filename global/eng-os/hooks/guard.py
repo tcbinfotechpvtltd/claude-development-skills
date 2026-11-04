@@ -145,7 +145,33 @@ def load_config():
             cfg.update(json.load(fh))
     except (OSError, ValueError):
         pass
+    # Personal, unmanaged overrides (install never writes local.json). Only "trusted_projects" is read:
+    # [{"path": "~/code/site", "rules": ["git-protected-push", ...]}] turns those ask rules off for
+    # commands that run in, or cd into, that path. deny rules can never be disabled this way.
+    try:
+        with open(os.path.join(ENGOS, "local.json")) as fh:
+            tp = json.load(fh).get("trusted_projects") or []
+        cfg["trusted_projects"] = [t for t in tp if isinstance(t, dict) and t.get("path") and t.get("rules")]
+    except (OSError, ValueError, AttributeError):
+        pass
     return cfg
+
+
+# The only rules a trusted project may switch off: local-repo and local-DB housekeeping.
+# Secrets, remote servers, infra/deploys, publishing, sudo and every deny rule stay on everywhere.
+TRUSTABLE = {"git-protected-push", "git-discard", "sql-destructive", "docker-destructive"}
+
+
+def trusted_off(cmd, cwd, project, cfg):
+    """Ask-rule ids switched off because the command runs inside a trusted project."""
+    dirs = [cwd, project] + [norm(d, cwd) for d in re.findall(r"(?:^|[;&|]\s*)cd\s+([^\s;&|]+)", cmd)]
+    dirs += [norm(d, cwd) for d in re.findall(r"\bgit\s+-C\s+([^\s;&|]+)", cmd)]
+    off = set()
+    for t in cfg.get("trusted_projects") or []:
+        root = os.path.normpath(os.path.expanduser(t["path"]))
+        if any(d and under(d, root) for d in dirs):
+            off.update(r for r in t["rules"] if r in TRUSTABLE)
+    return off
 
 
 def emit(decision, reason):
@@ -256,7 +282,7 @@ def secret_reads(cmd):
 
 
 def check_bash(cmd, cwd, project, cfg):
-    off = set(cfg.get("disabled_rules") or [])
+    off = set(cfg.get("disabled_rules") or []) | trusted_off(cmd, cwd, project, cfg)
     creds, secret = secret_reads(cmd)
     if creds:
         return "deny", "credential-dump: reads Claude's own OAuth credentials"

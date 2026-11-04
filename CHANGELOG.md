@@ -1,6 +1,9 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## Unreleased
+- Guard: optional personal `~/.claude/eng-os/local.json` (never written by install) with `trusted_projects`. For commands run in, or `cd`/`git -C` into, a listed path, it can switch off only `git-protected-push`, `git-discard`, `sql-destructive` and `docker-destructive`. Secrets, remote, infra, publish, sudo, force-push and all deny rules stay on. There are 6 new tests (135 in total).
+
 ## 0.6.0 — 2026-11-04
 - For individual Claude plans, where there is no central admin console:
   - `eng-os update` switches the repo to the latest release tag, runs the tests, shows the install preview and installs after confirmation. It leaves a maintainer clone that is ahead of the latest release untouched.

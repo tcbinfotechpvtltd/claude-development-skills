@@ -26,6 +26,13 @@
     ["bash", "echo hello > out.txt 2>&1", "allow"],
     ["bash", "truncate -s 0 app.log", "allow"],
 
+    ["bash", "cd {ROOT}/trusted && psql -h localhost -c 'drop database scratch'", "allow"],
+    ["bash", "git -C {ROOT}/trusted push origin main", "allow"],
+    ["bash", "psql -h localhost -c 'drop database scratch'", "ask", "sql-destructive"],
+    ["bash", "cd {ROOT}/trusted && git push --force origin main", "ask", "git-force-push"],
+    ["bash", "cd {ROOT}/trusted && sudo ls", "ask", "sudo"],
+    ["bash", "cd {ROOT}/trusted && rm -rf /", "deny", "fs-wipe"],
+
     ["bash", "rm -rf /", "deny", "fs-wipe"],
     ["bash", "rm -rf ~", "deny", "fs-wipe"],
     ["bash", "rm -rf ~/", "deny", "fs-wipe"],
