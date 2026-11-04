@@ -50,6 +50,7 @@ LEGACY = (
 LEGACY_HOOK_COMMANDS = ("hooks/session-start.sh", "hooks/sdd-cache", "hooks/simplify-ignore")
 BUDGET = {"claude_md_chars": 9000, "claude_md_lines": 200, "skill_desc_chars": 600, "skill_body_chars": 14000,
           "rule_chars": 5000}
+SOURCE_MAX_AGE_DAYS = 120  # cited standards older than this are flagged for re-verification (eng-os-review)
 
 
 def repo_root():
@@ -396,6 +397,20 @@ def cmd_verify(args):
         check(len(body) <= BUDGET["rule_chars"], "rule %s %s, %d chars" % (f, "path-scoped" if scoped else "ALWAYS loaded", len(body)), "WARN")
     base = len(open(cm).read()) if os.path.exists(cm) else 0
     res.append(("INFO", "always-loaded eng-os text ~%d tokens (CLAUDE.md + unscoped rules) + ~%d tokens skill listing" % ((base + always) // 4, listing // 4)))
+
+    # freshness of cited standards: every row of docs/SOURCES.md ends with the date it was last checked
+    try:
+        src = os.path.join(repo_root(), "docs", "SOURCES.md")
+    except SystemExit:
+        src = None
+    if src and os.path.exists(src):
+        rows = re.findall(r"^\|\s*([^|]+?)\s*\|.*\|\s*(\d{4}-\d{2}-\d{2})\s*\|\s*$", open(src).read(), re.M)
+        today = datetime.date.today()
+        stale = [n for n, d in rows if (today - datetime.date.fromisoformat(d)).days > SOURCE_MAX_AGE_DAYS]
+        check(bool(rows) and not stale, "cited standards re-checked within %d days (%d in docs/SOURCES.md)%s"
+              % (SOURCE_MAX_AGE_DAYS, len(rows), ": stale " + ", ".join(stale[:5]) if stale else ""), "WARN")
+    else:
+        res.append(("INFO", "docs/SOURCES.md not found; freshness of cited standards not checked"))
 
     # duplication: identical normalised sentences (>= 9 words) across managed text files
     seen, dups = {}, []

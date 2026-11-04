@@ -62,3 +62,15 @@ fresh-session: 8/8 hard checks passed
 - Effect on subagent share, repeat reads and tool errors: needs a few weeks of sessions. Compare in the first `/eng-os-review` (reminder due 2026-12-03).
 - Skill-invocation adherence beyond the one scenario: measure with `eng-os usage` (skills column) over the next month.
 - MCP gates were tested with unit cases only. No real email or ad change was attempted, by design.
+
+## 7. Release 0.2.0: sourced standards (2026-11-04)
+| Check | Evidence | Result |
+|---|---|---|
+| Sources confirmed on official sites | 6 research subagents (Sonnet; WebSearch + WebFetch); 53 rows in `docs/SOURCES.md` with edition, date, URL; unconfirmed facts were left out or marked | **Done**; pages that refused automated access are noted per row (DPDP gazette, iso.org) |
+| OWASP Top 10 latest | owasp.org project page and OWASP/Top10 repo show 2025 final as current; no 2026 web edition or draft. The 2026-labelled OWASP lists are LLM Top 10 2026 and Agentic Top 10 2026, both added | **Confirmed** |
+| Unit tests after changes | `bin/eng-os test` on Python 3.9 and 3.14 | **126/126** both |
+| Install | `bin/eng-os install` (backup `20261104-084319-pre-install`) | applied; `verify` 63 checks, 0 fail, 0 warn |
+| Live reload | updated eng-security, eng-ship and fintech-lending descriptions appeared in the running session's skill listing right after install | **Verified** |
+| Freshness check | copy of the repo with one row backdated to 2026-01-02 → `WARN ... stale Semantic Versioning`; real register → PASS | **Tested** |
+| Token cost | always-loaded ~1,830 tokens (CLAUDE.md) + ~961 tokens (skill listing), about +60 over 0.1.1; new detail sits in reference files read only on demand | **Measured** |
+| Not verified | skill adherence to the new standards in real work (measure at the next review); RBI text that governs each NBFC client after the Nov 2025 consolidation (client compliance owner decides) | open |

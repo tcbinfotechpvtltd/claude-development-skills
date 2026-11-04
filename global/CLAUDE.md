@@ -46,7 +46,7 @@ On a material conflict follow the higher level and say so in one line. If a requ
 | Auth, sessions, input, uploads, secrets, PII/KYC, payments, new endpoints, dependencies, security review | `eng-security` |
 | Writing or fixing tests, debugging a failure, flaky tests | `eng-testing` |
 | Before commit, PR or handoff; reviewing code or an audit | `eng-review` |
-| CI/CD, deploys, migrations on shared data, servers, infra, monitoring, backups | `eng-ship` |
+| CI/CD, deploys, releases, versioning, changelogs, migrations on shared data, servers, infra, monitoring, backups | `eng-ship` |
 | Frappe, ERPNext, HRMS apps, bench, doctypes | `frappe-erpnext` |
 | Loans, ledgers, money movement, KYC, NBFC/LSP, payment or bureau integrations | `fintech-lending` |
 | Repo without a CLAUDE.md, or user asks to set one up | `eng-project-init` |

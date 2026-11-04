@@ -27,14 +27,17 @@ Compare with the previous rows in `<repo>/docs/metrics.md` (repo path: `$E statu
 - Ask one `claude-code-guide` subagent for changes since that version that affect: CLAUDE.md/rules loading, skills frontmatter and listing budget, hook events and output schema, permission modes, subagent frontmatter. Ask for a short answer with doc URLs only.
 - Note deprecated settings or new capabilities that would remove custom code (prefer built-ins over eng-os code).
 
-## 3. Optional behavioural eval (costs tokens; ask first)
+## 3. Re-verify cited standards
+`eng-os verify` warns when a row of `<repo>/docs/SOURCES.md` was last checked more than 120 days ago. At every review, one research subagent (`model: sonnet`, WebSearch + WebFetch, official sites only, report under 600 words) confirms the latest edition and date of each row and lists new standards in the field (a new OWASP list, a NIST revision, an RBI direction or amendment, a DPDP rules phase). Update SOURCES.md, then every skill that cites a changed source. Adopt a new edition only after reading its content, not just its title; drafts are noted, not adopted.
+
+## 4. Optional behavioural eval (costs tokens; ask first)
 `$E eval --run` executes the scenarios in `tests/scenarios.json` with `claude -p` (needs a logged-in CLI). `$E eval --transcript <file>` scores an existing session transcript. Report pass/fail per scenario with token cost.
 
-## 4. Propose
+## 5. Propose
 - Write findings: what is working (with numbers), what is not, proposed changes with expected effect on tokens, safety and adherence.
 - Make the changes in the repo on a branch (`git -C <repo> switch -c review-YYYY-MM`), update `CHANGELOG.md` and bump `VERSION`, run `bin/eng-os test` and `bin/eng-os install --dry-run`.
 - Never weaken a security gate, approval requirement or test rule to reduce friction without the user explicitly agreeing to that specific trade-off.
 - Show the user the diff summary and ask for approval to install.
 
-## 5. After approval
+## 6. After approval
 `bin/eng-os install` (backs up first; `eng-os restore latest` undoes it), then `eng-os verify`, commit in the repo, append a row to `docs/metrics.md`, and run `eng-os audit-done`.

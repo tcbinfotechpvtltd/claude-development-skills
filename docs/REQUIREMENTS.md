@@ -6,7 +6,7 @@ Status legend. **Verified**: observed working in a live Claude Code 2.1.309 sess
 | # | Requirement | Implementation | Status |
 |---|---|---|---|
 | 1 | Complete engineering OS across all projects and sessions | User-level `~/.claude/CLAUDE.md`, skills, rules, hooks, settings: they apply to every project on this machine, CLI and desktop | Verified (fresh session, see VERIFICATION.md) |
-| 2 | Research official docs and industry sources | Claude Code docs checked by a docs agent (memory, skills, hooks, settings, subagents, plugins, costs, headless); OWASP Top 10:2025 and RBI DL Directions 2025 checked by web search; findings drove the decisions log in README §9 | Implemented |
+| 2 | Research official docs and industry sources | 0.1.x researched only Claude Code docs (docs agent + live tests), OWASP Top 10:2025 and law-firm summaries of the RBI rules; the rest of the engineering practice was written from model knowledge without citations (overstated as done in 0.1.1). 0.2.0: 53 standards confirmed on official sites on 2026-11-04 by research subagents and recorded with edition, publication date and URL in `docs/SOURCES.md`; each skill cites what it uses; drafts kept on a watch list, not adopted | Implemented; freshness check Tested (`eng-os verify`). Limits: some pages refused automated access (DPDP gazette, iso.org), noted per row |
 | 3 | Analyse my real environment and projects | Inventory of `~/.claude`, 33 projects in `~/claude` (Frappe ×8, Next.js ×6, Odoo, Flutter, PHP CI3, static sites), 700+ transcripts with `eng-os usage`; the draft `claude-playbook/CLAUDE.global.md` was folded in | Implemented |
 | 4 | Don't blindly follow my assumptions | Built on evidence: removed the unused skill pack, dropped my own context-injection hook once a live test showed it duplicated native behaviour, kept agents that data showed were used | Implemented |
 | 5 | Ask only when needed | CLAUDE.md §2: autonomous by default, an explicit list of ask-first cases, "money/legal/compliance: never guess" | Implemented (instruction-level) |
@@ -23,6 +23,8 @@ Status legend. **Verified**: observed working in a live Claude Code 2.1.309 sess
 | Observability, reliability, incidents, backups | `eng-ship` | Implemented |
 | API design and integrations | `eng-design` (APIs, integrations), `fintech-lending` (vendor adapters, webhooks) | Implemented |
 | Maintainability, tech debt, governance, docs | CLAUDE.md §3, `eng-review`, ADR template, project template | Implemented |
+| Releases: versioning, commit and PR conventions, branch lifetime, changelog, GitHub release notes | `eng-ship/releases.md` (SemVer 2.0.0, Conventional Commits 1.0.0, Keep a Changelog 1.1.0, GitHub docs, trunk-based development); templates `templates/release/` (CHANGELOG.md, release.yml, pull_request_template.md) | Implemented (0.2.0) |
+| Security beyond OWASP Top 10 | `eng-security/standards.md`: OWASP ASVS/API/Mobile (MASVS, MASTG)/LLM 2026/Agentic 2026/SAMM, NIST CSF 2.0, SSDF, 800-63B-4, 800-53, 800-207, PQC (IR 8547), CIS Controls and Benchmarks, CWE Top 25 2025, MITRE ATT&CK v20, CISA Secure by Design, SLSA, SBOM, PCI DSS 4.0.1, ISO 27001:2022, CERT-In, RBI NBFC cyber directions 2026, DPDP Rules 2025 | Implemented (0.2.0) |
 | Domain: Indian lending, ERPNext/Frappe | `fintech-lending`, `frappe-erpnext` skill + path rule | Frappe rule Verified; skills Implemented |
 
 ## Behaviour (§5)
@@ -67,6 +69,7 @@ Status legend. **Verified**: observed working in a live Claude Code 2.1.309 sess
 | Practical test scenarios | `tests/guard_cases.json` (126 cases), `tests/scenarios.json` (fresh-session + 2 headless suites) | Tested / fresh-session scored |
 | Periodic evaluation without auto-modifying critical config | SessionStart reminder after 30 days, `/eng-os-review` (proposes on a branch, installs only on approval), guard asks before direct edits to live global config | Tested (reminder, drift); live-config ask Tested |
 | Version history and record of changes | git repo, `CHANGELOG.md`, `VERSION`, `docs/metrics.md` | Implemented |
+| Standards stay current | `docs/SOURCES.md` check dates; `eng-os verify` warns after 120 days; `/eng-os-review` section 3 re-checks every row and the field for new editions | Tested (verify check) |
 
 ## Resilience (§15E)
 | Requirement | Where | Status |

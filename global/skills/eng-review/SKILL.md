@@ -6,12 +6,14 @@ description: Pre-commit, pre-PR and pre-handoff review protocol with severity ru
 # Review and verification
 
 ## 1. Self-review every change before calling it done
-Read the full diff (`git diff` / `git diff --staged`), not your memory of it. Check:
+Read the full diff (`git diff` / `git diff --staged`), not your memory of it, plus enough surrounding code for context. Check:
+- **Design** (the most important item): does the change belong here, fit the architecture, and interact sensibly with the rest of the system?
+- **Complexity**: no more than the problem needs; no speculative features or abstractions "for later".
 - **Correctness**: does it meet each acceptance criterion? Edge cases, error paths, concurrency, timezones, rounding.
 - **Scope**: no unrelated edits, debug prints, commented-out code, stray files, formatting churn, secrets, generated artifacts.
 - **Security**: the section 2 checklist of skill `eng-security` for anything touching auth, input, data or integrations.
 - **Compatibility**: public APIs, schemas, config keys, URLs, and data formats unchanged or migrated.
-- **Quality**: naming, duplication, function size, error handling, logging without PII.
+- **Quality**: clear names, comments that explain why, duplication, function size, error handling, logging without PII, consistency with the codebase and its style guide; docs updated when behaviour or setup changes.
 - **Tests**: new behaviour and fixed bugs covered; suites actually run with results.
 - **Ops**: migration, config/env changes, feature flags, rollback documented.
 
@@ -44,7 +46,11 @@ Not verified / risks: <honest list>
 Next: <only if something remains>
 ```
 For reviews: findings sorted by severity, each `file:line — problem — impact — fix`, then a one-line verdict (ship / ship after fixes / do not ship).
+Reviewing someone else's change (Google eng-practices): approve once it clearly improves overall code health, even if imperfect; never approve one that makes it worse. Technical facts and data beat opinion; the style guide settles style. Prefix optional points with `Nit:`, and say what was done well.
 
 ## 5. Commit and PR
 - Commit only verified work; one logical change per commit; message explains why. Author and trailer rules are in the global CLAUDE.md.
+- Keep PRs small and self-contained; refactors separate. Commit format, PR template, branch lifetime and changelog rules: [releases.md](../eng-ship/releases.md).
 - PR description: problem, approach, risk areas, how it was tested, rollback, screenshots for UI. Link the spec/ADR when one exists.
+
+Sources (checked 2026-11-04): google.github.io/eng-practices (reviewer standard, what to look for, small CLs).

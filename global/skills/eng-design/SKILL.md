@@ -37,11 +37,14 @@ Pick one and give the reason in one or two sentences. Prefer boring, proven tech
 - **Operability**: logs, metrics, alerts, feature flags, migrations and rollback considered in the design, not bolted on.
 - **Scalability**: design for 10x current load, not 1000x; name the first bottleneck and how you would detect it.
 - **Failure modes**: what happens when each dependency is slow, down or returns garbage.
+- **Deployable services** (Twelve-Factor): config in the environment, stateless processes with state in backing services, backing services swappable by config, build/release/run kept separate, dev/prod parity, logs as event streams, admin tasks as one-off processes.
+- **Final pass** against the six AWS Well-Architected pillars, even off AWS: operational excellence, security, reliability, performance efficiency, cost optimization, sustainability. Name the weakest pillar and why it is acceptable.
 
 ## 5. Write it down
 - Small change: plan in chat (files, approach, risks, verification).
 - Significant change: `docs/specs/<feature>.md` with the sections above, plus a task breakdown into vertical slices that can each be verified.
-- Decision that is costly to reverse: an ADR at `docs/adr/NNNN-title.md`:
+- Diagrams follow the C4 model: system context, then containers (apps, databases, queues), then components where useful; code-level diagrams rarely. Add a deployment diagram for infra work and a dynamic (sequence) diagram for multi-party flows such as disbursal or webhooks. Mermaid in Markdown is fine.
+- Decision that is costly to reverse: an ADR at `docs/adr/NNNN-title.md` (Nygard format below; use MADR 4.0.0 when several options need a detailed comparison):
 
 ```
 # NNNN. Title
@@ -54,3 +57,5 @@ Consequences: what gets easier, harder, and what we must now watch.
 
 ## 6. Then build
 Implement in thin vertical slices (schema, logic, API, UI, test). Each slice is independently verifiable. Keep the system working between slices. Revisit the design if a slice disproves an assumption; don't silently drift from it.
+
+Sources (checked 2026-11-04): c4model.com; adr.github.io (Nygard, MADR 4.0.0, Y-statement); 12factor.net; AWS Well-Architected Framework pillars.

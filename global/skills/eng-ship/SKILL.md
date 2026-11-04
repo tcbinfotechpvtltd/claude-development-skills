@@ -1,6 +1,6 @@
 ---
 name: eng-ship
-description: Delivery and operations procedure covering CI/CD pipelines, environments, releases and deploys, rollback, database migrations on shared data, server and cloud infrastructure (VPS, AWS), observability, backups and incident handling. Use when setting up or changing pipelines, deploying, migrating data, provisioning or hardening servers, or adding monitoring.
+description: Delivery and operations procedure covering CI/CD pipelines, environments, versioning, changelogs, release notes and deploys, rollback, database migrations on shared data, server and cloud infrastructure (VPS, AWS), observability, backups and incident handling. Use when setting up or changing pipelines, deploying, migrating data, provisioning or hardening servers, or adding monitoring.
 ---
 
 # Shipping and operations
@@ -11,7 +11,10 @@ description: Delivery and operations procedure covering CI/CD pipelines, environ
 - Production changes need explicit user approval in this session; prefer doing the dry run on UAT first.
 
 ## CI gates (minimum for a repo you own)
-lint + format check → type check (where applicable) → unit/integration tests → dependency audit → secret scan → build. Merge is blocked on red. Cache dependencies; keep the pipeline under ~10 minutes; fail fast on the cheapest checks first.
+lint + format check → type check (where applicable) → unit/integration tests → dependency audit → secret scan → build → SBOM for delivered artifacts. Merge is blocked on red. Cache dependencies; keep the pipeline under ~10 minutes; fail fast on the cheapest checks first. Supply-chain targets (SLSA, pinned actions, least-privilege tokens): skill `eng-security`, [standards.md](../eng-security/standards.md).
+
+## Versions, commits, PRs, changelogs and release notes
+Read [releases.md](releases.md) when versioning, tagging, writing a CHANGELOG or release notes, setting up PR templates, or choosing a commit/branch convention.
 
 ## Release checklist (before any production deploy)
 1. What exactly changes (commits, migrations, config, infra) and the blast radius.
@@ -21,7 +24,7 @@ lint + format check → type check (where applicable) → unit/integration tests
 5. Rollback written down: previous artifact/tag, migration down or restore steps, who decides.
 6. Health checks and the metrics/logs to watch for the first 30 minutes.
 7. Communication: who is told, maintenance window if needed.
-After deploy: smoke test the critical paths, watch error rates, then record the release (tag, notes).
+After deploy: smoke test the critical paths, watch error rates, then record the release (tag, CHANGELOG, release notes naming the rollback target).
 
 ## Deploy patterns
 - Prefer automated, repeatable deploys (CI job or script in the repo) over hand-typed SSH sequences. Every manual step goes into the repo runbook.
@@ -39,9 +42,14 @@ After deploy: smoke test the critical paths, watch error rates, then record the 
 - Error tracking (Sentry or equivalent) with release tagging.
 - Metrics: RED (rate, errors, duration) per endpoint; queue depth and job failures; business signals (failed disbursals, webhook failures, KYC vendor errors).
 - Alerts are actionable: each has an owner and a runbook line. Uptime checks on public endpoints and certificate expiry.
+- Reliability targets (Google SRE): an SLI is a measured number (success rate, p95 latency), the SLO is its target, the error budget is 1 − SLO. Alert on budget burn, not on every blip; when the budget is spent, reliability work comes before features.
+- Delivery metrics (DORA, five since 2024): change lead time, deployment frequency, failed deployment recovery time, change fail rate, deployment rework rate. Use them to find bottlenecks, never as individual targets.
 
 ## Backups and recovery
 Automated, encrypted, off-site, retention defined, and a restore test on a schedule (an untested backup is not a backup). Document RPO/RTO per system.
 
 ## Incidents
-Stabilise first (rollback, feature flag off, scale), then diagnose. Preserve evidence (logs, DB snapshots) before cleanup. Afterwards: short blameless write-up with timeline, root cause, and the guard that prevents recurrence.
+Stabilise first (rollback, feature flag off, scale), then diagnose. Preserve evidence (logs, DB snapshots) before cleanup. Regulated clients have reporting clocks (CERT-In, RBI, DPDP Board): check [standards.md](../eng-security/standards.md) and tell the user at once.
+Write a blameless postmortem (timeline, contributing causes, actions that fix the system, not the person) for: user-visible downtime or degradation, any data loss, a rollback or other manual intervention, slow resolution, or an incident monitoring failed to catch.
+
+Sources (checked 2026-11-04): sre.google (SLO chapter, postmortem culture, error budget policy); dora.dev/guides/dora-metrics; 12factor.net.

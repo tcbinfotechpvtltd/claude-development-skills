@@ -40,11 +40,13 @@
 - TLS only; consider certificate pinning for lending/KYC flows; reject cleartext (`usesCleartextTraffic=false`).
 - Obfuscate release builds (`--obfuscate --split-debug-info`), disable debug logging of PII, guard screenshots on sensitive screens (FLAG_SECURE).
 - Server-side validation remains the authority; the app is untrusted.
+- Requirements and tests: OWASP MASVS v2.1.0 and MASTG v2.0.0 (see [standards.md](standards.md)).
 
 ## Linux servers (VPS / EC2)
 - SSH keys only, `PermitRootLogin no`, `PasswordAuthentication no`, non-default admin user with sudo; fail2ban.
 - Firewall: allow 80/443 publicly; 22 restricted by IP where possible; databases, Redis, Supervisor and admin ports bound to localhost or a private network.
 - Unattended security updates; TLS via Let's Encrypt with auto-renew; HSTS.
 - App processes run as unprivileged users; file permissions least-privilege; no world-writable web roots.
-- Backups encrypted and off-site; restore tested; access logs retained per policy.
+- Backups encrypted and off-site; restore tested; logs kept at least 180 days within India for Indian clients (CERT-In) and clocks synced to NIC/NPL NTP servers.
+- Baseline: CIS Benchmark Level 1 for the OS and each service (Ubuntu 24.04 v2.0.0, NGINX v3.1.0, Docker v1.9.0, MySQL 8.4 v1.1.0, MariaDB 10.11 v1.0.0); AWS accounts: CIS AWS Foundations v7.1.0. Apply with care on live servers: some items break apps, so test on UAT first.
 - After compromise: rotate every credential, rebuild from a known-good state rather than trusting cleanup, review cron, authorized_keys, systemd units and Server Scripts for persistence.

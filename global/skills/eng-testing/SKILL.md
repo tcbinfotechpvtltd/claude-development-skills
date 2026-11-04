@@ -9,11 +9,13 @@ description: Test strategy, test-first bug fixing and systematic root-cause debu
 - **Always**: business rules and calculations (money, interest, tax, eligibility, dates), state transitions, authorization (allowed and denied paths), input validation, every fixed bug, integration adapters (with recorded or sandbox responses).
 - **Usually**: API contracts (request/response shape, status codes, error shape), migrations (up, down, re-run), critical UI flows end-to-end (login, apply, pay).
 - **Rarely**: trivial getters, framework behaviour, generated code.
-- Shape: many fast unit tests, fewer integration tests against a real DB, a handful of end-to-end smoke tests. Coverage is a signal for gaps, not a target; changed business logic should be covered.
+- Shape (test pyramid): many fast unit tests, fewer integration tests against a real DB, a handful of end-to-end tests for key journeys only. Push each test as low as it can go; when a higher-level test catches a bug, add a lower-level test for it; delete higher-level tests that only duplicate lower ones. Coverage is a signal for gaps, not a target; changed business logic should be covered.
+- Another team or app consumes the API (mobile app, NBFC, partner): add consumer-driven contract tests (e.g. Pact) that the provider runs in its pipeline.
+- Security tests: negative cases from skill `eng-security`; for audits use the OWASP WSTG v4.2 test cases and ASVS 5.0 requirements as pass/fail criteria.
 
 ## Writing good tests
 - One behaviour per test, named for the behaviour (`test_disbursal_rejected_when_kyc_pending`).
-- Arrange-act-assert; assert outcomes, not implementation details.
+- Arrange-act-assert (or given-when-then); assert observable behaviour, not implementation details; prefer readable tests over DRY ones.
 - Deterministic: freeze time, seed randomness, no network to real vendors, no ordering dependence; isolated data per test (transactions or fixtures).
 - Boundary cases: zero, negative, max, empty, null, unicode, duplicate submission, concurrent update, timezone edges (IST vs UTC, month end, leap year).
 - Use the project's existing framework and helpers (pytest, `bench run-tests`, PHPUnit, Jest/Vitest, Playwright, flutter_test). Don't introduce a second framework.
@@ -38,3 +40,5 @@ Quarantine only with a tracking note; find the nondeterminism (time, order, shar
 
 ## Reporting
 State which suites ran, the counts (passed/failed/skipped), and paste the failure output for anything red. "Tests pass" without a run is not acceptable.
+
+Sources (checked 2026-11-04): martinfowler.com/articles/practical-test-pyramid.html; owasp.org WSTG v4.2 (stable; 5.0 in progress).

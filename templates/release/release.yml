@@ -1,0 +1,30 @@
+# Copy to .github/release.yml. Configures GitHub's automatically generated release notes.
+# Categories match PR labels; "*" catches every PR not matched earlier. Review generated notes before publishing.
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+    authors:
+      - dependabot
+  categories:
+    - title: Breaking changes
+      labels:
+        - breaking-change
+    - title: Security
+      labels:
+        - security
+    - title: Features
+      labels:
+        - feature
+        - enhancement
+    - title: Fixes
+      labels:
+        - bug
+        - fix
+    - title: Database migrations and config
+      labels:
+        - migration
+        - config
+    - title: Other changes
+      labels:
+        - "*"

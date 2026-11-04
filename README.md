@@ -15,7 +15,8 @@ Repo: `~/claude/eng-os` (source of truth, git). Live copies: `~/.claude/`. Built
 | Layer | Live location | Loads | Approx. cost | Purpose |
 |---|---|---|---|---|
 | Global instructions | `~/.claude/CLAUDE.md` | every session, re-read after compaction | ~1.8k tokens | priority order, approval gates, engineering behaviour, security floor, skill routing table, git and token rules |
-| Skills (9) | `~/.claude/skills/<name>/SKILL.md` | listing always (~0.9k tokens); body only when invoked | 0.6–1.2k tokens each when used | procedures: `eng-design`, `eng-security` (+`stacks.md`), `eng-testing`, `eng-review`, `eng-ship`, `frappe-erpnext`, `fintech-lending`, `eng-project-init`, `eng-os-review` |
+| Skills (9) | `~/.claude/skills/<name>/SKILL.md` | listing always (~0.9k tokens); body only when invoked; reference files only when the body sends Claude to them | 0.6–1.5k tokens each when used | procedures: `eng-design`, `eng-security` (+`stacks.md`, `standards.md`), `eng-testing`, `eng-review`, `eng-ship` (+`releases.md`), `frappe-erpnext`, `fintech-lending`, `eng-project-init`, `eng-os-review` |
+| Standards register | repo `docs/SOURCES.md` | never in context | 0 | every external standard the skills cite, with edition, publication date, URL and the date it was last confirmed on the official site |
 | Path-scoped rules (3) | `~/.claude/rules/*.md` | only when a matching file is read or edited | ~200–300 tokens each | must-follow invariants for Frappe code, DB migrations/SQL, CI/containers/infra |
 | Guard hook | `~/.claude/eng-os/hooks/guard.py` (PreToolUse: Bash, file tools, `mcp__.*`) | every matching tool call, ~50 ms | 0 tokens unless it blocks | deny catastrophic actions; ask before destructive, irreversible, outward-facing, production and secret-exposing ones |
 | Session hook | `~/.claude/eng-os/hooks/session_start.py` | session start | 0 tokens normally; one line when due | monthly self-audit reminder; warns if live files were edited outside an install |
@@ -67,7 +68,7 @@ Recommended, not applied (outside engineering scope or your call):
 ## 6. Evaluation and continuous improvement
 | Command | Cost | What it checks |
 |---|---|---|
-| `eng-os verify` | 0 tokens | install drift, settings wiring, matcher coverage, hooks compile on both Pythons, guard error log, CLAUDE.md/skill/rule budgets, path scoping, duplicated sentences |
+| `eng-os verify` | 0 tokens | install drift, settings wiring, matcher coverage, hooks compile on both Pythons, guard error log, CLAUDE.md/skill/rule budgets, path scoping, duplicated sentences, standards in `docs/SOURCES.md` re-checked within 120 days |
 | `eng-os test [--installed]` | 0 tokens | 122 guard cases + 4 session-hook cases in a throwaway sandbox |
 | `eng-os usage --since D` | 0 tokens | efficiency metrics from local transcripts |
 | `eng-os eval --prompt fresh-session` / `--transcript F` | one session | instruction loading, skill listing, nested CLAUDE.md, path rules, skill adherence, guard deny/ask in a real session |
@@ -103,4 +104,5 @@ bin/eng-os backups              # list backups (~/.claude/eng-os/backups/)
 - **No new subagents.** The built-in ones plus the existing four cover review, security, tests and exploration. Cost is controlled by per-call `model` instead.
 - **Hook "ask" over hard deny** for anything that can be legitimate, so approval stays one click. Hard deny only for actions with no legitimate agent use.
 - **Copy-install with manifest, not symlinks**: edits in the repo never go live unreviewed, and drift is detectable.
+- **Standards are cited and dated (0.2.0)**: 0.1 wrote most engineering practice from model knowledge without sources. Every standard is now confirmed on its official site, recorded in `docs/SOURCES.md`, cited in the skill that uses it, and re-checked at each review. Long standard-specific detail lives in skill reference files (`standards.md`, `releases.md`), so the always-loaded cost stays the same.
 - **Bypass mode kept**: it is your deliberate choice, and the guard plus deny rules supply the gates. `permissions.disableBypassPermissionsMode` is available if you ever want to forbid it.
