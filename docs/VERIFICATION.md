@@ -74,3 +74,15 @@ fresh-session: 8/8 hard checks passed
 | Freshness check | copy of the repo with one row backdated to 2026-01-02 → `WARN ... stale Semantic Versioning`; real register → PASS | **Tested** |
 | Token cost | always-loaded ~1,830 tokens (CLAUDE.md) + ~961 tokens (skill listing), about +60 over 0.1.1; new detail sits in reference files read only on demand | **Measured** |
 | Not verified | skill adherence to the new standards in real work (measure at the next review); RBI text that governs each NBFC client after the Nov 2025 consolidation (client compliance owner decides) | open |
+
+## 8. Release 0.3.0: install on another developer's machine (2026-11-04)
+Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skill, a skill named like the old pack, and a settings file with its own `session-start.sh` hook and `model` key.
+| Check | Result |
+|---|---|
+| No identity given and none in git config | install stops with the exact command to run; nothing written |
+| Install with `--name/--email` | identity written into the commit rule; `user.json` saved; personal CLAUDE.md kept as section 9 (`personal.md`); personal skill, pack-named skill, own hook and `model` untouched; `verify` 64 checks, 0 fail, 0 warn |
+| Restore the first backup | `diff -r` against the original `~/.claude`: identical (eng-os state dir excluded) |
+| Invalid `settings.json` | install refused; file unchanged |
+| Maintainer machine | reinstalled with his identity; second install "already up to date"; tests 126/126 on Python 3.9 and 3.14 |
+| Shared files scanned | no personal paths, emails, IPs, account ids or key-shaped strings (only Anthropic's noreply address in test cases) |
+| Not verified | Linux and WSL installs; a real second machine; Claude Code versions other than 2.1.309 |

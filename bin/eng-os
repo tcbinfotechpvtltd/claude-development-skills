@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """eng-os: install, verify and maintain the global Claude Code engineering system.
 
-  eng-os install [--dry-run]   back up live config, stage, validate, apply, write manifest
+  eng-os install [--dry-run] [--name="Full Name" --email=you@example.com] [--archive-legacy]
+                               back up live config, stage, validate, apply, write manifest.
+                               Identity (for the commit rule) comes from --name/--email, then
+                               ~/.claude/eng-os/user.json, then `git config --global`.
+                               --archive-legacy also archives the agent-skills pack if present.
   eng-os verify                static health checks (zero tokens): drift, settings, hooks, budgets, duplication
   eng-os test                  guard + session hook unit tests in a throwaway sandbox (zero tokens)
   eng-os status                installed version, audit date, backups
@@ -31,6 +35,9 @@ CLAUDE = os.path.join(HOME, ".claude")
 ENGOS = os.path.join(CLAUDE, "eng-os")
 MANIFEST = os.path.join(ENGOS, "manifest.json")
 BACKUPS = os.path.join(ENGOS, "backups")
+USER_FILE = os.path.join(ENGOS, "user.json")    # per-user commit identity, never in the repo
+PERSONAL = os.path.join(ENGOS, "personal.md")   # per-user additions appended to the global CLAUDE.md
+PERSONAL_HEADING = "## 9. Personal additions"
 HERE = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 # Legacy items replaced by eng-os (addyosmani/agent-skills pack copied into ~/.claude on 2026-06-20).
@@ -47,7 +54,7 @@ LEGACY = (
     + ["hooks/" + h for h in ("SDD-CACHE.md", "SIMPLIFY-IGNORE.md", "sdd-cache-post.sh", "sdd-cache-pre.sh",
                                "session-start-test.sh", "session-start.sh", "simplify-ignore-test.sh", "simplify-ignore.sh")]
 )
-LEGACY_HOOK_COMMANDS = ("hooks/session-start.sh", "hooks/sdd-cache", "hooks/simplify-ignore")
+LEGACY_HOOK_COMMANDS = (".claude/hooks/session-start.sh", ".claude/hooks/sdd-cache", ".claude/hooks/simplify-ignore")
 BUDGET = {"claude_md_chars": 9000, "claude_md_lines": 200, "skill_desc_chars": 600, "skill_body_chars": 14000,
           "rule_chars": 5000}
 SOURCE_MAX_AGE_DAYS = 120  # cited standards older than this are flagged for re-verification (eng-os-review)
@@ -126,14 +133,14 @@ def managed_skill_dirs(src):
     return [os.path.join(CLAUDE, "skills", d) for d in os.listdir(os.path.join(src, "global", "skills"))]
 
 
-def merge_settings(live, frag):
+def merge_settings(live, frag, drop_legacy=False):
     out = json.loads(json.dumps(live))  # deep copy
     hooks = out.setdefault("hooks", {})
     for event in list(hooks):
         kept = []
         for entry in hooks[event]:
             cmds = [h.get("command", "") for h in entry.get("hooks", [])]
-            if any("eng-os/hooks/" in c or any(l in c for l in LEGACY_HOOK_COMMANDS) for c in cmds):
+            if any("eng-os/hooks/" in c or (drop_legacy and any(l in c for l in LEGACY_HOOK_COMMANDS)) for c in cmds):
                 continue
             kept.append(entry)
         if kept:
@@ -224,21 +231,68 @@ def restore(bid):
     print("restored backup %s (%d paths)" % (bid, len(meta["entries"])))
 
 
+def arg_value(args, name):
+    for a in args:
+        if a.startswith(name + "="):
+            return a.split("=", 1)[1].strip() or None
+    return None
+
+
+def git_global(key):
+    try:
+        return subprocess.run(["git", "config", "--global", key], capture_output=True, text=True).stdout.strip() or None
+    except OSError:
+        return None
+
+
+def identity(args):
+    """Commit identity written into the global CLAUDE.md: flags, then user.json, then git config --global."""
+    saved = load_json(USER_FILE, {}) or {}
+    name = arg_value(args, "--name") or saved.get("name") or git_global("user.name")
+    email = arg_value(args, "--email") or saved.get("email") or git_global("user.email")
+    if not name or not email or "@" not in email:
+        sys.exit('eng-os: commit identity unknown. Run: eng-os install --name="Your Name" --email=you@example.com')
+    return {"name": name, "email": email}
+
+
+def render_claude_md(src_file, user, personal, out_dir):
+    """The global CLAUDE.md with this user's identity and personal additions filled in."""
+    text = open(src_file).read().replace("{{GIT_AUTHOR}}", "%s <%s>" % (user["name"], user["email"]))
+    if personal.strip():
+        text = (text.rstrip("\n") + "\n\n" + PERSONAL_HEADING
+                + " (from ~/.claude/eng-os/personal.md; may tighten, never relax sections 1-4)\n"
+                + personal.strip() + "\n")
+    out = os.path.join(out_dir, "CLAUDE.md")
+    with open(out, "w") as fh:
+        fh.write(text)
+    return out
+
+
 def cmd_install(args):
     dry = "--dry-run" in args
+    archive_legacy = "--archive-legacy" in args
     src = repo_root()
+    user = identity(args)
     plan = build_plan(src)
     frag = load_json(os.path.join(src, "global", "settings.json"))
     if frag is None:
         sys.exit("global/settings.json is missing or invalid")
     settings_path = os.path.join(CLAUDE, "settings.json")
     live_settings = load_json(settings_path, {})
-    if live_settings is None:
+    if os.path.exists(settings_path) and load_json(settings_path) is None:
         sys.exit("~/.claude/settings.json is not valid JSON; fix it before installing")
-    merged = merge_settings(live_settings, frag)
+    merged = merge_settings(live_settings, frag, drop_legacy=archive_legacy)
+
+    # A global CLAUDE.md not written by eng-os is the user's own: keep its text as personal additions.
+    live_md = os.path.join(CLAUDE, "CLAUDE.md")
+    managed = (load_json(MANIFEST, {}) or {}).get("files", {})
+    adopt = os.path.exists(live_md) and tilde(live_md) not in managed and not os.path.exists(PERSONAL)
+    personal = open(live_md).read() if adopt else (open(PERSONAL).read() if os.path.exists(PERSONAL) else "")
 
     stage = tempfile.mkdtemp(prefix="engos-stage-")
+    render_dir = tempfile.mkdtemp(prefix="engos-render-")
     try:
+        plan[0] = (render_claude_md(plan[0][0], user, personal, render_dir), plan[0][1])
         for s, d in plan:
             t = os.path.join(stage, os.path.relpath(d, CLAUDE))
             os.makedirs(os.path.dirname(t), exist_ok=True)
@@ -249,7 +303,8 @@ def cmd_install(args):
         if errs:
             print("\n".join("FAIL " + e for e in errs))
             sys.exit("install aborted: staged files failed validation; live config untouched")
-        legacy = [os.path.join(CLAUDE, l) for l in LEGACY if os.path.lexists(os.path.join(CLAUDE, l))]
+        found = [os.path.join(CLAUDE, l) for l in LEGACY if os.path.lexists(os.path.join(CLAUDE, l))]
+        legacy = found if archive_legacy else []
         targets = sorted(set([d for _, d in plan] + managed_skill_dirs(src) + [settings_path] + legacy
                              + [os.path.join(ENGOS, x) for x in ("hooks", "bin", "tests", "templates", "manifest.json", "config.json")]))
         changed = [d for s, d in plan if not os.path.exists(d) or sha(s) != sha(d)]
@@ -258,18 +313,30 @@ def cmd_install(args):
         for d in changed[:40]:
             print("    ~ " + tilde(d))
         print("  settings.json: %s" % ("changed" if merged != live_settings else "unchanged"))
+        print("  commit identity: %s <%s>" % (user["name"], user["email"]))
+        if adopt:
+            print("  your existing ~/.claude/CLAUDE.md is kept: saved to %s and appended as section 9" % tilde(PERSONAL))
+        if found and not archive_legacy:
+            print("  agent-skills pack items found and kept (%d); --archive-legacy moves them into the backup" % len(found))
         if legacy:
             print("  legacy items to archive (moved into the backup, restorable): %d" % len(legacy))
         if dry:
             print("dry run: nothing written")
             return 0
-        if not changed and merged == live_settings and not legacy and os.path.exists(MANIFEST):
+        if (not changed and merged == live_settings and not legacy and os.path.exists(MANIFEST)
+                and load_json(USER_FILE) == user):
             print("already up to date: nothing written, no backup needed")
             return cmd_verify([])
 
         bid = backup([t for t in targets if not t.startswith(BACKUPS)], "pre-install")
         print("  backup: %s" % tilde(os.path.join(BACKUPS, bid)))
         try:
+            os.makedirs(ENGOS, exist_ok=True)
+            with open(USER_FILE, "w") as fh:
+                json.dump(user, fh, indent=1)
+            if adopt:
+                with open(PERSONAL, "w") as fh:
+                    fh.write(personal)
             for l in legacy:
                 shutil.rmtree(l) if os.path.isdir(l) and not os.path.islink(l) else os.remove(l)
             for sk in managed_skill_dirs(src):
@@ -312,6 +379,7 @@ def cmd_install(args):
         print("installed eng-os %s" % man["version"])
     finally:
         shutil.rmtree(stage, ignore_errors=True)
+        shutil.rmtree(render_dir, ignore_errors=True)
     return cmd_verify([])
 
 
@@ -356,9 +424,11 @@ def cmd_verify(args):
 
     cm = os.path.join(CLAUDE, "CLAUDE.md")
     if os.path.exists(cm):
-        t = open(cm).read()
+        t, _, extra = open(cm).read().partition("\n" + PERSONAL_HEADING)
         check(len(t) <= BUDGET["claude_md_chars"] and t.count("\n") <= BUDGET["claude_md_lines"],
               "global CLAUDE.md within budget (%d chars ~%d tokens, %d lines)" % (len(t), len(t) // 4, t.count("\n")))
+        if extra:
+            res.append(("INFO", "personal additions in CLAUDE.md: %d chars (~%d tokens, from %s)" % (len(extra), len(extra) // 4, tilde(PERSONAL))))
     else:
         check(False, "global CLAUDE.md present")
 
@@ -561,6 +631,9 @@ def cmd_status(args):
     bks = sorted(os.listdir(BACKUPS)) if os.path.isdir(BACKUPS) else []
     print("eng-os %s installed %s from %s" % (man["version"], man["installed_at"], tilde(man["repo"])))
     print("last audit: %s   backups: %d (latest %s)" % (man.get("last_audit"), len(bks), bks[-1] if bks else "-"))
+    u = load_json(USER_FILE) or {}
+    print("commit identity: %s <%s>%s" % (u.get("name", "?"), u.get("email", "?"),
+                                          "   personal additions: " + tilde(PERSONAL) if os.path.exists(PERSONAL) else ""))
     return 0
 
 

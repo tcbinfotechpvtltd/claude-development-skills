@@ -1,6 +1,14 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.3.0 — 2026-11-04
+- Shareable with other developers ([INSTALL.md](INSTALL.md)). Commit identity is per user: `install --name= --email=`, saved in `~/.claude/eng-os/user.json`, written into the global CLAUDE.md at install (`{{GIT_AUTHOR}}`). No personal names, paths or usernames remain in installed files.
+- An existing global CLAUDE.md that eng-os did not write is kept: saved to `~/.claude/eng-os/personal.md` and appended as section 9 on every install.
+- Archiving the old agent-skills pack (skills, commands and its hooks) is now opt-in (`--archive-legacy`); legacy hook matching narrowed to `~/.claude/hooks/...` so a teammate's own `session-start.sh` hook is never removed.
+- Installer refuses to run when `~/.claude/settings.json` is invalid JSON (it previously treated it as empty and replaced it, with a backup).
+- Skills and CLAUDE.md fall back to a general-purpose subagent when the `security-auditor`/`code-reviewer`/`test-engineer` agents are not installed (they are not part of eng-os).
+- `eng-os status` shows the commit identity; `/eng-os-review` opens a PR on shared repos instead of installing locally.
+
 ## 0.2.0 — 2026-11-04
 - Sourced standards: 53 external standards confirmed on their official sites and recorded with edition, date and URL in `docs/SOURCES.md`. 0.1.x had written most engineering practice from model knowledge without citations; this corrects that and the overstated row in `docs/REQUIREMENTS.md`.
 - New `eng-ship/releases.md`: SemVer 2.0.0, Conventional Commits 1.0.0, short-lived branches, small PRs, Keep a Changelog 1.1.0, GitHub release notes (`.github/release.yml`), release procedure. Templates in `templates/release/`.

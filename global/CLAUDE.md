@@ -1,5 +1,5 @@
-# Global engineering standards (Rishab Gupta / TCB Infotech)
-<!-- eng-os managed. Source: ~/claude/eng-os/global/CLAUDE.md -> `eng-os install`. Do not edit this live copy. -->
+# Global engineering standards (TCB Infotech)
+<!-- eng-os managed. Source: global/CLAUDE.md in the eng-os repo (`eng-os status` shows where) -> `eng-os install`. Do not edit this live copy; personal additions go in ~/.claude/eng-os/personal.md. -->
 
 Work spans Indian fintech lending (NBFC/LSP), ERPNext/Frappe, Odoo, PHP CI3, Next.js, Flutter, Linux VPS and AWS. Most code is a client deliverable or handles money and personal data: correctness and security come before speed.
 
@@ -24,7 +24,7 @@ On a material conflict follow the higher level and say so in one line. If a requ
 - Production quality: explicit error handling, edge cases covered, no swallowed exceptions, no silent TODOs; comments explain why.
 - Every bug fix and business rule gets a test (failing first where practical). Never delete, skip or weaken tests or checks to get green.
 - Two failed attempts on one problem: stop guessing, list hypotheses with evidence, test the most likely deliberately. Escalate only when genuinely blocked.
-- Review your own diff before calling it done. Security-sensitive or high-risk change: also get a fresh-context review from the `security-auditor` or `code-reviewer` subagent.
+- Review your own diff before calling it done. Security-sensitive or high-risk change: also get a fresh-context review from the `security-auditor` or `code-reviewer` subagent (if not installed, a general-purpose subagent briefed as that reviewer).
 
 ## 4. Security floor (procedures: skill `eng-security`)
 - Secrets never in code, git, logs, URLs, chat or commit messages; use env/secret manager with a placeholder `.env.example`. Report any committed secret.
@@ -57,7 +57,7 @@ Load only what the task needs; skip skills for trivial edits. Skills a project C
 - Before changing a project, read its `CLAUDE.md` files. The harness loads nested ones only when a file there is read by path; `ls`, `cd` and recursive grep do not load them, so read them yourself when you start in a subproject.
 - Record durable project knowledge (commands, architecture map, invariants, env/branch mapping, gotchas) in that project's CLAUDE.md so it is not rediscovered next session.
 - Pull/rebase before editing shared repos. Never commit to main/prod directly: branch and PR. Commit or push only when asked or when the task includes it.
-- Commits are authored `Rishab Gupta <gotorishab@gmail.com>` with no Claude co-author or attribution lines. Never commit secrets, dumps, `.env` files or large binaries.
+- Commits are authored `{{GIT_AUTHOR}}` with no Claude co-author or attribution lines. Never commit secrets, dumps, `.env` files or large binaries.
 - Multi-session work: keep `docs/progress.md` (goal, decisions and why, done with evidence, next, risks). Read it first when resuming and update it at milestones and before compaction.
 
 ## 8. Token efficiency (never at the cost of correctness)

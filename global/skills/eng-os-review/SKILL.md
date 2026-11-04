@@ -38,6 +38,7 @@ Compare with the previous rows in `<repo>/docs/metrics.md` (repo path: `$E statu
 - Make the changes in the repo on a branch (`git -C <repo> switch -c review-YYYY-MM`), update `CHANGELOG.md` and bump `VERSION`, run `bin/eng-os test` and `bin/eng-os install --dry-run`.
 - Never weaken a security gate, approval requirement or test rule to reduce friction without the user explicitly agreeing to that specific trade-off.
 - Show the user the diff summary and ask for approval to install.
+- Shared repo (it has a remote that other developers install from): with the user's approval, push the branch and open a PR for the maintainer instead of installing it locally; everyone installs from the default branch.
 
 ## 6. After approval
-`bin/eng-os install` (backs up first; `eng-os restore latest` undoes it), then `eng-os verify`, commit in the repo, append a row to `docs/metrics.md`, and run `eng-os audit-done`.
+`bin/eng-os install` (backs up first; `eng-os restore latest` undoes it), then `eng-os verify`, commit in the repo, append a row (with your name) to `docs/metrics.md`, and run `eng-os audit-done`.

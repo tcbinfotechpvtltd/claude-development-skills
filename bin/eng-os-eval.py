@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """eng-os behavioural evaluation: scores real Claude Code sessions against scenario checks.
 
-  eng-os-eval.py --prepare-sandbox [DIR]        create the test project (default ~/claude/eng-os-sandbox)
+  eng-os-eval.py --prepare-sandbox [DIR]        create the test project (default ~/claude/eng-os-sandbox, or ~/eng-os-sandbox)
   eng-os-eval.py --prompt SUITE                 print a suite's prompt (paste into a fresh session)
   eng-os-eval.py --transcript FILE --suite S    score an existing session transcript
   eng-os-eval.py --run [--suite S] [--model M] [--claude BIN] [--budget USD]
@@ -22,7 +22,7 @@ import sys
 
 HOME = os.path.expanduser("~")
 REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-DEFAULT_SANDBOX = os.path.join(HOME, "claude", "eng-os-sandbox")
+DEFAULT_SANDBOX = os.path.join(HOME, "claude" if os.path.isdir(os.path.join(HOME, "claude")) else "", "eng-os-sandbox")
 
 
 def scenarios():

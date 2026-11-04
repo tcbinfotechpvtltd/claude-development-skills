@@ -19,7 +19,7 @@ Read the full diff (`git diff` / `git diff --staged`), not your memory of it, pl
 
 ## 2. Independent review (fresh context)
 Use for security-sensitive, money-moving, schema-changing or large changes, and before any production handoff:
-- `code-reviewer` subagent for general quality; `security-auditor` for security; `test-engineer` to find untested paths.
+- `code-reviewer` subagent for general quality; `security-auditor` for security; `test-engineer` to find untested paths. If one is not installed, use a general-purpose subagent and brief it as that reviewer.
 - Brief them with: the goal, the diff or file list, the risk areas, and what you already verified. Ask for findings with file:line, severity and a concrete fix. Do not hand them your conclusions to confirm.
 - Treat their findings as claims: verify each one against the code before fixing or dismissing it.
 

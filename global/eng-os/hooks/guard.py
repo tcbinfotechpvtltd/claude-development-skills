@@ -294,7 +294,7 @@ def check_bash(cmd, cwd, project, cfg):
     if secret and "secret-read" not in off:
         return "ask", "secret-read: prints/copies/sends a secrets file (its values would enter the transcript)"
     if GLOBAL_CONFIG_FILES.search(cmd) and SHELL_WRITE.search(cmd) and "eng-os install" not in cmd and "eng-os restore" not in cmd:
-        return "ask", "global-config: edits live global Claude config; change ~/claude/eng-os and run `eng-os install` instead"
+        return "ask", "global-config: edits live global Claude config; change the eng-os repo (`eng-os status` shows where) and run `eng-os install` instead"
     return None
 
 
@@ -322,7 +322,7 @@ def check_file_tool(tool, inp, cwd):
         return None
     # write tools
     if GLOBAL_CONFIG_FILES.search(path):
-        return "ask", "global-config: %s is managed by eng-os; edit ~/claude/eng-os and run `eng-os install`" % path.replace(HOME, "~")
+        return "ask", "global-config: %s is managed by eng-os; edit the eng-os repo and run `eng-os install`" % path.replace(HOME, "~")
     if re.search(r"/\.ssh/(?:authorized_keys|config)$", path):
         return "ask", "ssh-config: changes SSH access configuration"
     if tool == "Write":

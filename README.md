@@ -2,7 +2,7 @@
 
 A small, tested set of instructions, skills, rules and hooks that make every Claude Code session on this machine behave like a careful principal engineer: security first, evidence-based, autonomous on routine work, gated on risky work, and frugal with tokens.
 
-Repo: `~/claude/eng-os` (source of truth, git). Live copies: `~/.claude/`. Built and verified against Claude Code **2.1.309** (desktop app) on 2026-11-03.
+Repo: wherever you cloned eng-os (`eng-os status` shows it; the maintainer's copy is `~/claude/eng-os`), the source of truth. Live copies: `~/.claude/`. **Installing on another machine or for a teammate: [INSTALL.md](INSTALL.md).** Built and verified against Claude Code **2.1.309** (desktop app) on 2026-11-03.
 
 ## 1. Design principles
 1. **Deterministic where it matters, instructions where judgment is needed.** Dangerous actions are gated by a hook, not by hoping the model remembers a sentence.
@@ -20,7 +20,7 @@ Repo: `~/claude/eng-os` (source of truth, git). Live copies: `~/.claude/`. Built
 | Path-scoped rules (3) | `~/.claude/rules/*.md` | only when a matching file is read or edited | ~200–300 tokens each | must-follow invariants for Frappe code, DB migrations/SQL, CI/containers/infra |
 | Guard hook | `~/.claude/eng-os/hooks/guard.py` (PreToolUse: Bash, file tools, `mcp__.*`) | every matching tool call, ~50 ms | 0 tokens unless it blocks | deny catastrophic actions; ask before destructive, irreversible, outward-facing, production and secret-exposing ones |
 | Session hook | `~/.claude/eng-os/hooks/session_start.py` | session start | 0 tokens normally; one line when due | monthly self-audit reminder; warns if live files were edited outside an install |
-| Settings keys | `~/.claude/settings.json` (merged, other keys untouched) | always | 0 | hook wiring, `attribution` off (commits under Rishab's name), deny reading Claude's own OAuth file |
+| Settings keys | `~/.claude/settings.json` (merged, other keys untouched) | always | 0 | hook wiring, `attribution` off (commits under each developer's own identity), deny reading Claude's own OAuth file |
 | Subagents | `~/.claude/agents/` (existing 4 kept) | when spawned | per run | `security-auditor`, `code-reviewer`, `test-engineer`, `web-performance-auditor` are used for fresh-context review; no new agents were needed |
 | CLI + tests | `~/.claude/eng-os/bin`, `tests`, `templates` | never in context | 0 | install/verify/test/usage/eval/restore, project template |
 
@@ -54,7 +54,7 @@ Levers built in:
 - CLAUDE.md section 8 sets explicit rules: narrow reads, no re-reads, parallel calls, subagents only when justified, with `model: haiku/sonnet` for lookups and mechanical work, one task per session, CLI over MCP, result-first replies.
 - `eng-os usage` makes waste visible (baseline context, cache share, subagent share and models, repeat reads, compactions, skills used, guard blocks), and the monthly review compares it over time in `docs/metrics.md`.
 
-Recommended, not applied (outside engineering scope or your call):
+Recommended on the maintainer's machine, not applied (check yours with `eng-os usage`):
 - `marketing-skills@marketingskills` is enabled globally (36 skills) but was not invoked in the analysed transcripts. Disable it globally (`"enabledPlugins": {"marketing-skills@marketingskills": false}`) and enable it per project where you do marketing work.
 - The desktop org plugins (marketing, HR, product, sales…) and many claude.ai connectors (Apollo, Canva, Gamma, Gmail, Calendar, Drive…) are listed in every coding session. Toggle them off per session in the app's connector menu when coding.
 - Effort: thinking is always on and the main model is Opus. For routine or mechanical sessions, `/effort medium` (or `"effortLevel": "medium"` in settings) cuts output and thinking tokens. Keep high effort for design, security and hard debugging. This is left as your per-session choice rather than a global default.
@@ -78,7 +78,7 @@ The SessionStart hook reminds you when 30 days have passed since the last audit.
 
 ## 7. Install, update, restore
 ```bash
-cd ~/claude/eng-os
+cd <your eng-os clone>
 bin/eng-os test                 # unit tests
 bin/eng-os install --dry-run    # preview
 bin/eng-os install              # backup -> stage -> validate -> apply -> verify (auto-rollback on failure)

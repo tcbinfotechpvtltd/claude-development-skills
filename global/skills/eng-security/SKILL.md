@@ -35,5 +35,5 @@ Read [standards.md](standards.md) to pick the standard that governs the work (we
 ## 4. Verify
 - Write negative tests: unauthenticated, wrong user, wrong tenant, tampered webhook, oversized/invalid input, replayed request.
 - Run available scanners on the diff (and note which were unavailable): `npm audit --omit=dev`, `pip-audit`, `composer audit`, `semgrep --config auto` / `bandit` if installed, `gitleaks detect` if installed, and a grep for secrets in the diff.
-- For security-relevant changes, run the `security-auditor` subagent on the diff with a brief naming the assets and entry points. Fix confirmed findings; re-review until no Critical/High remain (audit until dry).
+- For security-relevant changes, run the `security-auditor` subagent (or a general-purpose one briefed as a security auditor) on the diff with a brief naming the assets and entry points. Fix confirmed findings; re-review until no Critical/High remain (audit until dry).
 - Report findings as: severity (Critical/High/Medium/Low), location, exploit scenario, fix, status (fixed + verified / open).

@@ -33,7 +33,7 @@ Security invariants for Frappe code are in the user rule `frappe-erpnext` (it au
 ## Known gotchas
 - **v16 setup-wizard reload loop** after forcing setup through the DB: set all of System Settings `setup_complete=1`, `is_setup_complete=1` on each Installed Application with a wizard, `frappe.db.set_default('setup_complete','1')`, and `frappe.db.set_default('desktop:home_page', '<workspace>')`, then `frappe.clear_cache()`.
 - Realtime needs `node apps/frappe/socketio.js` (default 9001); with plain `bench serve` the socket 404s harmlessly.
-- MariaDB on this Mac: root uses unix_socket auth; bench uses the `rishabgupta` admin user (see project notes).
+- MariaDB from Homebrew: root uses unix_socket auth, so bench needs a separate password-auth admin user; record its name (never the password) in the project notes.
 - New full-page forms in the desk may wipe the first fill after navigation when automated through the browser: re-check field values before saving.
 - `frappe.get_all` ignores permissions; `frappe.get_list` applies them. Choose deliberately.
 - Changing `encryption_key` or losing `site_config.json` breaks every Password field: back it up with the DB.
