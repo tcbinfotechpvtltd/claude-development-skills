@@ -6,7 +6,7 @@
 - Use `frappe.get_list` (permission-aware) rather than `frappe.get_all` (ignores permissions) when results reach a user.
 - Jinja in print formats/web pages: `{{ value }}` is escaped in web templates, but `| safe` and HTML fields render raw; sanitize with `frappe.utils.html_utils.clean_html`.
 - File doctype: `is_private=1` for KYC and financial documents; public files are world-readable by URL.
-- Keep Server Scripts and System Console off in production; restrict `Administrator`; enforce strong password policy and 2FA for System Managers; rotate the Administrator password after any suspected breach (see the Aug-2026 office ERPNext incident).
+- Keep Server Scripts and System Console off in production; restrict `Administrator`; enforce strong password policy and 2FA for System Managers; rotate the Administrator password after any suspected breach (a real ERPNext breach at TCB came in through the Administrator account and Server Scripts).
 - `site_config.json` holds the DB password and `encryption_key`; never commit or print it; losing `encryption_key` makes Password fields unrecoverable.
 
 ## PHP / CodeIgniter 3
@@ -16,7 +16,7 @@
 - `$this->input->post('x', TRUE)` XSS filtering is not output encoding: still `html_escape()` in views.
 - Uploads via the Upload library with `allowed_types`, `max_size`, `encrypt_name = TRUE`, stored outside `FCPATH`; check MIME by content.
 - `ENVIRONMENT` = `production` on live servers (hides errors); `display_errors` off; `log_threshold` without PII.
-- Keys and credentials in environment or `env_keys.php` outside git; never `config.php` committed with real values.
+- Keys and credentials in environment variables or a git-ignored keys file; never `config.php` committed with real values.
 - CI3 is legacy (last release 3.1.13, security fixes only): keep PHP on a supported version, track known CVEs, and limit exposure (WAF, admin paths restricted).
 
 ## Next.js / Node

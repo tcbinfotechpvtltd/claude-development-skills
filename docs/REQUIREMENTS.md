@@ -7,7 +7,7 @@ Status legend. **Verified**: observed working in a live Claude Code 2.1.309 sess
 |---|---|---|---|
 | 1 | Complete engineering OS across all projects and sessions | User-level `~/.claude/CLAUDE.md`, skills, rules, hooks, settings: they apply to every project on this machine, CLI and desktop | Verified (fresh session, see VERIFICATION.md) |
 | 2 | Research official docs and industry sources | 0.1.x researched only Claude Code docs (docs agent + live tests), OWASP Top 10:2025 and law-firm summaries of the RBI rules; the rest of the engineering practice was written from model knowledge without citations (overstated as done in 0.1.1). 0.2.0: 53 standards confirmed (129 in 0.5.0) on official sites on 2026-11-04 by research subagents and recorded with edition, publication date and URL in `docs/SOURCES.md`; each skill cites what it uses; drafts kept on a watch list, not adopted | Implemented; freshness check Tested (`eng-os verify`). Limits: some pages refused automated access (DPDP gazette, iso.org), noted per row |
-| 3 | Analyse my real environment and projects | Inventory of `~/.claude`, 33 projects in `~/claude` (Frappe ×8, Next.js ×6, Odoo, Flutter, PHP CI3, static sites), 700+ transcripts with `eng-os usage`; the draft `claude-playbook/CLAUDE.global.md` was folded in | Implemented |
+| 3 | Analyse my real environment and projects | Inventory of the maintainer's `~/.claude` and project folder (Frappe, Next.js, Odoo, Flutter, PHP CI3 and static sites), 700+ transcripts with `eng-os usage`; the draft `claude-playbook/CLAUDE.global.md` was folded in | Implemented |
 | 4 | Don't blindly follow my assumptions | Built on evidence: removed the unused skill pack, dropped my own context-injection hook once a live test showed it duplicated native behaviour, kept agents that data showed were used | Implemented |
 | 5 | Ask only when needed | CLAUDE.md §2: autonomous by default, an explicit list of ask-first cases, "money/legal/compliance: never guess" | Implemented (instruction-level) |
 
@@ -50,7 +50,7 @@ Status legend. **Verified**: observed working in a live Claude Code 2.1.309 sess
 | No destructive / prod / irreversible git / shared infra actions without approval | Guard deny/ask rules (README §3) + CLAUDE.md §2 | Tested (122 cases); deny Verified live; ask Verified in the fresh session (prompt shown under bypass mode, approved once by the user) |
 | Don't bypass security controls or disable tests | CLAUDE.md §1/§2/§3 ("never route around the guard") | Implemented (instruction) |
 | Projects can't silently weaken security | Priority order (CLAUDE.md §1); the guard reads only global config, never project files | Tested (by design: no project-level switch exists) |
-| Outward-facing and financial MCP actions gated | Guard MCP rules (email, calendar, sharing, deletes, Apollo, Meta Ads activation/budget) | Tested |
+| Outward-facing and financial MCP actions gated | Guard MCP rules (email, calendar, sharing, deletes, Apollo, ad-platform activation/budget) | Tested |
 
 ## Token efficiency (§7, §15B)
 | Requirement | Where | Status |
