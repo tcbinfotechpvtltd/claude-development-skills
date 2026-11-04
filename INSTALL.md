@@ -1,6 +1,6 @@
 # Installing eng-os (for TCB Infotech developers)
 
-eng-os sets up Claude Code with TCB's engineering standards: global instructions, 9 skills, 3 path-scoped rules and a safety guard. After this one-time setup it applies automatically in every Claude Code chat and every project on your machine: you never call a skill or configure a project by hand. The architecture and the reasoning behind each piece are in [README.md](README.md).
+eng-os sets up Claude Code with TCB's engineering standards: global instructions, 13 skills, 9 path-scoped rules and a safety guard. After this one-time setup it applies automatically in every Claude Code chat and every project on your machine: you never call a skill or configure a project by hand. The architecture and the reasoning behind each piece are in [README.md](README.md).
 
 ## Requirements
 - macOS or Linux. On Windows use WSL; native Windows has not been tested.
@@ -11,12 +11,12 @@ eng-os sets up Claude Code with TCB's engineering standards: global instructions
 ## Install with one command (about 2 minutes)
 In a terminal (macOS, Linux or WSL; in VS Code use **Terminal → New Terminal**):
 ```bash
-( [ -d ~/.eng-os ] || git clone https://github.com/tcbinfotechpvtltd/claude-development-skills.git ~/.eng-os ) && bash ~/.eng-os/install.sh
+git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-os && bash ~/.eng-os/install.sh
 ```
 - **What it does**: it downloads the latest release into `~/.eng-os` and asks for your name and work email (used for your git commits) if git does not already know them. Then it runs the self-tests and installs, backing up your current Claude config first.
 - **Then**: restart Claude Code (in VS Code: **Developer: Reload Window**). Every chat in every project now follows the standards; you never call a skill.
-- **Private repo**: git signs you in to GitHub. If it asks for a password, run `gh auth login` once (GitHub CLI), then run the command again. Your GitHub account needs read access to the repo.
-- **Updating**: run the same command again. It switches to the latest release, re-runs the tests and installs. Claude reminds you when a release is out.
+- **Private repo**: git signs you in to GitHub. If it asks for a password or says it could not read a username, run `gh auth login` once (GitHub CLI; answer Yes to authenticating Git), then run the command again. Your GitHub account needs read access to the repo.
+- **Updating**: run `bash ~/.eng-os/install.sh`. It switches to the latest release, re-runs the tests and installs. Claude reminds you when a release is out. Running the install command a second time only reports that `~/.eng-os` already exists and changes nothing.
 - **Unattended setup**: set `ENG_OS_NAME` and `ENG_OS_EMAIL` to skip the questions.
 - **Windows without WSL**: not supported yet.
 

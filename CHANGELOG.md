@@ -1,6 +1,10 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.8.1 — 2026-11-04
+- **Shorter install command**, easier to share: `git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-os && bash ~/.eng-os/install.sh`. Updating is `bash ~/.eng-os/install.sh`, which `install.sh` now prints at the end. The 0.8.0 command still works.
+- INSTALL.md gives the current counts (13 skills, 9 rules).
+
 ## 0.8.0 — 2026-11-04
 - **One command installs everything**, and updates it when run again: `install.sh`, run through `git clone ... ~/.eng-os && bash ~/.eng-os/install.sh`. It:
   - checks git and Python;

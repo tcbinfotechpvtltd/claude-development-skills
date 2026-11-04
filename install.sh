@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # eng-os one-command installer and updater for macOS, Linux and WSL.
 #
-#   ( [ -d ~/.eng-os ] || git clone https://github.com/tcbinfotechpvtltd/claude-development-skills.git ~/.eng-os ) && bash ~/.eng-os/install.sh
+#   Install:  git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-os && bash ~/.eng-os/install.sh
+#   Update:   bash ~/.eng-os/install.sh
 #
 # Works for a private repo (git uses your GitHub login; run `gh auth login` once if git asks) and a public one.
 # Installs the latest release into ~/.claude, so it applies to Claude Code in VS Code, the desktop app and the
@@ -62,6 +63,7 @@ fi
 say "Running the self-tests"
 "$PY" "$DIR/bin/eng-os" test >/dev/null || die "self-tests failed on $TAG, so nothing was installed (details: $PY $DIR/bin/eng-os test)"
 "$PY" "$DIR/bin/eng-os" install ${IDENTITY[@]+"${IDENTITY[@]}"}
+case "$DIR" in "$HOME"/*) SHOWN="~${DIR#"$HOME"}" ;; *) SHOWN="$DIR" ;; esac
 
 cat <<EOF
 
@@ -70,5 +72,5 @@ Next:
   1. Restart Claude Code (in VS Code: reload the window) so every chat picks it up.
   2. On an individual Claude plan, turn Model Improvement off: https://claude.ai/settings/data-privacy-controls
   3. Read the engineering policy: $PAGE/blob/main/docs/ENGINEERING-POLICY.md
-To update later, run the same command again.
+To update later, run: bash $SHOWN/install.sh
 EOF
