@@ -1,6 +1,16 @@
 # eng-os: TCB Infotech's engineering system for Claude Code
 
-Install it once and every Claude Code session on your machine works to TCB's engineering standards. It is security first, works from evidence, gets on with routine work by itself, asks before anything risky, and keeps token use low. It covers Frappe/ERPNext, Odoo, PHP CodeIgniter 3, Next.js, Flutter, Linux VPS/AWS and Indian digital lending.
+Set it up once on each employee's machine, and from then on **every Claude Code chat, in every project, follows TCB's engineering standards automatically**. Nobody calls a skill or configures anything per project: eng-os recognises the project and the request, then applies the right skills, rules and safety checks by itself. It is security first, works from evidence, gets on with routine work by itself, asks before anything risky, and keeps token use low. It covers Frappe/ERPNext, Odoo, PHP CodeIgniter 3, Next.js, Flutter, Linux VPS/AWS and Indian digital lending.
+
+### How it reaches every employee
+1. **One-time setup per employee** ([INSTALL.md](INSTALL.md), one command, about 5 minutes). It installs and configures everything in that person's Claude Code: the global instructions, all skills, the rules, the safety guard and the automatic hooks.
+2. **Automatic from then on**:
+   - in every Claude Code chat: the desktop app's Code tab, the terminal CLI and the IDE extensions;
+   - for every project, current or future, in git or not;
+   - with nothing to call, remember or switch on.
+3. **Updates**: Claude says when a new release is out, at most once a week, and `bin/eng-os update` installs it after running the tests.
+
+On individual Claude plans no one can install software on someone else's machine, so step 1 is the one thing each employee does themselves. eng-os works inside Claude Code only: regular claude.ai chats and the mobile app do not read these files.
 
 **New here? Install it with [INSTALL.md](INSTALL.md)** (about 5 minutes), and read the [engineering policy](docs/ENGINEERING-POLICY.md). Rolling it out to everyone: [docs/COMPANY-ROLLOUT.md](docs/COMPANY-ROLLOUT.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
@@ -11,7 +21,8 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 |---|---|
 | Version | 0.7.1 |
 | Works with | Claude Code desktop app and CLI. Verified on macOS with 2.1.309; Linux and WSL should work but have not been tested |
-| Applies to | every project you open with Claude Code on your machine, automatically: nobody has to name a skill |
+| Applies to | every Claude Code chat and every project on the machine (desktop app, terminal, IDE), automatically: nobody calls a skill |
+| Setup | one command per employee, once; updates with `eng-os update` after a weekly reminder |
 | Cost per session | about 3.4k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
 | Quality checks | 153 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
 | Standards | 129 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
@@ -30,7 +41,8 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 7. **Projects, git and continuity**: read project CLAUDE.md files, record project knowledge, branch and PR, commit under your own name with no Claude co-author lines, keep a progress file for long work.
 8. **Token efficiency**: targeted reads, parallel tool calls, cheaper models for mechanical subagent work, one task per session.
 
-### Thirteen skills (loaded only when the task needs them)
+### Thirteen skills, applied automatically
+Nobody calls these. eng-os applies the right ones in every chat ([how](#how-the-skills-apply-automatically-in-every-chat)). To keep chats fast and cheap, each skill's full text is pulled in only when the work in front of Claude needs it.
 | Skill | Used for | What it brings |
 |---|---|---|
 | `eng-design` | features, systems, APIs, data models, tech choices | requirements before solutions, 2–3 options with trade-offs, a design checklist (data, state machines, APIs, integrations, consistency, failure modes), C4 diagrams, ADRs, Twelve-Factor, an AWS Well-Architected final pass |
@@ -47,8 +59,8 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 | `eng-project-init` | a repo with no CLAUDE.md, or a stale one | builds a project CLAUDE.md from the repo: commands, architecture map, invariants, environments, gotchas |
 | `eng-os-review` | monthly (a reminder appears) | measures token use and adherence, checks Claude Code changes, re-checks every cited standard, proposes improvements as a PR |
 
-### How the right skills load without anyone asking
-Nobody types a skill name. Four layers make the right skill load on its own:
+### How the skills apply automatically in every chat
+Nobody types a skill name, and no chat needs any setup. Four layers apply the right skill on their own:
 1. **Project detection** (session start): eng-os recognises Frappe/ERPNext, Odoo, Next.js, Node, Flutter, CodeIgniter 3 and Python projects from their files, and lending work from the project CLAUDE.md, then names the matching skills. Other stacks (Laravel, WordPress, Django, React Native, Java, .NET, Go, Rust, Ruby, iOS) are named too: the general skills apply and their conventions go in the project's own CLAUDE.md. Any project without a CLAUDE.md, in git or not, is offered `/eng-project-init`. Detection works from file types only: eng-os never names or assumes a specific project, so projects can come and go.
 2. **Prompt routing** (every request): keywords in the request ("loan", "deploy", "failing test", "user manual", "estimate", "Odoo"...) name the matching skills. Each skill is named at most once per session (about 40 tokens), and it stays silent when nothing matches.
 3. **Path rules** (whenever matching files are touched): short must-follow rules load and point to their skill.

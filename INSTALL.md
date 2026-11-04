@@ -1,6 +1,6 @@
 # Installing eng-os (for TCB Infotech developers)
 
-eng-os sets up Claude Code with TCB's engineering standards: global instructions, 9 skills, 3 path-scoped rules and a safety guard. It applies to every project you open with Claude Code on your machine. The architecture and the reasoning behind each piece are in [README.md](README.md).
+eng-os sets up Claude Code with TCB's engineering standards: global instructions, 9 skills, 3 path-scoped rules and a safety guard. After this one-time setup it applies automatically in every Claude Code chat and every project on your machine: you never call a skill or configure a project by hand. The architecture and the reasoning behind each piece are in [README.md](README.md).
 
 ## Requirements
 - macOS or Linux. On Windows use WSL; native Windows has not been tested.
