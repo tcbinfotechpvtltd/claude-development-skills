@@ -1,0 +1,7 @@
+# Copy to .github/CODEOWNERS. The last matching pattern wins; owners need write access.
+*                   @<team-or-lead>
+/.github/workflows/ @<maintainer>
+/deploy/            @<maintainer>
+**/migrations/      @<maintainer>
+/.claude/           @<maintainer>
+/CLAUDE.md          @<maintainer>

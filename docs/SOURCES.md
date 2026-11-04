@@ -180,3 +180,23 @@ Primary RBI pages were read for the Digital Lending Directions; DPDP Rules conte
 | Atheris (Python fuzzing) | 3.1.0 | 2026-06-17 | tooling.md | https://github.com/google/atheris | 2026-11-04 |
 | Faker / @faker-js/faker | 40.44 / 10.6 | 2026-10-28 / 2026-08-14 | tooling.md | https://pypi.org/project/Faker/ | 2026-11-04 |
 | Software Engineering at Google, ch. 11 (test sizes) | online edition | not shown | tooling.md | https://abseil.io/resources/swe-book/html/ch11.html | 2026-11-04 |
+
+## Documentation, delivery tracking and company rollout
+| Standard | Edition in use | Published | Used in | URL | Checked |
+|---|---|---|---|---|---|
+| Diátaxis documentation framework | live site | not shown | eng-docs, templates/docs/user-manual | https://diataxis.fr/ | 2026-11-04 |
+| arc42 architecture template | v9.1 (English) | 2026-10-19 | eng-docs, templates/docs/architecture.md | https://arc42.org/overview | 2026-11-04 |
+| ISO/IEC/IEEE 29148 requirements engineering | 2018 (2nd ed.; revision under development) | 2018-11-28 | eng-docs, templates/docs/requirements.md | https://www.iso.org/standard/72089.html | 2026-11-04 |
+| ISO/IEC/IEEE 29119-3 test documentation | 2021 (2nd ed.) | 2021-10-28 | eng-docs, templates/docs/test-plan.md | https://standards.ieee.org/ieee/29119-3/7499/ | 2026-11-04 |
+| Google developer documentation style guide | live | not shown | eng-docs | https://developers.google.com/style/highlights | 2026-11-04 |
+| Microsoft Writing Style Guide | live | 2026-10-15 | eng-docs | https://learn.microsoft.com/en-us/style-guide/welcome/ | 2026-11-04 |
+| Docusaurus / MkDocs / Material for MkDocs status | 3.10 / 1.6.1 / maintenance mode until 2027-05-05 | 2026-07-10 / 2024-08-30 / 2025-11-11 | eng-docs | https://squidfunk.github.io/mkdocs-material/ | 2026-11-04 |
+| Mermaid | 12 | 2026-11-03 | eng-docs | https://mermaid.js.org/ | 2026-11-04 |
+| GitHub issue forms | live docs | not shown | templates/github | https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms | 2026-11-04 |
+| Claude Code managed and server-managed settings | live docs | not shown | docs/COMPANY-ROLLOUT.md | https://code.claude.com/docs/en/server-managed-settings.md | 2026-11-04 |
+| Claude Code plugins and marketplaces | live docs | not shown | docs/COMPANY-ROLLOUT.md | https://code.claude.com/docs/en/plugins/org.md | 2026-11-04 |
+| Frappe partner implementation procedure and partner implementation page | live pages | 2026-05-07 | eng-delivery/erp-implementation.md | https://frappe.io/partner-sop/implementation-procedure | 2026-11-04 |
+| ERPNext Data Import | live docs | 2026-04-27 | erp-implementation.md | https://docs.frappe.io/erpnext/user/manual/en/data-import | 2026-11-04 |
+| Odoo implementation methodology guide | Nov 2020 edition | 2020-11 | erp-implementation.md | https://www.odoo.com/web/content/27370198 | 2026-11-04 |
+| Microsoft Dynamics 365 Success by Design and cutover guidance | live docs (5 phases) | 2026-08-04 | erp-implementation.md | https://learn.microsoft.com/en-us/dynamics365/guidance/implementation-guide/success-by-design | 2026-11-04 |
+| SAP Activate (phases, fit-to-standard) | as described by SAP LeanIX (SAP pages refuse automated access) | not shown | erp-implementation.md | https://www.leanix.net/en/wiki/ea/sap-activate-explore-phase-activities | 2026-11-04 |

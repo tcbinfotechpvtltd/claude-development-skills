@@ -2,19 +2,19 @@
 
 Install it once and every Claude Code session on your machine works to TCB's engineering standards. It is security first, works from evidence, gets on with routine work by itself, asks before anything risky, and keeps token use low. It covers Frappe/ERPNext, Odoo, PHP CodeIgniter 3, Next.js, Flutter, Linux VPS/AWS and Indian digital lending.
 
-**New here? Install it with [INSTALL.md](INSTALL.md)** (about 5 minutes). Changes: [CHANGELOG.md](CHANGELOG.md).
+**New here? Install it with [INSTALL.md](INSTALL.md)** (about 5 minutes), and read the [engineering policy](docs/ENGINEERING-POLICY.md). Rolling it out to everyone: [docs/COMPANY-ROLLOUT.md](docs/COMPANY-ROLLOUT.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
-Contents: [What's inside](#whats-inside) · [What you get in each area](#what-you-get-in-each-area) (custom projects, ERPNext, Odoo, coding, testing, GitHub, DevOps, SDLC, project management, security, tokens) · [Why it is good](#why-it-is-good) · [Limits](#limits-honest) · [Technical reference](#technical-reference)
+Contents: [What's inside](#whats-inside) · [What you get in each area](#what-you-get-in-each-area) (custom projects, ERPNext, Odoo, coding, testing, GitHub, DevOps, SDLC, project management, documentation, security, tokens) · [Why it is good](#why-it-is-good) · [Limits](#limits-honest) · [Technical reference](#technical-reference)
 
 ## At a glance
 | | |
 |---|---|
-| Version | 0.4.0 |
+| Version | 0.5.0 |
 | Works with | Claude Code desktop app and CLI. Verified on macOS with 2.1.309; Linux and WSL should work but have not been tested |
 | Applies to | every project you open with Claude Code on your machine, with no per-project setup |
-| Cost per session | about 3.2k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
+| Cost per session | about 3.4k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
 | Quality checks | 126 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
-| Standards | 103 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
+| Standards | 129 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
 | Undo | one command restores your previous Claude setup exactly |
 
 ## What's inside
@@ -30,7 +30,7 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 7. **Projects, git and continuity**: read project CLAUDE.md files, record project knowledge, branch and PR, commit under your own name with no Claude co-author lines, keep a progress file for long work.
 8. **Token efficiency**: targeted reads, parallel tool calls, cheaper models for mechanical subagent work, one task per session.
 
-### Twelve skills (loaded only when the task needs them)
+### Thirteen skills (loaded only when the task needs them)
 | Skill | Used for | What it brings |
 |---|---|---|
 | `eng-design` | features, systems, APIs, data models, tech choices | requirements before solutions, 2–3 options with trade-offs, a design checklist (data, state machines, APIs, integrations, consistency, failure modes), C4 diagrams, ADRs, Twelve-Factor, an AWS Well-Architected final pass |
@@ -41,7 +41,8 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 | `frappe-erpnext` | Frappe, ERPNext, HRMS and custom apps, bench | site isolation, permission-safe APIs, DocType JSON and patches, bench workflows, v15/v16 gotchas |
 | `odoo` | Odoo modules, views, reports, upgrades (versions 17 to 20) | official module layout and naming, breaking changes per version, access rights and record rules (`ir.access` in 20), controllers, QWeb reports, `odoo-bin` tests, migration scripts and the upgrade service, performance |
 | `custom-apps` + `nextjs.md`, `flutter.md`, `php-ci3.md`, `python.md` | Next.js/React/Node, PHP CodeIgniter 3, Flutter and Python apps | supported runtime versions with end-of-life dates, architecture per stack (App Router data layer, Flutter MVVM, thin CI3 controllers), Next.js 16 upgrade traps, legacy CI3 risk, deploy shape |
-| `eng-delivery` | scoping, estimates, plans, status, change requests, UAT, handoff | in/out-of-scope, three-point estimates in ranges, Scrum/Kanban/staged plans, a Definition of Done, RAID log, weekly status template, change control for fixed scope, UAT, go-live and handoff packs |
+| `eng-delivery` + `erp-implementation.md` | scoping, estimates, plans, status, change requests, ERP implementations, UAT, handoff | in/out-of-scope, three-point estimates in ranges, Scrum/Kanban/staged plans, the TCB ERP method (discover, fit-to-standard, build, data migration, UAT and training, cutover, hypercare), a Definition of Done that includes documents, issue tracking, RAID log, weekly status, change control, UAT, go-live and handoff |
+| `eng-docs` | requirements, user manuals, test-case documents, runbooks, project history, handover | the document set every project keeps and when each is written and updated, requirement ids linking issues, PRs, tests and manual pages, append-only history, Diátaxis user manuals per role, writing rules, the bus-factor check |
 | `fintech-lending` | anything that moves money, computes loan amounts or stores borrower data | money as decimals, append-only double-entry ledgers, loan state machines, disbursal gates, vendor adapters and webhooks, RBI Digital Lending Directions 2025, DPDP Rules 2025, RBI NBFC cyber and outsourcing directions |
 | `eng-project-init` | a repo with no CLAUDE.md, or a stale one | builds a project CLAUDE.md from the repo: commands, architecture map, invariants, environments, gotchas |
 | `eng-os-review` | monthly (a reminder appears) | measures token use and adherence, checks Claude Code changes, re-checks every cited standard, proposes improvements as a PR |
@@ -67,13 +68,21 @@ A start-of-session hook stays silent unless the monthly review is due or someone
 `install` (backup, validation, rollback), `verify` (health check), `test`, `status`, `backups`, `restore`, `usage` (token and tool metrics from your local transcripts), `eval` (scores a real session against test scenarios), `audit-done`.
 
 ### Templates
-- `templates/project/CLAUDE.md`: the project instructions template.
-- `templates/release/`: `CHANGELOG.md`, GitHub `release.yml` and `pull_request_template.md`, ready to copy into a repo.
+- `templates/project/`: the project `CLAUDE.md`, and `claude-settings.json` (the installed-check every project repo gets).
+- `templates/docs/`: the project document set:
+  - documentation index, requirements, glossary;
+  - architecture (arc42), test plan with test cases and traceability;
+  - user manual (Diátaxis) and What's new;
+  - runbook, progress and history log, handover checklist.
+- `templates/github/`: issue forms (bug, feature), standard labels, CODEOWNERS, `dependabot.yml`.
+- `templates/release/`: `CHANGELOG.md`, GitHub `release.yml` and `pull_request_template.md`.
 
 ### Documentation
 | File | What it holds |
 |---|---|
 | [INSTALL.md](INSTALL.md) | install, what changes on your machine, updating, undo, troubleshooting |
+| [docs/ENGINEERING-POLICY.md](docs/ENGINEERING-POLICY.md) | what every TCB engineer commits to when working with Claude Code |
+| [docs/COMPANY-ROLLOUT.md](docs/COMPANY-ROLLOUT.md) | putting eng-os on every machine: per-developer install, a plugin, organisation-managed settings |
 | [docs/SOURCES.md](docs/SOURCES.md) | every external standard cited, with edition, date, link and when it was last checked |
 | [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) | each requirement mapped to where it is implemented and how far it is proven |
 | [docs/VERIFICATION.md](docs/VERIFICATION.md) | test and live-session evidence for every release |
@@ -222,7 +231,11 @@ From `eng-testing` and its three reference files:
   - Semgrep, gitleaks, Trivy and ZAP for security;
   - Stryker, mutmut and Infection for mutation testing;
   - Faker for synthetic data.
-- **Test data**: synthetic data with fixed seeds, masked data in UAT, separate test databases, and golden datasets reviewed by the business owner.
+- **Three data tiers** (one rule everywhere):
+  - synthetic data for development, CI, docs, screenshots and Claude's browser checks;
+  - masked data in UAT and training;
+  - restricted real data only for approved, isolated migration rehearsals and restore drills, which Claude does not browse.
+  - Load, fuzz and security scans run with vendors stubbed, never against production or vendor systems.
 
 ### GitHub and source control
 - Branch and pull request; no commits straight to `main` or `prod`. Pull or rebase before editing shared repos.
@@ -321,7 +334,46 @@ The `eng-delivery` skill adds the delivery discipline a consultancy needs. It co
   - a go-live checklist with a migration rehearsal and a rollback decision point;
   - a handoff pack, with credentials passed only through a password manager or secret store;
   - a lessons-learned note.
+- **ERP implementations** (`erp-implementation.md`), phase by phase:
+  - discover and plan with one client point of contact;
+  - fit-to-standard workshops that sort every requirement as standard, configuration or customisation;
+  - configuration before code, with weekly key-user demos;
+  - data migration with mock loads and a finance-signed reconciliation;
+  - UAT and training from the user manual;
+  - a rehearsed cutover with a go/no-go meeting;
+  - hypercare that ends on criteria, then the next phase.
+  - Every phase ends in a written sign-off.
+- **Tracking**: issue forms (bug, feature), standard labels and a milestone per release. Pull requests close their issue and cite the requirement id.
 - Continuity and honesty from the global rules: `docs/progress.md` and evidence-based status. Claude never invents dates, prices or commitments, and anything sent to a client is your action.
+
+### Documentation and project history
+The `eng-docs` skill keeps every project understandable by someone new. If the developer left today, the next person could carry on from the repo alone.
+- **The document set** (templates in `templates/docs/`, copied in by `/eng-project-init`):
+  - requirements with numbered requirement ids and a change history, and a glossary;
+  - architecture on the arc42 template, with ADRs;
+  - a test plan with test cases, a requirement-to-test traceability matrix and a completion report per release;
+  - a user manual per role in Diátaxis form (tutorials, how-to guides, reference, explanation) plus an admin guide and "What's new";
+  - a runbook;
+  - a project brief, a log of client decisions and a RAID log;
+  - a progress status page plus a dated log of all work, one file per entry so parallel pull requests never conflict;
+  - the CHANGELOG, release notes and a handover checklist (including vendor, domain and licence ownership).
+- **When each document is written**:
+  - requirements and glossary after discovery, confirmed by the client before building;
+  - architecture and the test plan at design;
+  - the user manual drafted before UAT;
+  - everything relevant updated in the same pull request as each change (part of the Definition of Done and the PR checklist).
+- **History you can audit**:
+  - the progress log in `docs/progress/` (who, what, why, evidence, docs updated). It is append-only, except for redacting a leaked secret or personal data;
+  - the requirement change history with change-request ids;
+  - ADRs, superseded rather than edited;
+  - the CHANGELOG per release, and git for the detail.
+- **Writing rules**:
+  - the Google and Microsoft style guides: second person, active voice, short numbered steps;
+  - exact screen labels and glossary terms;
+  - screenshots from UAT with synthetic data;
+  - no secrets, ever.
+  - Business facts are confirmed by the client, never invented; open items are marked **TO CONFIRM**.
+- **The bus-factor check at every milestone**: a newcomer can set up, test and deploy to UAT from the README and runbook alone; every requirement has tests and a manual page; nothing lives only in one person's head.
 
 ### Security and compliance
 - **A security floor in every session**: secrets, authorization, hostile input, webhooks, personal and KYC data, dependencies.
@@ -336,8 +388,8 @@ Text that loads in every session is paid for in every session, so eng-os keeps t
 
 | Layer | When it is loaded | Approximate cost |
 |---|---|---|
-| Global instructions | every session | 2.0k tokens |
-| Skill list (names and descriptions) | every session | 1.2k tokens |
+| Global instructions | every session | 2.1k tokens |
+| Skill list (names and descriptions) | every session | 1.3k tokens |
 | One skill's full text | only when the task needs it | 0.6–2.4k tokens |
 | Reference files (per stack, standards, releases, GitHub, coding standards, test tooling) | only when a skill sends Claude to them | 0.6–1.5k tokens |
 | Path rules | only when a matching file is touched | 0.25–0.3k tokens |
@@ -364,9 +416,9 @@ Working habits that cut waste (global instructions section 8):
 
 ## Why it is good
 - **Safety is enforced, not hoped for.** Risky actions are stopped by a hook that runs on every tool call, not by a sentence the model might forget. 126 automated cases cover it, and it was verified live in bypass mode.
-- **Built on current standards, with sources.** 103 standards, frameworks and tool versions are named with their edition and the date each was confirmed on its official site: OWASP, NIST, CIS, MITRE, CISA, SLSA, PCI, ISO, Google SRE and DORA, RBI, DPDP and CERT-In. Nothing is quoted from memory, and a health-check warning plus the monthly review keep them current.
+- **Built on current standards, with sources.** 129 standards, frameworks and tool versions are named with their edition and the date each was confirmed on its official site: OWASP, NIST, CIS, MITRE, CISA, SLSA, PCI, ISO, Google SRE and DORA, RBI, DPDP and CERT-In. Nothing is quoted from memory, and a health-check warning plus the monthly review keep them current.
 - **Made for TCB's real work.** The stack pitfalls, lending rules and severity examples come from TCB projects, audits and incidents, not generic advice.
-- **Cheap to run.** About 3.2k tokens per session. Detail lives in files that load only when needed. The 24-skill pack it replaced was used once in more than 700 sessions.
+- **Cheap to run.** About 3.4k tokens per session. Detail lives in files that load only when needed. The 24-skill pack it replaced was used once in more than 700 sessions.
 - **Honest results.** Claude must show evidence, label what is not verified, and never call anything "secure".
 - **The same standards for everyone.** Each developer still commits under their own name and keeps their own personal instructions. Improvements come in as pull requests.
 - **Safe to install and remove.** Every install that changes anything takes a backup first, validates before writing and rolls back on error. A restore gives back the exact previous setup. A broken settings file is refused, never overwritten.
@@ -394,7 +446,7 @@ Full list: [section 8](#8-limitations-what-claude-code-cannot-guarantee).
 | Layer | Live location | Loads | Approx. cost | Purpose |
 |---|---|---|---|---|
 | Global instructions | `~/.claude/CLAUDE.md` | every session, re-read after compaction | ~2.0k tokens | priority order, approval gates, engineering behaviour, security floor, skill routing table, git and token rules |
-| Skills (12) | `~/.claude/skills/<name>/SKILL.md` | listing always (~1.1k tokens); body only when invoked; reference files only when the body sends Claude to them | 0.6–1.5k tokens each when used | procedures: `eng-design`, `eng-security` (+`stacks.md`, `standards.md`), `eng-testing` (+`tooling.md`), `eng-review` (+`coding-standards.md`), `eng-ship` (+`releases.md`, `github.md`), `eng-delivery`, `frappe-erpnext`, `odoo`, `custom-apps` (+ one file per stack), `fintech-lending`, `eng-project-init`, `eng-os-review` |
+| Skills (13) | `~/.claude/skills/<name>/SKILL.md` | listing always (~1.1k tokens); body only when invoked; reference files only when the body sends Claude to them | 0.6–1.5k tokens each when used | procedures: `eng-design`, `eng-security` (+`stacks.md`, `standards.md`), `eng-testing` (+`tooling.md`), `eng-review` (+`coding-standards.md`), `eng-ship` (+`releases.md`, `github.md`), `eng-delivery` (+`erp-implementation.md`), `eng-docs`, `frappe-erpnext`, `odoo`, `custom-apps` (+ one file per stack), `fintech-lending`, `eng-project-init`, `eng-os-review` |
 | Standards register | repo `docs/SOURCES.md` | never in context | 0 | every external standard the skills cite, with edition, publication date, URL and the date it was last confirmed on the official site |
 | Path-scoped rules (3) | `~/.claude/rules/*.md` | only when a matching file is read or edited | ~200–300 tokens each | must-follow invariants for Frappe code, DB migrations/SQL, CI/containers/infra |
 | Guard hook | `~/.claude/eng-os/hooks/guard.py` (PreToolUse: Bash, file tools, `mcp__.*`) | every matching tool call, ~50 ms | 0 tokens unless it blocks | deny catastrophic actions; ask before destructive, irreversible, outward-facing, production and secret-exposing ones |
@@ -403,7 +455,7 @@ Full list: [section 8](#8-limitations-what-claude-code-cannot-guarantee).
 | Subagents | `~/.claude/agents/` (existing 4 kept) | when spawned | per run | `security-auditor`, `code-reviewer`, `test-engineer`, `web-performance-auditor` are used for fresh-context review; no new agents were needed |
 | CLI + tests | `~/.claude/eng-os/bin`, `tests`, `templates` | never in context | 0 | install/verify/test/usage/eval/restore, project template |
 
-**Always-loaded total added by eng-os: ~3.2k tokens** (CLAUDE.md ~2.0k plus skill listing ~1.2k, 12 skills). The installer also removed the ~1.7k-token listing of the 24 unused agent-skills and a SessionStart hook that ran in every session and injected nothing.
+**Always-loaded total added by eng-os: ~3.4k tokens** (CLAUDE.md ~2.1k plus skill listing ~1.3k, 13 skills). The installer also removed the ~1.7k-token listing of the 24 unused agent-skills and a SessionStart hook that ran in every session and injected nothing.
 
 ### Instruction hierarchy (conflict resolution)
 1. Safety floor (approval gates + security floor in the global CLAUDE.md, enforced in part by the guard)

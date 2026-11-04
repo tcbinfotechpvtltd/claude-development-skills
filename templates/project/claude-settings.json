@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f \"$HOME/.claude/eng-os/manifest.json\" ] || printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"This repository follows the TCB engineering standards (eng-os), but eng-os is not installed on this machine. Before doing any work, tell the user and ask them to get eng-os from the TCB engineering lead.\"}}'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

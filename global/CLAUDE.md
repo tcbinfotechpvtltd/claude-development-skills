@@ -46,11 +46,12 @@ On a material conflict follow the higher level and say so in one line. If a requ
 | Auth, sessions, input, uploads, secrets, PII/KYC, payments, new endpoints, dependencies, security review | `eng-security` |
 | Writing or fixing tests, debugging a failure, flaky tests, checking a UI change in a browser | `eng-testing` |
 | Before commit, PR or handoff; reviewing code or an audit | `eng-review` |
+| Requirements, user manuals, test-case docs, runbooks, project history, handover | `eng-docs` |
 | CI/CD, deploys, releases, versioning, changelogs, migrations on shared data, servers, infra, monitoring, backups | `eng-ship` |
 | Frappe, ERPNext, HRMS apps, bench, doctypes | `frappe-erpnext` |
 | Odoo modules, models, views, QWeb reports, odoo-bin, upgrades | `odoo` |
 | Custom apps: Next.js/React/Node, PHP CodeIgniter 3, Flutter, Python services | `custom-apps` |
-| Scoping, estimates, plans, status reports, risks, change requests, UAT, client handoff | `eng-delivery` |
+| Scoping, estimates, plans, status reports, risks, change requests, ERP implementation phases, UAT, go-live, client handoff | `eng-delivery` |
 | Loans, ledgers, money movement, KYC, NBFC/LSP, payment or bureau integrations | `fintech-lending` |
 | Repo without a CLAUDE.md, or user asks to set one up | `eng-project-init` |
 | eng-os audit due, or improving these instructions | `eng-os-review` |
@@ -61,7 +62,8 @@ Load only what the task needs; skip skills for trivial edits. Skills a project C
 - Record durable project knowledge (commands, architecture map, invariants, env/branch mapping, gotchas) in that project's CLAUDE.md so it is not rediscovered next session.
 - Pull/rebase before editing shared repos. Never commit to main/prod directly: branch and PR. Commit or push only when asked or when the task includes it.
 - Commits are authored `{{GIT_AUTHOR}}` with no Claude co-author or attribution lines. Never commit secrets, dumps, `.env` files or large binaries.
-- Multi-session work: keep `docs/progress.md` (goal, decisions and why, done with evidence, next, risks). Read it first when resuming and update it at milestones and before compaction.
+- Keep the project's documents current in the same change (skill `eng-docs`), with a progress-log entry in `docs/progress/` (projects without a `docs/` set: propose one). Read `docs/progress.md` first when resuming; update it at milestones and before compaction.
+- A lesson that applies beyond this project (a framework gotcha, a better procedure, a guard false positive): propose it for eng-os as a pull request.
 
 ## 8. Token efficiency (never at the cost of correctness)
 - Locate with grep/rg, then read only the ranges you need. Trim long output (`tail`, `grep`, `head`); never dump lockfiles, logs, minified or generated files.

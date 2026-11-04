@@ -8,7 +8,9 @@ description: Conventions, workflows and gotchas for Frappe framework apps (ERPNe
 Security invariants for Frappe code are in the user rule `frappe-erpnext` (it auto-loads when app files are touched) and in [stacks.md](../eng-security/stacks.md). This skill holds the procedures.
 
 ## Before changing anything
+- For a client ERPNext implementation, run the project with the ERP method in [erp-implementation.md](../eng-delivery/erp-implementation.md): configure standard features before writing any code.
 - Identify bench path, Frappe/ERPNext versions (`bench version`), the site, its port, and which apps are installed (`bench --site <s> list-apps`). Record them in the project CLAUDE.md if they are missing.
+- A restored copy of a client site is neutralized before its first start (mute emails, disable the scheduler, clear vendor credentials; [erp-implementation.md](../eng-delivery/erp-implementation.md)).
 - Each client gets an isolated site (and usually its own port). Never run commands against a site you were not asked to touch. `bench serve` serves the default site for every host, so pin it with `bench --site <site> serve --port <port>`.
 - Check whether the user wants changes **through the UI only** (some implementation projects forbid API/DB writes for business data). Infra and code changes go through bench and git.
 

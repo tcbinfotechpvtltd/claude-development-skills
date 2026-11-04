@@ -41,5 +41,6 @@
 ## Gotchas
 - <non-obvious things learned the hard way, with date>
 
-## Status
-Progress and open decisions: `docs/progress.md` (if present).
+## Documentation and status
+- Documentation index: `docs/README.md` (requirements, architecture, test plan and cases, user manual, runbook). Keep it current with every change (skill `eng-docs`).
+- Status and the dated log of all work: `docs/progress.md`. Tracking: <GitHub Issues / Jira board link>.

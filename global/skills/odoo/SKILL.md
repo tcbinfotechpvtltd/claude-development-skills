@@ -6,6 +6,7 @@ description: Building, customising and upgrading Odoo modules (Community and Ent
 # Odoo engineering
 
 ## Before changing anything
+- Client implementations follow the phase-by-phase method in skill `eng-delivery` ([erp-implementation.md](../eng-delivery/erp-implementation.md)): standard first, configuration second, code only for real gaps.
 - Confirm the Odoo version and edition (Community or Enterprise; on-premise, Odoo.sh or Online), the database, the addons path and the custom modules, and record them in the project CLAUDE.md. Code differs materially between 17, 18, 19 and 20 (table below): write for the project's version.
 - Standard support (checked 2026-11-04) lasts 3 years: 20.0 (Sept 2026 to Sept 2029), 19.0 (to Sept 2028), 18.0 (to Sept 2027). **17.0 left standard support in Sept 2026**: flag it and plan the upgrade. The SaaS versions (x.1 to x.4) exist only on Odoo Online.
 - Never edit core addons. Extend through a custom module: `_inherit`, view inheritance with `xpath`, and method overrides that call `super()`.

@@ -32,12 +32,15 @@ eng-os sets up Claude Code with TCB's engineering standards: global instructions
 | Path | Change |
 |---|---|
 | `~/.claude/CLAUDE.md` | Replaced by the TCB standards, with your name and email in the commit rule. **Your existing file is kept**: its text is saved to `~/.claude/eng-os/personal.md` and appended as section 9. To change it later, edit `personal.md` and re-install |
-| `~/.claude/skills/` | Adds `eng-design`, `eng-security`, `eng-testing`, `eng-review`, `eng-ship`, `eng-delivery`, `frappe-erpnext`, `odoo`, `custom-apps`, `fintech-lending`, `eng-project-init`, `eng-os-review`. A skill of yours with one of these names is replaced (it is in the backup). Your other skills are untouched |
+| `~/.claude/skills/` | Adds `eng-design`, `eng-security`, `eng-testing`, `eng-review`, `eng-ship`, `eng-delivery`, `eng-docs`, `frappe-erpnext`, `odoo`, `custom-apps`, `fintech-lending`, `eng-project-init`, `eng-os-review`. A skill of yours with one of these names is replaced (it is in the backup). Your other skills are untouched |
 | `~/.claude/rules/` | Adds 3 rules that load only when matching files are touched (Frappe code, DB migrations/SQL, CI/infra files) |
 | `~/.claude/settings.json` | Merged; your other keys stay. Adds: a guard hook on tool calls, a session-start check, a deny rule on Claude's own login file, and `attribution` off (no Claude co-author lines) |
 | `~/.claude/eng-os/` | Hooks, CLI, tests, templates, your `user.json` (identity) and backups |
 
 Nothing else is touched: no project files, plugins, MCP servers or agents. Nothing is sent anywhere. `eng-os usage` reads only your local transcripts.
+
+## Before your first project
+Read the [engineering policy](docs/ENGINEERING-POLICY.md): it is what every TCB engineer commits to when working with Claude Code. In each project repo, run `/eng-project-init` once to get its `CLAUDE.md`, the `docs/` set, the GitHub templates and the installed-check.
 
 ## What you will notice
 - **Approval prompts** before risky actions, even in bypass mode. Examples: force-push or push to `main`/`prod`/`uat`, `reset --hard`, deploys, `DROP`/`TRUNCATE`, state-changing SSH, printing `.env` files, sending email, Meta Ads changes that spend money. Catastrophic commands (wiping home, dumping the keychain) are refused outright. In headless `claude -p` an approval prompt becomes a refusal, because nobody is there to answer.
@@ -51,7 +54,7 @@ Nothing else is touched: no project files, plugins, MCP servers or agents. Nothi
 - The guard only sees Claude's tool calls. For repos you do not trust, also use Claude Code's sandbox setting or a container.
 
 ## Updating and changing it
-- Update: `git pull && bin/eng-os test && bin/eng-os install`. Your identity is remembered.
+- Update to the release the maintainer announces, never to an untested commit: `git fetch --tags && git checkout <tag> && bin/eng-os test && bin/eng-os install --dry-run`, read the list, then `bin/eng-os install`. Your identity is remembered.
 - Never edit the live copies in `~/.claude` (the guard asks first). Change the repo on a branch, run `bin/eng-os test`, and open a pull request for the maintainer. Everyone installs from the default branch.
 - `docs/SOURCES.md` lists every external standard the skills cite, with the date each was last checked. `eng-os verify` warns when one is older than 120 days.
 

@@ -29,20 +29,23 @@ Choose by risk. Every change gets the fast layers; slower ones are added for wha
 | Acceptance / UAT | building something other than what was asked | before client sign-off | scenarios traced to acceptance criteria (skill `eng-delivery`) |
 | Accessibility | keyboard, screen-reader and contrast failures | every user-facing UI | automated axe checks in end-to-end tests, plus a manual keyboard and screen-reader pass (WCAG 2.2 AA) |
 | Web performance | slow pages | landing, apply and dashboard pages | Lighthouse CI in the pipeline; Core Web Vitals from real users |
-| Load, stress, soak, spike | capacity limits, memory leaks, queue backlogs | before launch, campaigns and bulk imports | k6 on UAT: expected load, beyond it (stress), hours long (soak), sudden bursts (spike) |
-| Security | vulnerabilities | static analysis, dependency and secret scans on every PR; dynamic scan before release; a penetration test yearly or after major change | Semgrep, dependency audits, gitleaks, Trivy, ZAP; negative tests from skill `eng-security` |
+| Load, stress, soak, spike | capacity limits, memory leaks, queue backlogs | before launch, campaigns and bulk imports | k6 on UAT with every external vendor stubbed: expected load, beyond it (stress), hours long (soak), sudden bursts (spike). Never against production or a vendor's systems (KYC and SMS calls cost money) |
+| Security | vulnerabilities | static analysis, dependency and secret scans on every PR; dynamic scan before release; a penetration test yearly or after major change | Semgrep, dependency audits, gitleaks, Trivy, ZAP on UAT with vendors stubbed; negative tests from skill `eng-security`; penetration tests only with written client authorisation |
 | Property-based | edge cases humans miss | interest and EMI schedules, rounding, parsers, validators | Hypothesis or fast-check asserting invariants (instalments sum to principal plus interest; balance never negative) |
-| Fuzzing | crashes and hangs on malformed input | file uploads, parsers, webhook handlers | Schemathesis for APIs; a coverage-guided fuzzer for parsers |
+| Fuzzing | crashes and hangs on malformed input | file uploads, parsers, webhook handlers | Schemathesis for APIs (local or UAT with vendors stubbed); a coverage-guided fuzzer for parsers |
 | Mutation | tests that would never fail | critical money modules | Stryker, mutmut, Infection |
-| Migration and reconciliation | data lost or corrupted in a move | every schema or data migration, imports, go-live | rehearsal on a copy; counts, sums and sample records compared before and after |
+| Migration and reconciliation | data lost or corrupted in a move | every schema or data migration, imports, go-live | rehearsal on a neutralized copy (restricted tier, see below); counts and totals compared before and after |
 | Backup restore and DR drill | backups that cannot be restored | on a schedule (for example quarterly) and before risky changes | restore into a scratch environment and check the data |
 | Resilience | bad behaviour when a dependency fails | KYC, bureau, payment and NBFC integrations, queues | stubs returning timeouts, 5xx, garbage, duplicates and out-of-order events; kill a worker mid-job |
 | Compatibility | works on one browser or device only | public web and mobile apps | Playwright on Chromium, Firefox and WebKit; a low-end Android phone and an iPhone; the oldest OS versions supported |
 | Time and locale | date and number bugs | anything with dates, money or schedules | IST and UTC, month end, leap years, Indian number formats (lakh, crore), translations |
 | Production checks | outages users would hit first | critical public flows | scheduled read-only probes with alerts (skill `eng-ship`) |
 
-## Test data
-- Synthetic data from factories or builders (Faker); never real personal data in tests, and only masked data in UAT.
-- Fixed random seeds and frozen time; each test creates and cleans up its own data.
-- A separate test database or site; tests never run against client or production data.
-- Golden datasets for money calculations, reviewed by someone who owns the business rule.
+## Data tiers (the one rule for test, UAT and documentation data)
+| Tier | Where | Rules |
+|---|---|---|
+| **Synthetic** (default) | development, CI, documentation and screenshots, Claude's browser checks | generated with factories (Faker) with fixed seeds; never derived from real people |
+| **Masked** | UAT and training | personal fields (names, PAN, Aadhaar, phone, bank, address) replaced irreversibly before anyone uses the copy; Claude may browse it |
+| **Restricted real data** | only migration rehearsals, reconciliation and restore drills where masking would defeat the purpose | written approval from the client and the project lead; an isolated environment with production-grade access control; neutralized first; no Claude browsing, screenshots or row dumps (scripts that report only counts and totals are fine); destroyed when the drill is done; never full Aadhaar numbers |
+- Each test creates and cleans up its own data; time is frozen and seeds are fixed.
+- Golden datasets for money calculations are reviewed by someone who owns the business rule.
