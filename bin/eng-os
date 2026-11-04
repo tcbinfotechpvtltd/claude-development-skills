@@ -12,6 +12,8 @@
   eng-os backups               list backups
   eng-os restore [ID|latest]   restore the live config captured by a backup (default: latest)
   eng-os audit-done            record that a periodic review was completed
+  eng-os update [--yes]        fetch release tags, switch the repo to the latest release, run the tests,
+                               show the install preview, then install (asks unless --yes)
   eng-os usage [...]           token/tool efficiency from local transcripts (see eng-os-usage.py)
   eng-os eval [...]            behavioural scenarios against real sessions (see eng-os-eval.py)
 
@@ -606,6 +608,25 @@ def cmd_test(args):
     ss_cases.append(("silent on resume/compact", run_ss("compact") == ""))
     open(probe, "w").write("tampered")
     ss_cases.append(("drift announced", "differ from the reviewed install" in run_ss()))
+    # weekly update check against a local "remote" holding a newer release tag
+    open(probe, "w").write("a")
+    origin, clone = os.path.join(tmp, "origin"), os.path.join(tmp, "clone")
+    q = {"capture_output": True, "check": True}
+    subprocess.run(["git", "init", "-q", "-b", "main", origin], **q)
+    subprocess.run(["git", "-C", origin, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "r"], **q)
+    subprocess.run(["git", "-C", origin, "tag", "v9.9.9"], **q)
+    subprocess.run(["git", "clone", "-q", origin, clone], **q)
+    man.update({"last_audit": datetime.date.today().isoformat(), "repo": clone, "version": "0.1.0"})
+    json.dump(man, open(os.path.join(state, "manifest.json"), "w"))
+    stamp = os.path.join(state, "state", "update-check.json")
+    if os.path.exists(stamp):
+        os.remove(stamp)
+    ss_cases.append(("newer release announced", "v9.9.9 is available" in run_ss()))
+    ss_cases.append(("update check at most weekly", run_ss() == ""))
+    os.remove(stamp)
+    man["version"] = "9.9.9"
+    json.dump(man, open(os.path.join(state, "manifest.json"), "w"))
+    ss_cases.append(("silent when on the latest release", run_ss() == ""))
     for name, ok in ss_cases:
         if ok:
             passed += 1
@@ -671,13 +692,56 @@ def delegate(script, args):
     return subprocess.call([sys.executable, os.path.join(os.path.dirname(os.path.realpath(__file__)), script)] + args)
 
 
+def vtuple(s):
+    m = re.match(r"v?(\d+)\.(\d+)\.(\d+)$", (s or "").strip())
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def cmd_update(args):
+    src = repo_root()
+    if not os.path.isdir(os.path.join(src, ".git")):
+        sys.exit("eng-os: %s is not a git clone; update it by hand" % tilde(src))
+
+    def git(*a):
+        return subprocess.run(["git", "-C", src] + list(a), capture_output=True, text=True, check=True).stdout.strip()
+
+    if git("status", "--porcelain"):
+        sys.exit("eng-os: the repo has uncommitted changes; commit or stash them first")
+    subprocess.run(["git", "-C", src, "fetch", "--tags", "--quiet", "origin"], check=True)
+    releases = sorted((v, t) for t in git("tag", "--list", "v*").split() for v in [vtuple(t)] if v)
+    if not releases:
+        sys.exit("eng-os: no release tags found")
+    latest = releases[-1][1]
+    if git("rev-parse", "HEAD") != git("rev-list", "-n", "1", latest):
+        if subprocess.run(["git", "-C", src, "merge-base", "--is-ancestor", latest, "HEAD"]).returncode == 0:
+            print("the repo is ahead of the latest release %s (a maintainer clone): left as it is; run `install` yourself" % latest)
+            return 0
+        git("checkout", "--quiet", latest)
+        print("switched the repo to release %s" % latest)
+    else:
+        print("the repo is at release %s" % latest)
+    cli = [sys.executable, os.path.join(src, "bin", "eng-os")]
+    if subprocess.run(cli + ["test"]).returncode:
+        sys.exit("eng-os: tests failed on %s; nothing installed" % latest)
+    subprocess.run(cli + ["install", "--dry-run"])
+    if "--yes" not in args:
+        try:
+            answer = input("Install %s? [y/N] " % latest)
+        except EOFError:
+            answer = ""
+        if answer.strip().lower() != "y":
+            print("not installed")
+            return 0
+    return subprocess.run(cli + ["install"]).returncode
+
+
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
         print(__doc__)
         return 0
     cmd, args = sys.argv[1], sys.argv[2:]
     table = {"install": cmd_install, "verify": cmd_verify, "test": cmd_test, "status": cmd_status,
-             "backups": cmd_backups, "restore": cmd_restore, "audit-done": cmd_audit_done,
+             "backups": cmd_backups, "restore": cmd_restore, "audit-done": cmd_audit_done, "update": cmd_update,
              "usage": lambda a: delegate("eng-os-usage.py", a), "eval": lambda a: delegate("eng-os-eval.py", a)}
     if cmd not in table:
         sys.exit("unknown command %r (see eng-os --help)" % cmd)

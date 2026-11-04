@@ -2,15 +2,19 @@
 """eng-os SessionStart hook. Silent (zero context) unless something needs attention:
   - the periodic self-audit is due (manifest.last_audit older than audit_interval_days)
   - installed eng-os files were edited outside `eng-os install` (checksum drift)
+  - a newer eng-os release tag exists on the repo's remote (checked at most once a week)
 Also prunes per-session guard state older than 3 days. Fail-open, Python 3.9 compatible.
 """
 import hashlib
 import json
 import os
+import re
+import subprocess
 import sys
 import time
 
 ENGOS = os.environ.get("ENGOS_HOME") or os.path.expanduser("~/.claude/eng-os")
+UPDATE_CHECK_DAYS = 7
 
 
 def sha(path):
@@ -18,6 +22,37 @@ def sha(path):
     with open(path, "rb") as fh:
         h.update(fh.read())
     return h.hexdigest()
+
+
+def vtuple(s):
+    m = re.match(r"v?(\d+)\.(\d+)\.(\d+)$", (s or "").strip())
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def update_note(man, state):
+    """At most once a week: is a newer release tag published on the repo's remote? Never prompts; silent on failure."""
+    stamp = os.path.join(state, "update-check.json")
+    try:
+        with open(stamp) as fh:
+            last = float(json.load(fh).get("checked", 0))
+    except (OSError, ValueError, TypeError):
+        last = 0
+    if time.time() - last < UPDATE_CHECK_DAYS * 86400:
+        return None
+    os.makedirs(state, exist_ok=True)
+    with open(stamp, "w") as fh:
+        json.dump({"checked": time.time()}, fh)
+    repo, current = man.get("repo"), vtuple(man.get("version"))
+    if not repo or not current or not os.path.isdir(os.path.join(repo, ".git")):
+        return None
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_ASKPASS="echo", GIT_SSH_COMMAND="ssh -o BatchMode=yes")
+    out = subprocess.run(["git", "-C", repo, "ls-remote", "--tags", "--refs", "origin"],
+                         capture_output=True, text=True, timeout=4, env=env).stdout
+    tags = [t for t in (vtuple(line.rsplit("/", 1)[-1]) for line in out.splitlines()) if t]
+    if tags and max(tags) > current:
+        return ("release v%d.%d.%d is available (installed %s). Tell the user once, briefly; they update with "
+                "`~/.claude/eng-os/bin/eng-os update`, which runs the tests and shows a preview first." % (max(tags) + (man.get("version"),)))
+    return None
 
 
 def main():
@@ -57,6 +92,13 @@ def main():
         if drift:
             notes.append("installed files differ from the reviewed install (%s). Treat them as unreviewed; tell the user and suggest `~/.claude/eng-os/bin/eng-os verify`." % ", ".join(drift[:5]))
     state = os.path.join(ENGOS, "state")
+    if man:
+        try:
+            note = update_note(man, state)
+            if note:
+                notes.append(note)
+        except Exception:
+            pass
     if os.path.isdir(state):
         cutoff = time.time() - 3 * 86400
         for f in os.listdir(state):
