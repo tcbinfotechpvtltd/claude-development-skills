@@ -107,3 +107,11 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | Install | `verify` 92 checks, 0 fail, 0 warn (the duplicate-sentence check caught and forced a reworded ERP pointer) |
 | Token cost | Always loaded: about 2,080 tokens (CLAUDE.md) plus about 1,300 tokens (13 eng-os skill descriptions), roughly 3.4k in total. |
 | Not verified | • Real-project use of the documentation and ERP method.<br>• The plugin and managed-settings rollout (documented, not built).<br>• Windows (the installed-check uses POSIX `sh`). |
+
+## 11. Release 0.6.0: individual plans (2026-11-04)
+| Check | Result |
+|---|---|
+| Plan facts | Confirmed by the Claude Code docs guide from code.claude.com data-usage, the privacy center and the Team plan pages:<br>• Pro and Max sessions, Claude Code included, are used for training when Model Improvement is on.<br>• Retention is 5 years with it on and 30 days with it off.<br>• The setting cannot be managed centrally.<br>• File-based managed settings and plugins state no plan requirement.<br>• Server-managed settings need Team or Enterprise. |
+| Unit tests | 129/129 on Python 3.9 and 3.14. The 3 new cases cover the weekly update check (newer release announced, at most weekly, silent when current). |
+| `eng-os update` end to end | Throwaway home and clone at v0.5.0 with a newer tag on its origin:<br>• switched to the latest tag, ran the tests, previewed and installed<br>• a second run reported "at release", asked, and installed nothing without a yes |
+| Install on maintainer machine | `verify` 92 checks, 0 fail, 0 warn |

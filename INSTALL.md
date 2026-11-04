@@ -5,7 +5,8 @@ eng-os sets up Claude Code with TCB's engineering standards: global instructions
 ## Requirements
 - macOS or Linux. On Windows use WSL; native Windows has not been tested.
 - Claude Code (desktop app or CLI). Verified on 2.1.309.
-- `python3` 3.9 or newer on your PATH, and `git`.
+- `python3` 3.9 or newer on your PATH, and `git` with access to the private repo (`gh auth login`).
+- On an individual Claude plan (Pro or Max): turn **Model Improvement** off at [claude.ai/settings/data-privacy-controls](https://claude.ai/settings/data-privacy-controls) before any client work ([why](docs/COMPANY-ROLLOUT.md)).
 
 ## Install (about 5 minutes)
 1. Put the repo somewhere permanent; installed copies point back to it. Clone the private TCB repo (ask the maintainer for access):
@@ -54,7 +55,7 @@ Read the [engineering policy](docs/ENGINEERING-POLICY.md): it is what every TCB 
 - The guard only sees Claude's tool calls. For repos you do not trust, also use Claude Code's sandbox setting or a container.
 
 ## Updating and changing it
-- Update to the release the maintainer announces, never to an untested commit: `git fetch --tags && git checkout <tag> && bin/eng-os test && bin/eng-os install --dry-run`, read the list, then `bin/eng-os install`. Your identity is remembered.
+- Update with `bin/eng-os update`. It fetches the release tags, switches to the latest release (never an untested commit), runs the tests, shows the install preview and asks before installing. Claude reminds you at session start, at most once a week, when a new release is published. Your identity is remembered.
 - Never edit the live copies in `~/.claude` (the guard asks first). Change the repo on a branch, run `bin/eng-os test`, and open a pull request for the maintainer. Everyone installs from the default branch.
 - `docs/SOURCES.md` lists every external standard the skills cite, with the date each was last checked. `eng-os verify` warns when one is older than 120 days.
 
