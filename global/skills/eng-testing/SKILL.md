@@ -1,11 +1,12 @@
 ---
 name: eng-testing
-description: Test strategy, test-first bug fixing and systematic root-cause debugging, with test tooling per stack and accessibility, web performance, load, contract, security-scan and mutation checks. Use when writing or fixing tests, when a test, build or deploy fails, when behaviour differs from expectations, for flaky tests, or when deciding what and how much to test.
+description: Test strategy, test-first bug fixing and systematic root-cause debugging: a map of all test types (unit to load, security, property-based, visual, resilience), checking UI changes in a real browser (built-in browser, Chrome, Playwright or Chrome DevTools MCP), and test tooling per stack. Use when writing or fixing tests, when a test, build or deploy fails, when behaviour differs from expectations, for flaky tests, or when deciding what and how much to test.
 ---
 
 # Testing and debugging
 
 ## What to test (risk-based, not coverage-chasing)
+The minimum per change and the full map of test types (what each catches, when, how): [test-types.md](test-types.md). Checking UI changes in a real browser: [browser.md](browser.md).
 - **Always**: business rules and calculations (money, interest, tax, eligibility, dates), state transitions, authorization (allowed and denied paths), input validation, every fixed bug, integration adapters (with recorded or sandbox responses).
 - **Usually**: API contracts (request/response shape, status codes, error shape), migrations (up, down, re-run), critical UI flows end-to-end (login, apply, pay).
 - **Rarely**: trivial getters, framework behaviour, generated code.

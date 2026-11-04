@@ -1,6 +1,25 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.5.0 — 2026-11-04
+- **Testing**:
+  - `eng-testing/test-types.md`: the minimum tests per change, and a map of 25 test types (what each catches, when, how).
+  - `eng-testing/browser.md`: Claude checks its own UI changes in a real browser (the built-in browser, Claude in Chrome, Playwright MCP 0.0.84, Chrome DevTools MCP 1.12), following a 10-step procedure with safety rules; also visual regression.
+  - `tooling.md`: Hypothesis, fast-check, Schemathesis, Atheris, axe-core, Lighthouse CI, Faker, Google test sizes.
+- **Documentation**: new skill `eng-docs`.
+  - The document set every project keeps, when each is created and updated, append-only history, requirement ids linking everything, Diátaxis user manuals per role, writing rules and a bus-factor check.
+  - Templates in `templates/docs/`: index, requirements (ISO/IEC/IEEE 29148 ideas), glossary, architecture (arc42 v9.1), test plan with test cases and traceability (ISO/IEC/IEEE 29119-3 ideas), user manual and What's new, runbook, progress log, handover.
+- **Delivery**:
+  - `eng-delivery/erp-implementation.md`: the TCB ERP method (discover, fit-to-standard, build, data migration, UAT and training, cutover, hypercare, next phase), from Frappe, Odoo, Microsoft and SAP methodologies.
+  - Issue tracking with `templates/github/` (issue forms, labels, CODEOWNERS, Dependabot).
+  - The Definition of Done now includes documents and a progress-log entry.
+- **Company**:
+  - `docs/ENGINEERING-POLICY.md`: what every engineer commits to when working with Claude Code.
+  - `docs/COMPANY-ROLLOUT.md`: per-developer install, a plugin, and organisation-managed settings, with a recommendation.
+  - `templates/project/claude-settings.json`: a per-repo installed-check, added by `/eng-project-init`.
+- **Global instructions**: routing rows for `eng-docs`, browser checks and ERP phases; documents updated with every change; lessons fed back into eng-os.
+- `docs/SOURCES.md`: 129 entries.
+
 ## 0.4.0 — 2026-11-04
 - New skills, each researched against official sources:
   - `odoo`: versions 17 to 20; Odoo 20 released Sept 2026, 17.0 out of standard support. Covers module layout and naming, breaking ORM and view changes per version, `ir.access` in 20, security, controllers, QWeb, tests, migration scripts, the upgrade service and performance.

@@ -15,8 +15,12 @@
 - Config / env keys: <!-- none / names only, never values -->
 - Rollback: <!-- previous tag or steps -->
 
-## Checklist
-- [ ] Tests added or updated for new behaviour and fixed bugs
-- [ ] No secrets, PII or debug output in the diff
-- [ ] CHANGELOG `Unreleased` updated (if user-visible)
+## Checklist (the Definition of Done, skill eng-delivery)
+- [ ] Closes #<issue> and cites REQ-<nnn>
+- [ ] Acceptance criteria met; tests added or updated and passing
+- [ ] Security checklist done for auth, data, money or integration changes
+- [ ] Deployed to UAT and smoke-tested (or: not deployable yet, why)
+- [ ] Docs updated, or not needed (say why): requirements, test cases and traceability, user manual, runbook
+- [ ] CHANGELOG `Unreleased` updated (if user-visible) and a progress-log entry added in `docs/progress/`
+- [ ] No secrets, personal data or debug output in the diff
 - [ ] Labels set (drive the release notes categories)

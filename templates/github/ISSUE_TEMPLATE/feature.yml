@@ -1,0 +1,31 @@
+name: Feature or change request
+description: New behaviour or a change to existing behaviour
+title: "[Feature]: "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and who has it
+      description: The business need in the user's words. Link the requirement id (REQ-...) if one exists.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: "- Given ... when ... then ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: For fixed-scope projects, anything outside the agreed scope is a change request (skill eng-delivery).
+      options: [In agreed scope, Change request, Internal improvement, Not sure]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes, mock-ups, constraints
