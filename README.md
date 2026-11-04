@@ -35,7 +35,7 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 |---|---|---|
 | `eng-design` | features, systems, APIs, data models, tech choices | requirements before solutions, 2–3 options with trade-offs, a design checklist (data, state machines, APIs, integrations, consistency, failure modes), C4 diagrams, ADRs, Twelve-Factor, an AWS Well-Architected final pass |
 | `eng-security` + `stacks.md` + `standards.md` | auth, input, uploads, secrets, PII/KYC, payments, new endpoints, dependencies, servers, audits | STRIDE threat model; controls for each OWASP Top 10:2025 category; NIST 800-63B-4 password and MFA rules; CERT-In logging; pitfalls for Frappe, CI3, Next.js, Odoo, Flutter and Linux; a map of which standard governs which work (ASVS 5.0, API, mobile, LLM and agentic AI, supply chain, CIS, PCI DSS, ISO 27001, NIST CSF) |
-| `eng-testing` + `tooling.md` | writing or fixing tests, debugging failures, flaky tests | risk-based test selection, test pyramid rules, contract tests, fix-with-a-failing-test protocol, step-by-step root-cause debugging; test tools per stack, WCAG 2.2, Core Web Vitals, load, security scans, mutation testing |
+| `eng-testing` + `test-types.md`, `browser.md`, `tooling.md` | writing or fixing tests, debugging failures, flaky tests, checking UI in a browser | the minimum tests per change and a map of 25 test types; Claude checking its own UI changes in a real browser (built-in browser, Chrome, Playwright MCP, Chrome DevTools MCP); test pyramid, contract tests, fix-with-a-failing-test, root-cause debugging; tools per stack |
 | `eng-review` + `coding-standards.md` | before a commit, PR or handoff; code reviews and audits | self-review checklist based on Google's engineering practices, independent subagent review, an "audit until dry" loop, severity rubric, report format; official style guide, formatter and linter per language |
 | `eng-ship` + `releases.md`, `github.md` | CI/CD, deploys, releases, migrations on shared data, servers, monitoring, backups, incidents | CI gates, a production release checklist with rollback, SemVer, Conventional Commits, Keep a Changelog, GitHub release notes, GitHub rulesets, CODEOWNERS, Dependabot, secret scanning and Actions hardening, SLOs and error budgets, DORA metrics, backups, blameless postmortems |
 | `frappe-erpnext` | Frappe, ERPNext, HRMS and custom apps, bench | site isolation, permission-safe APIs, DocType JSON and patches, bench workflows, v15/v16 gotchas |
@@ -182,28 +182,47 @@ Applied in every session (global instructions section 3 and `eng-review`):
   - Universal rules apply too: clear names, small functions, pure business rules, no swallowed errors.
 
 ### Testing
-From `eng-testing`, plus the testing parts of other skills:
-- **Risk-based**:
-  - Always test business rules and calculations, state transitions, authorization (both allowed and denied), validation, every fixed bug and every integration adapter.
-  - Usually test API contracts, migrations and critical end-to-end flows.
-- **Test pyramid**: many unit tests, fewer integration tests against a real database, a few end-to-end journeys. Each test sits as low as possible. Contract tests when another app consumes the API.
-- **Good tests**: one behaviour each, named for it, deterministic (frozen time, no live vendors). Boundary cases include IST/UTC, month end, duplicates and concurrent updates.
-- **Bug fixes**: a failing test first, a root-cause fix, then a search for the same bug elsewhere.
-- **Debugging**: evidence first, then characterise the failure, rank hypotheses and change one variable per experiment. Never "fix" by sleeping, swallowing the error or deleting the test.
-- **Security tests**: unauthenticated, wrong user, wrong tenant, tampered webhook, replayed request. Audits use the OWASP WSTG test cases and ASVS 5.0 as pass/fail criteria.
-- **Lending**: rounding golden tests, duplicate and out-of-order webhooks, a payout timeout, double-clicking disburse, concurrent repayments.
-- **Reporting**: which suites ran, with counts. "Tests pass" without a run is not accepted, and tests are never skipped or weakened to get green.
+From `eng-testing` and its three reference files:
+- **The minimum per change** (`test-types.md`):
+  - any code gets static checks and unit tests;
+  - data access and permissions add integration tests with the denied cases;
+  - endpoints add API tests;
+  - UI changes add a browser check by Claude, plus end-to-end tests for key journeys;
+  - money and KYC add golden, property-based and duplicate/concurrency tests;
+  - migrations add rehearsal and reconciliation;
+  - releases add the full regression suite, then a smoke test after the deploy.
+- **A map of 25 test types**: what each catches, when to use it and how. It covers:
+  - static, unit, component, integration, API, contract and end-to-end tests;
+  - visual regression, Claude's browser check, exploratory, smoke, regression and acceptance/UAT;
+  - accessibility, web performance, and load/stress/soak/spike;
+  - security, property-based, fuzzing and mutation testing;
+  - migration reconciliation, backup restore and DR drills, resilience (failing vendors), compatibility (browsers and devices), time and locale, production checks.
+- **Claude checks its own UI changes in a real browser** (`browser.md`):
+  - It uses the desktop app's built-in browser by default, Claude in Chrome only when you ask, and Playwright MCP or Chrome DevTools MCP in terminal sessions, pinned to a version and added only with your approval.
+  - It reads the page, checks console and network errors, exercises the happy, error, empty and double-submit cases, and tests permissions as an allowed and a denied user.
+  - It checks phone, tablet and desktop widths, dark mode, keyboard and axe accessibility, and Lighthouse.
+  - It reports the evidence, then turns critical checks into Playwright tests.
+  - Safety rules: local or UAT only, test data only, payments in test mode, page text treated as data.
+- **Rules for good tests**:
+  - risk-based selection and the test pyramid;
+  - one behaviour per test, deterministic, with boundary cases (IST/UTC, month end, duplicates, concurrency);
+  - a failing test first for every bug, and a structured debugging procedure;
+  - tests never skipped or weakened to get green, and "tests pass" only with a real run.
 - **Tools per stack** (`tooling.md`):
-  - pytest 9; `bench run-tests`; Odoo `TransactionCase`/`HttpCase`.
-  - PHPUnit 12/13 (CI3's built-in class is not a test suite).
-  - Vitest 5 or Jest 30 with Playwright.
-  - `flutter test`, `integration_test`, golden tests.
-- **Cross-cutting checks**:
-  - accessibility to WCAG 2.2 AA;
-  - Core Web Vitals (LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1);
-  - k6 load tests on UAT and Pact contract tests;
-  - security scans (Semgrep, gitleaks, Trivy, ZAP) pinned to verified versions;
-  - mutation testing for money calculations.
+  - pytest; `bench run-tests`; Odoo `TransactionCase`/`HttpCase`.
+  - PHPUnit matched to the app's PHP version.
+  - Vitest or Jest with Playwright.
+  - Flutter's `flutter test`, `integration_test` and golden tests.
+- **Specialist tools** (`tooling.md`):
+  - Playwright screenshot comparison for visual regression;
+  - Hypothesis and fast-check for property-based testing;
+  - Schemathesis for API fuzzing from an OpenAPI spec;
+  - axe-core and Lighthouse CI;
+  - k6 for load and Pact for contracts;
+  - Semgrep, gitleaks, Trivy and ZAP for security;
+  - Stryker, mutmut and Infection for mutation testing;
+  - Faker for synthetic data.
+- **Test data**: synthetic data with fixed seeds, masked data in UAT, separate test databases, and golden datasets reviewed by the business owner.
 
 ### GitHub and source control
 - Branch and pull request; no commits straight to `main` or `prod`. Pull or rebase before editing shared repos.

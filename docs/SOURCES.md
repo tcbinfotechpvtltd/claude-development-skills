@@ -166,3 +166,17 @@ Primary RBI pages were read for the Digital Lending Directions; DPDP Rules conte
 | Odoo performance reference | 20.0 | 2026-09 | odoo | https://www.odoo.com/documentation/20.0/developer/reference/backend/performance.html | 2026-11-04 |
 | PHP-CS-Fixer rule sets (`@PER-CS`) | 3.95 | 2026-09-22 | eng-review/coding-standards.md | https://github.com/PHP-CS-Fixer/PHP-CS-Fixer/blob/master/doc/ruleSets/index.rst | 2026-11-04 |
 | Odoo `neutralize` command and module loading (reinit) | 19.0 source | 2026-08-17 build | odoo | https://github.com/odoo/odoo/blob/19.0/odoo/cli/neutralize.py | 2026-11-04 |
+
+## Browser testing and more test tools
+| Standard | Edition in use | Published | Used in | URL | Checked |
+|---|---|---|---|---|---|
+| Playwright MCP server | 0.0.84 | 2026-10-31 | eng-testing/browser.md | https://github.com/microsoft/playwright-mcp | 2026-11-04 |
+| Chrome DevTools MCP server | 1.12.0 | 2026-10-22 | browser.md | https://github.com/ChromeDevTools/chrome-devtools-mcp | 2026-11-04 |
+| Playwright visual comparisons (`toHaveScreenshot`) | live docs | not shown | browser.md, test-types.md | https://playwright.dev/docs/test-snapshots | 2026-11-04 |
+| axe-core / @axe-core/playwright | 4.14.0 / 4.14.0 | 2026-10-05 / 2026-10-15 | browser.md, tooling.md | https://github.com/dequelabs/axe-core-npm | 2026-11-04 |
+| Lighthouse / Lighthouse CI | 13.6.0 / 0.16.0 | 2026-10-27 / 2026-11-02 | browser.md, tooling.md | https://github.com/GoogleChrome/lighthouse-ci | 2026-11-04 |
+| Hypothesis / fast-check (property-based testing) | 6.170 / 4.10 | 2026-10-30 / 2026-09-19 | tooling.md, test-types.md | https://pypi.org/project/hypothesis/ | 2026-11-04 |
+| Schemathesis (schema-driven API testing) | 4.33.0 | 2026-11-01 | tooling.md, test-types.md | https://pypi.org/project/schemathesis/ | 2026-11-04 |
+| Atheris (Python fuzzing) | 3.1.0 | 2026-06-17 | tooling.md | https://github.com/google/atheris | 2026-11-04 |
+| Faker / @faker-js/faker | 40.44 / 10.6 | 2026-10-28 / 2026-08-14 | tooling.md | https://pypi.org/project/Faker/ | 2026-11-04 |
+| Software Engineering at Google, ch. 11 (test sizes) | online edition | not shown | tooling.md | https://abseil.io/resources/swe-book/html/ch11.html | 2026-11-04 |

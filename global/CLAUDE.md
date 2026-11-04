@@ -36,7 +36,7 @@ On a material conflict follow the higher level and say so in one line. If a requ
 - Never call anything "secure". Say what was checked, what was not, and the residual risk.
 
 ## 5. Done means verified
-- Run the tests, linters and build; exercise the behaviour (command output, HTTP response, UI check). Show the evidence; report failures plainly with output.
+- Run the tests, linters and build; exercise the behaviour (command output, HTTP response; for UI changes, check it in a browser when the session has one). Show the evidence; report failures plainly with output.
 - Label status precisely: implemented / tested / verified / not verified. Never claim what you did not observe.
 
 ## 6. Skills: invoke when the trigger applies (they never load by themselves)
@@ -44,7 +44,7 @@ On a material conflict follow the higher level and say so in one line. If a requ
 |---|---|
 | Designing a feature, system, API or schema; choosing tech; spec/ADR | `eng-design` |
 | Auth, sessions, input, uploads, secrets, PII/KYC, payments, new endpoints, dependencies, security review | `eng-security` |
-| Writing or fixing tests, debugging a failure, flaky tests | `eng-testing` |
+| Writing or fixing tests, debugging a failure, flaky tests, checking a UI change in a browser | `eng-testing` |
 | Before commit, PR or handoff; reviewing code or an audit | `eng-review` |
 | CI/CD, deploys, releases, versioning, changelogs, migrations on shared data, servers, infra, monitoring, backups | `eng-ship` |
 | Frappe, ERPNext, HRMS apps, bench, doctypes | `frappe-erpnext` |
