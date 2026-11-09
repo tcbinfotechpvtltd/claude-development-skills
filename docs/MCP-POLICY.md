@@ -91,6 +91,14 @@ unset CONTEXT7_API_KEY
   - Never run `graphify install`, `graphify hook install`, `ingest` or anything Cloud, and never use it on a repo that holds customer data.
   - Its token savings are unproven: the published ERPNext benchmark measured accuracy on 6 questions, not savings.
 
+- **RTK, the `rtk-oss` edition (Apache-2.0), on test-heavy repos only.** It rewrites shell commands to compact their output. Pilot it for two weeks and compare real usage (`eng-os usage`), not its own savings counter.
+  - Keep its telemetry off.
+  - Leave out commands whose exact output matters (`git diff`, `git log`, `curl`).
+  - Set its recovery store to failures only, because it keeps raw command output on disk.
+  - Never install the `rtk` edition: it bundles BUSL-licensed code.
+
+eng-os already does the safe part of this itself: a hook trims very large Bash output and saves the full copy, and the global instructions ask for quiet flags and filtered output.
+
 ## 4. Not approved
 - **The MCP reference servers** (filesystem, git, fetch, memory, sequential thinking, time, everything). Claude Code's built-in tools already do their jobs, and the memory server stores what it's told in a plain file.
 - **Archived servers** (`modelcontextprotocol/servers-archived` and similar), which get no security fixes.
@@ -100,6 +108,13 @@ unset CONTEXT7_API_KEY
   - GitHub MCP without `X-MCP-Readonly`;
   - Serena's edit and shell tools.
 - **Browsers attached to a real profile**: Chrome DevTools with `--autoConnect`, `--browser-url` or `--ws-endpoint`, and Playwright with `--extension` or `--cdp-endpoint`.
+- **Token and memory add-ons that send or store session content**:
+  - **claude-mem** sends every tool's input and output to a model to summarise, keeps it forever in a plain database, and has telemetry on by default.
+  - **context-mode** runs code the model writes, with your full environment. It stores command output in a plain local index, is Elastic-2.0 licensed, and adds about 2k tokens to every session.
+  - **token-savior** needs Python 3.11+ and builds its own code index and memory; its measured gain is small and self-reported.
+  - **token-saver** is a one-day project whose output handling is unproven.
+
+  Their useful ideas are built into eng-os: the re-read note, the large-output trim, the context-size note, the resume brief, and the usage breakdown.
 - **Whole skill and plugin packs** (superpowers, ECC, mattpocock/skills and similar). They compete with eng-os for control of the chat and update themselves. Their best ideas are already adapted into eng-os.
 
 ## 5. Approving something new

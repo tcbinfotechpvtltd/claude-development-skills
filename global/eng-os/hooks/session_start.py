@@ -216,10 +216,48 @@ def project_cores(data, skills):
     return text
 
 
-def route_file(data):
-    """Same per-session file the prompt router uses to route each skill once."""
+def resume_brief(cwd):
+    """A few lines from the project's own progress log, so a fresh session can pick up without re-reading history.
+    '' when the project keeps no filled-in docs/progress.md. Local files only; no model call."""
+    if not cwd:
+        return ""
+    status = os.path.join(cwd, "docs", "progress.md")
+    try:
+        with open(status, errors="replace") as fh:
+            text = fh.read(20000)
+    except OSError:
+        return ""
+    sec = re.search(r"^## Current status[^\n]*\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+    parts = []
+    for line in (sec.group(1).splitlines() if sec else []):
+        m = re.match(r"\s*-\s*\*\*(Goal|State|Next|Open decisions)\*\*:\s*(.+)", line)
+        if m and "<" not in m.group(2):
+            parts.append("%s: %s" % (m.group(1), m.group(2).strip()))
+    log = os.path.join(cwd, "docs", "progress")
+    try:
+        entries = sorted(f for f in os.listdir(log) if f.endswith(".md") and not f.startswith("0000"))
+    except OSError:
+        entries = []
+    if entries:
+        try:
+            with open(os.path.join(log, entries[-1]), errors="replace") as fh:
+                head = fh.read(4000)
+            title = head.splitlines()[0].lstrip("# ").strip() if head else entries[-1]
+            follow = re.search(r"\*\*Follow-ups\*\*:\s*(.+)", head)
+            parts.append("latest log entry: %s%s" % (title, "; follow-ups: " + follow.group(1).strip()
+                                                     if follow and "<" not in follow.group(1) else ""))
+        except OSError:
+            pass
+    if not parts:
+        return ""
+    brief = "project status from docs/progress.md: " + " | ".join(parts)
+    return brief[:700] + ("…" if len(brief) > 700 else "")
+
+
+def route_file(data, prefix="route-"):
+    """A per-session state file: route- (skills routed once), reads- (re-read note), ctx- (context-size note)."""
     session = re.sub(r"[^A-Za-z0-9_-]", "", str(data.get("session_id") or "nosession"))[:80]
-    return os.path.join(ENGOS, "state", "route-%s.json" % session)
+    return os.path.join(ENGOS, "state", "%s%s.json" % (prefix, session))
 
 
 def main():
@@ -231,16 +269,22 @@ def main():
     if source in ("compact", "clear"):
         # The context that held earlier core rules is gone: let the router insert them again, and restate the
         # project's own skills. Everything else stays silent (CLAUDE.md is reloaded by the harness).
-        try:
-            os.remove(route_file(data))
-        except OSError:
-            pass
+        for f in (route_file(data), route_file(data, "reads-"), route_file(data, "ctx-")):
+            try:
+                os.remove(f)  # the earlier reads and the old context size are gone too
+            except OSError:
+                pass
         skills = []
         try:
             detect_project(data.get("cwd"), skills, record=False)
             text = project_cores(data, skills)
         except Exception:
             text = ""
+        try:
+            brief = resume_brief(data.get("cwd"))
+        except Exception:
+            brief = ""
+        text = "\n\n".join(t for t in (brief, text) if t)
         if text:
             print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}))
         return 0
@@ -292,17 +336,30 @@ def main():
         cutoff = time.time() - 3 * 86400
         for f in os.listdir(state):
             p = os.path.join(state, f)
-            if f.startswith(("ctx-", "route-")) and os.path.getmtime(p) < cutoff:
+            if f.startswith(("ctx-", "route-", "reads-")) and os.path.getmtime(p) < cutoff:
                 try:
                     os.remove(p)
+                except OSError:
+                    pass
+        out = os.path.join(state, "out")  # full outputs saved by post_tool.py: kept one day only
+        if os.path.isdir(out):
+            for f in os.listdir(out):
+                p = os.path.join(out, f)
+                try:
+                    if os.path.getmtime(p) < time.time() - 86400:
+                        os.remove(p)
                 except OSError:
                     pass
     try:
         cores = project_cores(data, skills)
     except Exception:
         cores = ""
-    if notes:
-        text = "eng-os: " + " ".join(notes) + ("\n\n" + cores if cores else "")
+    try:
+        brief = resume_brief(data.get("cwd"))
+    except Exception:
+        brief = ""
+    if notes or brief:
+        text = "\n\n".join(t for t in ("eng-os: " + " ".join(notes) if notes else "", brief, cores) if t)
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}))
     return 0
 

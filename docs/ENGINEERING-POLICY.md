@@ -38,7 +38,7 @@ For every engineer, on every client and internal project. eng-os makes Claude fo
 - **Before anyone leaves a project**: the handover checklist is completed (`docs/handover.md`).
 
 ## 7. Sessions and cost
-- One task per session; start a new session for unrelated work.
+- One task per session; start a new session for unrelated work. Most of a session's cost is re-reading the whole conversation on every turn. When Claude says the conversation has grown past 200k tokens, finish the task and start fresh: the project's `docs/progress.md` status is read back automatically.
 - Use the cheaper models Claude suggests for mechanical work; do not leave loops or agents running without a reason.
 
 ## 8. Improving the standards

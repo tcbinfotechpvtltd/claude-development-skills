@@ -1,6 +1,25 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.13.0 — 2026-11-09
+Token savings built from measurement. In 96 local sessions:
+- Bash output was 78% of all tool output;
+- 20% of file reads re-read an unchanged file;
+- 43% of turns ran with more than 400k tokens of context.
+
+Ideas taken from RTK, token-savior, token-saver, claude-mem, context-mode and Serena. None of them is installed.
+- **Context-size note**: past 200k tokens of context, and at every further 200k, Claude is told the size and asked to finish the task and suggest a fresh session or `/compact` for new work. Off with `ENG_OS_CONTEXT_NOTE=0`.
+- **Resume brief**: at session start and after compaction, a project's filled-in `docs/progress.md` status and latest log entry are inserted in at most 700 characters, with no model call.
+- **Re-read note**: a full re-read of an unchanged file in the same session adds a one-line reminder. It never blocks, ignores subagents (they share the session but not the conversation), and its record is cleared on compaction. Off with `ENG_OS_REREAD_NOTE=0`.
+- **Large-output trim** (new PostToolUse hook `post_tool.py`): output over 30,000 characters from a Bash command that succeeded is cut to its first 60 and last 40 lines plus up to 30 error-looking lines (errors before warnings). The full output is saved first to a private file (mode 600, capped at 5 MB each and 50 MB in all, deleted after a day) that the note names.
+  - Add `# eng-os:full` to a command to keep all of its output.
+  - Off with `ENG_OS_TRIM_OUTPUT=0`.
+  - **Limit**: a failing command fires a different hook event that cannot replace output, so failing test and build logs are not trimmed. The quiet-output rule covers those.
+- **Quiet-output rule** in the global instructions: quiet test and install flags, `tail`/`grep` for logs and builds, a short script instead of dumping large JSON or logs.
+- **`eng-os usage`** shows tool output by tool and the share of turns above 200k and 400k tokens.
+- **MCP policy**: RTK (`rtk-oss` edition) is pilot-only. claude-mem, context-mode, token-savior and token-saver are not approved, with reasons.
+- README and INSTALL say exactly where eng-os applies: the terminal, the desktop app, VS Code and the JetBrains IDEs (PyCharm and the rest). They also say where it doesn't: claude.ai, mobile, cloud sessions and other assistants.
+
 ## 0.12.0 — 2026-11-09
 eng-os is now for any software company, not only TCB. It is shared privately with a few companies for testing, with an MIT licence planned for a public release.
 - **Company set at install**: `eng-os install --company="..."`, or the installer asks once on a new machine. The global instructions name that company and describe its work from the packs it chose. Kept in `~/.claude/eng-os/company.json`.

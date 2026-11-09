@@ -76,3 +76,33 @@ The user asked for 11 well-known repos to be analysed in depth, and their best i
 - Token costs of MCP tool definitions were not measured on a live session.
 - Context7's library coverage for Frappe, Odoo and CodeIgniter needs a live query to check.
 - Whether `${VAR}` expands in `claude mcp add --header` values is not documented. The install commands read secrets with `read -rs` instead.
+
+## Addendum: token-optimisation repos (2026-11-09)
+The user asked for the best token-saving repos to be analysed too. Five were read by separate research agents (Serena had been read already), and the hook facts were confirmed in the Claude Code docs. Measured first, on 96 local sessions since 2026-11-04:
+- Bash output was 78% of all tool output (15,701 calls, average 1.7k characters, 71 over 20k).
+- Read was 9.8%; 20% of reads re-read an unchanged file.
+- 76% of turns ran with more than 200k tokens of context and 43% with more than 400k (median session peak 292k).
+
+So the largest cost is the whole conversation being re-read on every turn. No single output was the driver.
+
+| Repo (version read) | Licence | What it does | Evidence of savings | Verdict |
+|---|---|---|---|---|
+| rtk-ai/rtk (v1.2.0) | Apache-2.0 (CLI, hooks, filters); BUSL-1.1 (engine, proxy) | PreToolUse rewrite of shell commands to filtered `rtk <cmd>`; failure-only test output; raw output kept for recall | fixture benchmarks, bytes/4; says itself that "90% less output" is not 90% cheaper | pilot only, `rtk-oss` edition, telemetry off |
+| Mibayy/token-savior (v4.24.0) | MIT | MCP code index plus memory; Read limit injection; quiet-flag rewrites | a self-run sample of 8 tasks: cost -45%, wall time +40%; an earlier claim withdrawn | not approved; ideas adopted |
+| AMKhaan/token-saver (v1.1.0) | MIT | PostToolUse head/tail truncation; large-Read deny; re-read ledger | synthetic tests only, never run in a real session | not approved; ideas adopted |
+| thedotmack/claude-mem (v15.13.0) | Apache-2.0 | a model summarises every tool event into a local database; memory injected at start | counterfactual "~10x"; the observer's own cost not netted out | not approved: sends tool I/O to a model, plain storage, telemetry on |
+| mksglu/context-mode (v2.1.7) | Elastic-2.0 | replaces large output with indexed chunks; runs model-written code | own bench: -19.6% on large tasks, +5.7% on small; offline replay 1–7% | not approved: runs code, stores output in plain text, licence |
+
+Adopted (0.13.0):
+- **Context-size note**, from the measured context sizes plus claude-mem's and ECC's compaction ideas: the prompt hook reads the latest usage from the transcript tail.
+- **Resume brief** from local `docs/progress`, claude-mem's idea done with no model call.
+- **Re-read note**, from token-saver, token-savior and context-mode. It is a note, never a block: a refused read costs another round trip at full context size.
+- **Large-output trim with the full copy saved**, from RTK's recovery pointer, context-mode's "never cut without keeping" rule and token-saver's error-line keeping. It uses PostToolUse `updatedToolOutput`, which the docs say replaces what Claude sees.
+- **Quiet-output rule**, from RTK and token-savior, done as an instruction instead of command rewriting.
+- **Usage breakdown**, from token-savior's transcript audit.
+
+Rejected:
+- **Rewriting commands automatically**: it changes what runs, and RTK's changelog shows a steady stream of silent-loss fixes.
+- **Denying reads**: each refusal costs an extra round trip at full context size.
+- **Model-based memory and indexing**: privacy, quota use and stale indexes.
+- **Running model-written code outside the guard**.

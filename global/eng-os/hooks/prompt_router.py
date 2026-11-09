@@ -15,6 +15,10 @@ ENGOS = os.environ.get("ENGOS_HOME") or os.path.expanduser("~/.claude/eng-os")
 SKILLS = os.environ.get("ENGOS_SKILLS") or os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "skills")
 MAX_SKILLS = 4
+# Context-size note: most of a session's cost is re-reading the whole conversation on every turn (measured: 76% of
+# turns ran above 200k tokens, 43% above 400k), so say so once at 200k and again at every further 200k.
+CTX_FIRST = 200000
+CTX_STEP = 200000
 MAX_CORE_CHARS = 1200     # per skill; `eng-os verify` keeps each section at or under 1,000
 MAX_CONTEXT_CHARS = 4500  # well under Claude Code's 10,000-character hook output cap
 
@@ -78,20 +82,86 @@ def routing_context(skills, lead):
     return text, done
 
 
+def context_tokens(transcript_path):
+    """Tokens in context at the session's latest model call, read from the tail of its transcript; 0 if unknown."""
+    try:
+        with open(transcript_path, "rb") as fh:
+            fh.seek(0, 2)
+            fh.seek(max(0, fh.tell() - 262144))
+            tail = fh.read().decode("utf-8", "replace")
+    except (OSError, TypeError, ValueError):
+        return 0
+    for line in reversed(tail.splitlines()):
+        if "compact_boundary" in line:
+            return 0  # compacted since the last reply: the old figure no longer applies
+        if '"usage"' not in line or '"assistant"' not in line:
+            continue
+        try:
+            o = json.loads(line)
+        except ValueError:
+            continue
+        if o.get("isSidechain"):
+            continue  # a subagent's own context, not this conversation's
+        u = (o.get("message") or {}).get("usage") or {}
+        n = u.get("input_tokens", 0) + u.get("cache_creation_input_tokens", 0) + u.get("cache_read_input_tokens", 0)
+        if n:
+            return n
+    return 0
+
+
+def context_note(data, session, state_dir):
+    """One line when the context first passes 200k tokens, and again at every further 200k; '' otherwise."""
+    if os.environ.get("ENG_OS_CONTEXT_NOTE") == "0":
+        return ""
+    n = context_tokens(data.get("transcript_path"))
+    if n < CTX_FIRST:
+        return ""
+    level = CTX_FIRST + ((n - CTX_FIRST) // CTX_STEP) * CTX_STEP
+    f = os.path.join(state_dir, "ctx-%s.json" % session)
+    try:
+        with open(f) as fh:
+            last = int(json.load(fh).get("level", 0))
+    except (OSError, ValueError, AttributeError, TypeError):
+        last = 0
+    if level <= last:
+        return ""
+    os.makedirs(state_dir, exist_ok=True)
+    tmp = "%s.%d.tmp" % (f, os.getpid())
+    with open(tmp, "w") as fh:
+        json.dump({"level": level}, fh)
+    os.replace(tmp, f)
+    return ("eng-os context note: this conversation holds about %dk tokens, and every turn re-reads all of it. Finish the "
+            "current task; for a new or unrelated task, record progress in docs/progress and suggest the user starts a "
+            "fresh session or runs /compact." % (n // 1000))
+
+
 def main():
     try:
         data = json.loads(sys.stdin.read() or "{}")
     except ValueError:
         return 0
     prompt = (data.get("prompt") or "").strip()
-    if len(prompt) < 12 or prompt.startswith("/"):
-        return 0
-    # only skills this machine has: a company may leave out the optional packs (frappe-erpnext, odoo, fintech-lending)
-    matched = [skill for skill, rx in PATTERNS if rx.search(prompt) and installed(skill)]
-    if not matched:
+    if prompt.startswith("/"):
         return 0
     session = re.sub(r"[^A-Za-z0-9_-]", "", str(data.get("session_id") or "nosession"))[:80]
     state_dir = os.path.join(ENGOS, "state")
+    try:
+        note = context_note(data, session, state_dir)
+    except Exception:
+        note = ""
+    text = routing(prompt, session, state_dir) if len(prompt) >= 12 else ""
+    out = "\n\n".join(t for t in (note, text) if t)
+    if out:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": out}}))
+    return 0
+
+
+def routing(prompt, session, state_dir):
+    """The routing note with core rules for newly matched skills, or ''."""
+    # only skills this machine has: a company may leave out the optional packs (frappe-erpnext, odoo, fintech-lending)
+    matched = [skill for skill, rx in PATTERNS if rx.search(prompt) and installed(skill)]
+    if not matched:
+        return ""
     seen_file = os.path.join(state_dir, "route-%s.json" % session)
     try:
         with open(seen_file) as fh:
@@ -100,13 +170,12 @@ def main():
         seen = set()
     new = [s for s in matched if s not in seen][:MAX_SKILLS]
     if not new:
-        return 0
+        return ""
     text, done = routing_context(new, "eng-os skill routing: this request matches")
     os.makedirs(state_dir, exist_ok=True)
     with open(seen_file, "w") as fh:
         json.dump(sorted(seen | set(done)), fh)
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": text}}))
-    return 0
+    return text
 
 
 if __name__ == "__main__":

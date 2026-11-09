@@ -646,7 +646,53 @@ def main():
         return 0
     if verdict:
         emit("ask", verdict[1])
+        return 0
+    # subagents share the session id but not the conversation, so their reads are neither noted nor recorded
+    if tool == "Read" and os.environ.get("ENG_OS_REREAD_NOTE") != "0" and not data.get("agent_id"):
+        try:
+            note = reread_note(inp, cwd, data.get("session_id"))
+        except Exception as e:  # a note is optional; never block a read over it
+            log_error("reread", e)
+            note = ""
+        if note:
+            print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": note}}))
     return 0
+
+
+def reread_note(inp, cwd, session):
+    """A one-line note when a file is read in full again with nothing changed since its last full read this session.
+    It never blocks: a denied read would cost one more model round trip at full context size, which is more than the
+    re-read itself. The record is cleared after compaction or /clear (session_start.py), when re-reading is needed."""
+    path = norm(inp.get("file_path") or "", cwd)
+    if not path or not os.path.isfile(path):
+        return ""
+    st = os.stat(path)
+    key = [st.st_mtime_ns, st.st_size]
+    full = not (inp.get("offset") or inp.get("limit") or inp.get("pages"))
+    sid = re.sub(r"[^A-Za-z0-9_-]", "", str(session or "nosession"))[:80]
+    f = os.path.join(STATE, "reads-%s.json" % sid)
+    try:
+        with open(f) as fh:
+            seen = json.load(fh)
+        if not isinstance(seen, dict):
+            seen = {}
+    except (OSError, ValueError):
+        seen = {}
+    prev = seen.get(path)
+    same = isinstance(prev, list) and len(prev) == 3 and prev[:2] == key
+    note = ""
+    if full and same and prev[2]:
+        note = ("eng-os: %s was read in full earlier in this session and has not changed since. If that copy is still "
+                "in context, use it; read only a range (offset/limit) if you need part of it again." % os.path.basename(path))
+    seen[path] = key + [bool(full or (same and prev[2]))]
+    if len(seen) > 400:  # keep the record small
+        seen = dict(list(seen.items())[-300:])
+    os.makedirs(STATE, exist_ok=True)
+    tmp = "%s.%d.tmp" % (f, os.getpid())  # parallel reads: write whole, then swap in
+    with open(tmp, "w") as fh:
+        json.dump(seen, fh)
+    os.replace(tmp, f)
+    return note
 
 
 def log_error(where, err):

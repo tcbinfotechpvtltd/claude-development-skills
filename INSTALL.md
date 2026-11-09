@@ -14,7 +14,8 @@ In a terminal (macOS, Linux or WSL; in VS Code use **Terminal → New Terminal**
 git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-os && bash ~/.eng-os/install.sh
 ```
 - **What it does**: it downloads the latest release into `~/.eng-os` and asks for your name and work email (used for your git commits) if git does not already know them. Then it runs the self-tests and installs, backing up your current Claude config first.
-- **Then**: restart Claude Code (in VS Code: **Developer: Reload Window**). Every chat in every project now follows the standards; you never call a skill.
+- **Where it applies**: every Claude Code session on the machine reads `~/.claude`. That covers the terminal, the Claude desktop app, the VS Code extension and the JetBrains plugin (PyCharm and the rest). It does not reach claude.ai chats, the mobile app, Claude Code cloud sessions, or other assistants such as GitHub Copilot, Cursor's own AI or JetBrains AI Assistant.
+- **Then**: restart Claude Code (in VS Code: **Developer: Reload Window**; in a JetBrains IDE: close and reopen the Claude Code panel). Every chat in every project now follows the standards; you never call a skill.
 - **Private repo**: git signs you in to GitHub. If it asks for a password or says it could not read a username, run `gh auth login` once (GitHub CLI; answer Yes to authenticating Git), then run the command again. Your GitHub account needs read access to the repo.
 - **Updating**: run `bash ~/.eng-os/install.sh`. It switches to the latest release, re-runs the tests and installs. Claude reminds you when a release is out. Running the install command a second time only reports that `~/.eng-os` already exists and changes nothing.
 - **Company and packs**: on a new machine the installer asks for your company name and which optional packs to install:
