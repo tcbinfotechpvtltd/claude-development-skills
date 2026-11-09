@@ -252,7 +252,7 @@ def main():
         except ValueError:
             age = interval + 1
         if age > interval:
-            notes.append("periodic self-audit is due (last %s). At a natural break, offer the user /eng-os-review; do not interrupt urgent work." % (last[:10] or "never"))
+            notes.append("periodic self-audit is due (last %s). At a natural break, suggest the user runs /eng-os-review (only they can start it); do not interrupt urgent work." % (last[:10] or "never"))
         drift = []
         for rel, digest in (man.get("files") or {}).items():
             p = os.path.expanduser(rel)

@@ -57,7 +57,7 @@ LEGACY = (
                                "session-start-test.sh", "session-start.sh", "simplify-ignore-test.sh", "simplify-ignore.sh")]
 )
 LEGACY_HOOK_COMMANDS = (".claude/hooks/session-start.sh", ".claude/hooks/sdd-cache", ".claude/hooks/simplify-ignore")
-BUDGET = {"claude_md_chars": 9000, "claude_md_lines": 200, "skill_desc_chars": 600, "skill_body_chars": 14000,
+BUDGET = {"claude_md_chars": 10500, "claude_md_lines": 200, "skill_desc_chars": 600, "skill_body_chars": 14000,
           "core_rules_chars": 1000,
           "rule_chars": 5000}
 SOURCE_MAX_AGE_DAYS = 120  # cited standards older than this are flagged for re-verification (eng-os-review)
@@ -156,8 +156,15 @@ def merge_settings(live, frag, drop_legacy=False):
         if isinstance(rules, list):
             cur = out.setdefault("permissions", {}).setdefault(kind, [])
             cur.extend(r for r in rules if r not in cur)
+    # env: add eng-os defaults without overriding a variable the user already set
+    fenv = frag.get("env") if isinstance(frag.get("env"), dict) else {}
+    if fenv:
+        if not isinstance(out.get("env"), dict):
+            out["env"] = {}
+        for k, v in fenv.items():
+            out["env"].setdefault(k, v)
     for k, v in frag.items():
-        if k not in ("hooks", "permissions"):
+        if k not in ("hooks", "permissions", "env"):
             out[k] = v
     return out
 
@@ -717,6 +724,15 @@ def cmd_test(args):
     out = run_ss_data({"source": "compact", "cwd": frappe_app, "session_id": "fr1"})
     ss_cases.append(("after compaction: project core rules restated", "`frappe-erpnext` core rules:" in out and "self-audit" not in out))
     ss_cases.append(("after compaction: router inserts core rules again", "`eng-testing` core rules:" in route("a test is failing again", "fr1")))
+    ss_cases.append(("router: tells Claude to call the Skill tool", "call the Skill tool with `eng-design`" in route("design the data model for refunds", "s8")))
+    # install merges eng-os env defaults without overriding the user's own values
+    m = merge_settings({"env": {"CLAUDE_CODE_SUBAGENT_MODEL": "opus", "X": "1"}}, {"env": {"CLAUDE_CODE_SUBAGENT_MODEL": "sonnet", "Y": "2"}})
+    ss_cases.append(("install: env keeps the user's own value", m.get("env") == {"CLAUDE_CODE_SUBAGENT_MODEL": "opus", "X": "1", "Y": "2"}))
+    ss_cases.append(("install: env default added when absent", merge_settings({}, {"env": {"A": "b"}}).get("env") == {"A": "b"}))
+    ss_cases.append(("install: env that is not an object is replaced, not a crash", merge_settings({"env": None}, {"env": {"A": "b"}}).get("env") == {"A": "b"}))
+    ss_cases.append(("install: a malformed env fragment is ignored", merge_settings({"env": {"A": "x"}}, {"env": ["bad"]}).get("env") == {"A": "x"}))
+    ev = subprocess.run([py, os.path.join(src, "bin", "eng-os-eval.py"), "--self-test"], capture_output=True, text=True, timeout=60)
+    ss_cases.append(("eval: transcript and stream parsers (%s)" % (ev.stdout.strip().splitlines() or ["no output"])[0], ev.returncode == 0))
     for name, ok in ss_cases:
         if ok:
             passed += 1

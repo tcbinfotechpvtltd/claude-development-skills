@@ -6,6 +6,11 @@
   eng-os-eval.py --transcript FILE --suite S    score an existing session transcript
   eng-os-eval.py --run [--suite S] [--model M] [--claude BIN] [--budget USD]
                                                 run suite prompts with `claude -p` in the sandbox and score them
+  eng-os-eval.py --skills [--skill NAME] [--model M] [--budget USD]
+                                                skill-trigger test: each case in tests/skill_cases.json runs in a fresh
+                                                one-turn `claude -p` session in an empty folder; reports how often each
+                                                skill is loaded (positives) and wrongly loaded (negatives). Costs tokens.
+  eng-os-eval.py --self-test                    unit tests for the transcript and stream parsers (zero tokens)
 
 Checks are read from tests/scenarios.json. Transcripts are local JSONL files; their format is internal
 to Claude Code and may change, so failures of the parser itself are reported as ERROR, not FAIL.
@@ -19,6 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 HOME = os.path.expanduser("~")
 REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -31,6 +37,119 @@ def scenarios():
         if os.path.exists(p):
             return json.load(open(p))
     sys.exit("tests/scenarios.json not found")
+
+
+SKILL_EVAL_TOOLS = "Read,Glob,Grep,Skill"
+
+
+def skill_cases():
+    for base in (REPO, os.path.join(HOME, ".claude", "eng-os")):
+        p = os.path.join(base, "tests", "skill_cases.json")
+        if os.path.exists(p):
+            return json.load(open(p))["cases"]
+    sys.exit("tests/skill_cases.json not found")
+
+
+def skills_called(stream):
+    """(skills loaded with the Skill tool, cost in USD, error text) from `claude -p --output-format stream-json` output."""
+    called, cost, error = [], None, None
+    for line in stream.splitlines():
+        try:
+            o = json.loads(line)
+        except ValueError:
+            continue
+        if o.get("type") == "assistant":
+            for b in (o.get("message") or {}).get("content") or []:
+                if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == "Skill":
+                    called.append((b.get("input") or {}).get("skill", "?"))
+        elif o.get("type") == "result":
+            cost = o.get("total_cost_usd")
+            if o.get("is_error") and o.get("subtype") != "error_max_turns":
+                error = str(o.get("result") or o.get("subtype"))[:200]
+    return called, cost, error
+
+
+def run_skills(args):
+    cases = skill_cases()
+    names = [args.skill] if args.skill else sorted(cases)
+    unknown = [n for n in names if n not in cases]
+    if unknown:
+        sys.exit("no cases for: %s" % ", ".join(unknown))
+    work = tempfile.mkdtemp(prefix="eng-os-skill-eval-")  # empty folder: no project, so only the prompt routes
+    rows = []
+    print("skill-trigger test, model %s, folder %s, stops after $%.2f" % (args.model, work, args.max_total))
+    try:
+        rc = skills_loop(args, cases, names, work, rows)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    return rc
+
+
+def skills_loop(args, cases, names, work, rows):
+    total_cost, rc = 0.0, 0
+    for name in names:
+        hits = wrong = errors = 0
+        runs = [(p, True) for p in cases[name].get("positive", [])] + [(p, False) for p in cases[name].get("negative", [])]
+        for prompt, positive in runs:
+            # Read-only and side-effect free: only the tools a first move needs, no MCP servers
+            # (flags as in modelcontextprotocol/servers scripts/skill-eval.mjs).
+            cmd = [args.claude, "-p", prompt, "--output-format", "stream-json", "--verbose", "--max-turns", "1",
+                   "--tools", SKILL_EVAL_TOOLS, "--allowedTools", SKILL_EVAL_TOOLS,
+                   "--disallowedTools", "Bash,Write,Edit,NotebookEdit,Task,Agent,WebFetch,WebSearch",
+                   "--strict-mcp-config", "--model", args.model, "--max-budget-usd", str(args.budget)]
+            try:
+                r = subprocess.run(cmd, cwd=work, capture_output=True, text=True, timeout=300)
+                called, cost, error = skills_called(r.stdout)
+                if not r.stdout.strip():
+                    error = (r.stderr or "no output")[:200]
+            except (OSError, subprocess.SubprocessError) as e:
+                called, cost, error = [], None, str(e)[:200]
+            total_cost += cost or 0
+            if total_cost > args.max_total:
+                print("STOPPED: spent $%.2f, over --max-total $%.2f" % (total_cost, args.max_total))
+                return 2
+            if error:
+                errors += 1
+                rc = 2
+                print("  ERROR %s: %s" % (name, error))
+                continue
+            loaded = name in called
+            if positive:
+                hits += loaded
+            else:
+                wrong += loaded
+            print("  %s %-16s %s %s" % ("ok  " if loaded == positive else "MISS", name, "+" if positive else "-",
+                                        prompt[:70] + (" -> " + ", ".join(called) if called else "")))
+        rows.append((name, hits, len(cases[name].get("positive", [])), wrong, len(cases[name].get("negative", [])), errors))
+    print("\nskill              loaded on positives   wrongly loaded on negatives")
+    for name, h, n, w, m, e in rows:
+        print("%-18s %2d/%-2d %15s %d/%d%s" % (name, h, n, "", w, m, ("  (%d errors)" % e) if e else ""))
+    hp, np_ = sum(r[1] for r in rows), sum(r[2] for r in rows)
+    print("overall: %d/%d positives loaded (%.0f%%); %d wrong loads; cost $%.2f" % (
+        hp, np_, 100.0 * hp / np_ if np_ else 0, sum(r[3] for r in rows), total_cost))
+    return rc
+
+
+def self_test():
+    a = json.dumps({"type": "assistant", "message": {"content": [
+        {"type": "text", "text": "x"}, {"type": "tool_use", "name": "Skill", "input": {"skill": "eng-testing"}}]}})
+    b = json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash", "input": {}}]}})
+    done = json.dumps({"type": "result", "subtype": "error_max_turns", "is_error": True, "total_cost_usd": 0.02})
+    bad = json.dumps({"type": "result", "subtype": "error_during_execution", "is_error": True, "result": "boom"})
+    checks = [
+        ("skill call found", skills_called("\n".join([a, done]))[0] == ["eng-testing"]),
+        ("max-turns stop is not an error", skills_called("\n".join([a, done]))[2] is None),
+        ("cost read", skills_called(done)[1] == 0.02),
+        ("other tools ignored", skills_called(b)[0] == []),
+        ("real error reported", skills_called(bad)[2] == "boom"),
+        ("non-JSON lines skipped", skills_called("garbage\n" + a)[0] == ["eng-testing"]),
+        ("every skill has 5 positives and 1 negative", all(
+            len(v.get("positive", [])) == 5 and len(v.get("negative", [])) == 1 for v in skill_cases().values())),
+    ]
+    failed = [n for n, ok in checks if not ok]
+    print("eval self-test: %d/%d passed%s" % (len(checks) - len(failed), len(checks),
+                                              "".join("\n  FAIL " + n for n in failed)))
+    return 1 if failed else 0
 
 
 def prepare_sandbox(path):
@@ -186,11 +305,20 @@ def main():
     ap.add_argument("--transcript")
     ap.add_argument("--suite")
     ap.add_argument("--run", action="store_true")
-    ap.add_argument("--model", default="haiku")
+    ap.add_argument("--skills", action="store_true")
+    ap.add_argument("--skill")
+    ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--model", help="default: haiku for --run, sonnet for --skills")
     ap.add_argument("--claude", default=os.environ.get("CLAUDE_CODE_EXECPATH") or shutil.which("claude") or "claude")
-    ap.add_argument("--budget", type=float, default=0.50)
+    ap.add_argument("--budget", type=float, default=0.50, help="per session")
+    ap.add_argument("--max-total", type=float, default=5.00, help="--skills: stop once this much is spent")
     ap.add_argument("--sandbox", default=DEFAULT_SANDBOX)
     a = ap.parse_args()
+    a.model = a.model or ("sonnet" if a.skills else "haiku")
+    if a.self_test:
+        return self_test()
+    if a.skills:
+        return run_skills(a)
     if a.prepare_sandbox:
         prepare_sandbox(a.prepare_sandbox)
         return 0

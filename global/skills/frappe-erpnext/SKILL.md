@@ -1,6 +1,6 @@
 ---
 name: frappe-erpnext
-description: Conventions, workflows and gotchas for Frappe framework apps (ERPNext, HRMS, india_compliance, custom apps) on v15/v16. Use when building or changing doctypes, hooks, whitelisted APIs, reports, patches, print formats or workflows, running bench commands, setting up sites, or debugging a Frappe site.
+description: Builds and fixes Frappe and ERPNext apps on v15/v16 — doctypes, hooks, whitelisted APIs, reports, patches, print formats, workflows and bench. Use when working in a Frappe, ERPNext or HRMS app; when running bench; or when debugging a Frappe site.
 ---
 
 # Frappe / ERPNext engineering

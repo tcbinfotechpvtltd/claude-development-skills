@@ -58,8 +58,9 @@ def routing_context(skills, lead):
     """(text, done): a header naming the skills, then each one's core rules while they fit in MAX_CONTEXT_CHARS.
     `done` lists the skills that need no repeat this session: core rules inserted, or none to insert. A skill
     whose rules did not fit is routed again on a later request."""
-    text = ("%s %s. Their core rules follow and apply now; load the full skill with the Skill tool when the task "
-            "needs its procedures." % (lead, ", ".join("`%s`" % s for s in skills)))
+    # Explicit "call the Skill tool with `x`" wording loads skills more often than naming them (mattpocock/skills).
+    text = ("%s %s. Before a task they cover, call the Skill tool with %s, unless the task is trivial. Their core "
+            "rules apply from now:" % (lead, ", ".join("`%s`" % s for s in skills), ", then ".join("`%s`" % s for s in skills)))
     done = []
     for s in skills:
         core = core_rules(s)

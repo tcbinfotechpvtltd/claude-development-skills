@@ -5,7 +5,7 @@
 
 ## Rules for changing this repo
 - Edit only here, never the live copies (the guard asks before edits to live global config).
-- Every always-loaded token is paid in every session: keep `global/CLAUDE.md` under 9,000 chars, skill descriptions under 600, skill bodies under 14,000; long material goes in skill reference files.
+- Every always-loaded token is paid in every session: keep `global/CLAUDE.md` under 10,500 chars (raised from 9,000 in 0.11.0: it is the only text guaranteed to reach every session, and it is served from cache), skill descriptions under 600, skill bodies under 14,000; long material goes in skill reference files.
 - No sentence may be duplicated across CLAUDE.md, skills and rules (`eng-os verify` checks).
 - Every skill the prompt router can name has a `## Core rules` section (at most 1,000 chars, `eng-os verify` checks) that the hooks insert into chats. When a skill's body changes, update its core rules to match.
 - Never weaken a guard rule, approval gate or security instruction without the user's explicit agreement to that specific change.

@@ -11,18 +11,49 @@ import collections
 import glob
 import json
 import os
+import re
 import statistics
 import sys
 
 PROJECTS = os.path.expanduser("~/.claude/projects")
 GUARD_MARK = "[eng-os guard]"
+REPO = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+TICKED = re.compile(r"`([a-z0-9-]+)`")
+
+
+def eng_os_skills():
+    """Names of the eng-os skills: from the repo when run there, else from the install manifest."""
+    d = os.path.join(REPO, "global", "skills")
+    if os.path.isdir(d):
+        return set(os.listdir(d))
+    try:
+        with open(os.path.expanduser("~/.claude/eng-os/manifest.json")) as fh:
+            files = json.load(fh).get("files") or {}
+        return {f.split("/")[3] for f in files if f.startswith("~/.claude/skills/") and f.count("/") >= 4}
+    except (OSError, ValueError):
+        return set()
+
+
+SKILLS = eng_os_skills()
+
+
+def named_skills(texts):
+    """eng-os skills that the session or prompt hooks named: on lines that start with "eng-os" or head a core-rules block."""
+    found = set()
+    for t in texts:
+        for line in str(t).splitlines():
+            line = line.strip()
+            if line.startswith("eng-os") or line.endswith("core rules:"):
+                found.update(n for n in TICKED.findall(line) if n in SKILLS)
+    return found
 
 
 def iter_records(path):
     with open(path, "r", errors="replace") as fh:
         for line in fh:
             # cheap prefilter: skip record types we never use
-            if '"assistant"' not in line and '"user"' not in line and "compact_boundary" not in line:
+            if '"assistant"' not in line and '"user"' not in line and "compact_boundary" not in line \
+                    and "hook_additional_context" not in line:
                 continue
             try:
                 yield json.loads(line)
@@ -47,6 +78,7 @@ def analyze_file(path, since):
         "tools": collections.Counter(), "skills": collections.Counter(),
         "agents": collections.Counter(), "reads": collections.Counter(),
         "compactions": 0, "guard_blocks": 0, "tool_errors": 0,
+        "named": set(), "loaded": set(),
     }
     seen = set()
     for o in iter_records(path):
@@ -59,6 +91,12 @@ def analyze_file(path, since):
             s["cwd"] = o.get("cwd")
         if o.get("subtype") == "compact_boundary":
             s["compactions"] += 1
+            continue
+        att = o.get("attachment") if o.get("type") == "attachment" else None
+        if isinstance(att, dict):
+            if att.get("type") == "hook_additional_context" and att.get("hookEvent") in ("SessionStart", "UserPromptSubmit"):
+                c = att.get("content")
+                s["named"] |= named_skills(c if isinstance(c, list) else [c])
             continue
         msg = o.get("message") or {}
         if o.get("type") == "assistant":
@@ -85,6 +123,8 @@ def analyze_file(path, since):
                 s["tools"][name] += 1
                 if name == "Skill":
                     s["skills"][inp.get("skill", "?")] += 1
+                    if inp.get("skill") in SKILLS:
+                        s["loaded"].add(inp["skill"])
                 elif name in ("Agent", "Task"):
                     s["agents"][inp.get("subagent_type", "general-purpose")] += 1
                 elif name == "Read" and inp.get("file_path"):
@@ -167,6 +207,7 @@ def main():
         "tools": agg(sessions, "tools").most_common(a.top),
         "skills": agg(sessions + agents, "skills").most_common(a.top),
         "agent_types": agg(sessions, "agents").most_common(a.top),
+        "routing": routing(sessions),
     }
     if a.json:
         print(json.dumps(out, indent=1, default=str))
@@ -185,7 +226,24 @@ def main():
         ", ".join("%s:%d" % x for x in sa["models"])))
     for k in ("models_main", "tools", "skills", "agent_types"):
         print("%-11s %s" % (k, ", ".join("%s:%d" % x for x in out[k]) or "-"))
+    r = out["routing"]
+    print("routing     eng-os skills named in %d sessions; named and loaded in the same session: %d of %d (%.0f%%)%s" % (
+        r["sessions_named"], r["loaded"], r["named"], pct(r["loaded"], r["named"]),
+        ("  per skill: " + ", ".join("%s %d/%d" % (k, v[1], v[0]) for k, v in r["per_skill"])) if r["per_skill"] else ""))
     return 0
+
+
+def routing(sessions):
+    """How often a skill the hooks named in a session was then loaded with the Skill tool in that same session."""
+    per = collections.defaultdict(lambda: [0, 0])
+    for r in sessions:
+        for k in r["named"]:
+            per[k][0] += 1
+            per[k][1] += k in r["loaded"]
+    named = sum(v[0] for v in per.values())
+    return {"sessions_named": sum(1 for r in sessions if r["named"]), "named": named,
+            "loaded": sum(v[1] for v in per.values()),
+            "per_skill": sorted(per.items(), key=lambda kv: -kv[1][0])}
 
 
 if __name__ == "__main__":

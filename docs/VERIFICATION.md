@@ -165,3 +165,15 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | Hook speed | router 43 ms, session start 49 ms, guard 59 ms per call |
 | Not verified | whether Claude follows the inserted core rules better in real sessions. Measure with `eng-os usage` and the transcripts at the next review: rule-following in routed sessions, not Skill-tool calls. |
 
+
+## 17. Release 0.11.0: best of 11 agent-tooling repos (2026-11-09)
+| Check | Result |
+|---|---|
+| Survey | 10 repos read in full by separate research agents; superpowers had been read for 0.9.0. Claims spot-checked in the clones; the Claude Code facts behind the skill-loading changes confirmed in the official docs (record: `docs/research/2026-11-tool-survey.md`). One wrong claim found and dropped: a 4,000-character total listing cap; the real budget is 1% of the context window. |
+| Routing baseline | `eng-os usage --since 2026-11-04`: eng-os skills named in 58 sessions; loaded after being named 0 of 312 times |
+| Skill frontmatter | all 13 parse as strict YAML (Ruby `YAML.safe_load`) with a description; colons removed from descriptions; listing ~3,703 characters, down from ~5,000 |
+| Independent review | A fresh Sonnet reviewer found 0 High, 4 Medium and 7 Low issues. Fixed after checking each one:<br>• GitHub rerun and cancel tools, verb-last and camelCase write tools were missed;<br>• SQL writes through database MCP tools passed (now ask, including scoped `UPDATE`, which 0.10.0 allowed);<br>• a non-object `env` would crash the settings merge;<br>• shell writes to `.mcp.json` passed;<br>• Playwright's code-running and upload tools were unguarded;<br>• the skill test had no total spend cap or cleanup on interrupt;<br>• the usage line overclaimed. Not a problem: the subagent-model precedence (per-call wins from Claude Code 2.1.251, per the docs). |
+| Tests | `bin/eng-os test` 296/296: 55 new guard cases (MCP installs, MCP write tools, SQL writes, config files, browser code and upload tools, and reads that must stay allowed) and 6 new session cases (router wording, settings env merge including malformed values, eval parser self-test 7/7) |
+| Install and verify | installed into a throwaway home: `verify` 116 checks, 0 fail, 0 warn; `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` lands in settings `env`; new templates installed |
+| Size | global CLAUDE.md 9,315 of 10,500 characters; always-loaded eng-os text ~3,250 tokens (was ~3,490) |
+| Not verified | the live skill-trigger rate: `eng-os eval --skills` runs about 72 one-turn Sonnet sessions and costs tokens, so it waits for the user's go-ahead; the approved MCP install commands were checked against each repo's docs but not run |

@@ -1,6 +1,6 @@
 ---
 name: eng-ship
-description: Delivery and operations procedure covering CI/CD pipelines, environments, versioning, changelogs, release notes, GitHub repo and Actions security, and deploys, rollback, database migrations on shared data, server and cloud infrastructure (VPS, AWS), observability, backups and incident handling. Use when setting up or changing pipelines, deploying, migrating data, provisioning or hardening servers, or adding monitoring.
+description: Ships and runs software — CI/CD, releases and changelogs, GitHub and Actions security, deploys and rollback, migrations on shared data, servers and AWS, monitoring, backups and incidents. Use when deploying or releasing; when changing a pipeline; when migrating shared data; or when setting up servers, monitoring or backups.
 ---
 
 # Shipping and operations

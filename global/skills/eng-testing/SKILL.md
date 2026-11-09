@@ -1,6 +1,6 @@
 ---
 name: eng-testing
-description: Test strategy, test-first bug fixing and systematic root-cause debugging: a map of all test types (unit to load, security, property-based, visual, resilience), checking UI changes in a real browser (built-in browser, Chrome, Playwright or Chrome DevTools MCP), and test tooling per stack. Use when writing or fixing tests, when a test, build or deploy fails, when behaviour differs from expectations, for flaky tests, or when deciding what and how much to test.
+description: Tests and debugs — test-first bug fixes, root-cause debugging, choosing test types, browser checks of UI changes, and test tooling per stack. Use when a test, build or deploy fails; when behaviour is wrong; when writing or fixing tests, including flaky ones; or when checking a UI change in a browser.
 ---
 
 # Testing and debugging
@@ -25,12 +25,14 @@ The minimum per change and the full map of test types (what each catches, when, 
 ## Writing good tests
 - One behaviour per test, named for the behaviour (`test_disbursal_rejected_when_kyc_pending`).
 - Arrange-act-assert (or given-when-then); assert observable behaviour, not implementation details; prefer readable tests over DRY ones.
+- Test at the agreed seams (a public function, an API endpoint, a screen), not internals. Expected values come from an independent source (the spec, a worked example, the client's own sheet), never recomputed by the code under test.
+- Avoid tests that only restate the mock's return value, tests that break on any refactor, and writing all the tests before any code: go one failing test, then its code, at a time.
 - Deterministic: freeze time, seed randomness, no network to real vendors, no ordering dependence; isolated data per test (transactions or fixtures).
 - Boundary cases: zero, negative, max, empty, null, unicode, duplicate submission, concurrent update, timezone edges (IST vs UTC, month end, leap year).
 - Use the project's existing framework and helpers (pytest, `bench run-tests`, PHPUnit, Jest/Vitest, Playwright, flutter_test). Don't introduce a second framework. Tooling per stack and the cross-cutting checks (accessibility, Core Web Vitals, load, contract, security scans, mutation testing): [tooling.md](tooling.md).
 
 ## Bug fix protocol (prove it)
-1. Reproduce: get the exact error, input and environment. Write the smallest failing test or script that shows it.
+1. Reproduce: get the exact error, input and environment. Build a fast, repeatable pass/fail check first (the smallest failing test, a script or a curl call); every later step depends on it. Redact secrets and personal data from any output you show.
 2. Fix the root cause, not the symptom.
 3. The test now passes; the full relevant suite still passes.
 4. Ask: where else could the same defect exist? Grep for the pattern and fix or report siblings.

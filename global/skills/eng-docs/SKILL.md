@@ -1,6 +1,6 @@
 ---
 name: eng-docs
-description: Project documentation that survives people leaving — requirements, user manuals, test cases and traceability, runbooks, project history and handover: which documents a project keeps, when each is written and updated, templates and writing rules. Use at project start, when requirements change, after every development change, before UAT or a release, and before a handover.
+description: Keeps project documents current so the project survives people leaving — requirements, user manuals, test cases with traceability, runbooks, history and handover. Use when requirements change; after a development change; at project start; or before UAT, a release or a handover.
 ---
 
 # Project documentation

@@ -1,6 +1,6 @@
 ---
 name: custom-apps
-description: Building and changing custom apps outside the ERP frameworks — Next.js/React/Node web apps, PHP CodeIgniter 3 legacy apps, Flutter mobile apps and Python services: supported runtime versions, architecture and project structure, framework upgrade traps, configuration, deploy shape. Use when creating, extending, upgrading or reviewing such an app.
+description: Builds and upgrades custom apps outside the ERPs — Next.js/React/Node, PHP CodeIgniter 3, Flutter and Python services, with runtime versions, structure, upgrade traps, configuration and deploy shape. Use when creating, extending, upgrading or reviewing such an app.
 ---
 
 # Custom-built apps
