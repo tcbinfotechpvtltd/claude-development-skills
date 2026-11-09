@@ -36,6 +36,15 @@ The minimum per change and the full map of test types (what each catches, when, 
 - Two failed fix attempts means the model of the problem is wrong: go back to step 1, don't keep patching.
 - Never "fix" by catching and ignoring the exception, adding sleeps, raising timeouts blindly, or deleting the failing test.
 
+## Red flags (stop and follow the protocol)
+| The thought | The rule |
+|---|---|
+| "It's a one-line fix, no test needed" | One-line fixes break money, dates and permissions. Write the failing test first. |
+| "I'll write the tests afterwards" | A test written after the code passes by construction and proves little. Test first; where that is impractical, say so and why. |
+| "I already know what the bug is" | Then reproducing it takes a minute. Reproduce before fixing. |
+| "Let me just try this change" | An unproven change is a second bug. One hypothesis, one decisive experiment. |
+| "The test is flaky, skip it" | Flaky means nondeterminism nobody has found yet. Quarantine it only with a tracking note and tell the user, then find the cause. |
+
 ## Flaky tests
 Quarantine only with a tracking note; find the nondeterminism (time, order, shared state, async waits, network). Replace sleeps with explicit waits on conditions.
 

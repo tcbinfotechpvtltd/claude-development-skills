@@ -34,6 +34,14 @@ Compare with the previous rows in `<repo>/docs/metrics.md` (repo path: `$E statu
 ## 4. Optional behavioural eval (costs tokens; ask first)
 `$E eval --run` executes the scenarios in `tests/scenarios.json` with `claude -p` (needs a logged-in CLI). `$E eval --transcript <file>` scores an existing session transcript. Report pass/fail per scenario with token cost.
 
+**Pressure-test changed and often-skipped rules.** Targets: every skill or rule changed since the last review, and those that `usage` or transcripts show being skipped.
+1. For each target, brief a fresh subagent (`model: sonnet`) with a realistic task plus a pressure that tempts it to break the rule. Examples: a deadline, "it's tiny", the user asking to skip a step, or code already written without tests. Ask it to describe step by step what it would do and which commands it would run, with no tool use.
+2. Run each scenario twice: once with the skill text in the brief and once without it. Subagents still see the installed instructions and skills, so treat the comparison as indicative only. For a clean run, add the scenario to `tests/scenarios.json` and run it with `$E eval --run`, which works in the eval sandbox.
+3. Act on the result:
+   - **Same behaviour both ways**: the rule may add nothing; consider shortening it. Never shorten an approval gate or a security rule (global CLAUDE.md sections 2 and 4) on this evidence alone.
+   - **It argued its way around the rule**: add that argument and the answer to the skill's red-flags table, then run the scenario again.
+4. Record the results in `docs/metrics.md`.
+
 ## 5. Propose
 - Write findings: what is working (with numbers), what is not, proposed changes with expected effect on tokens, safety and adherence.
 - Make the changes in the repo on a branch (`git -C <repo> switch -c review-YYYY-MM`), update `CHANGELOG.md` and bump `VERSION`, run `bin/eng-os test` and `bin/eng-os install --dry-run`.

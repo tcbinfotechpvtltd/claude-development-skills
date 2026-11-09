@@ -685,6 +685,8 @@ def cmd_test(args):
     ss_cases.append(("router: silent for small talk", route("thanks, that looks good") == ""))
     ss_cases.append(("router: silent for slash commands", route("/eng-review please check it", "s2") == ""))
     ss_cases.append(("router: lending", "`fintech-lending`" in route("add an EMI schedule to the loan sanction screen", "s3")))
+    ss_cases.append(("router: implementation plan", "`eng-design`" in route("write an implementation plan for the export screen", "s4")))
+    ss_cases.append(("router: no design skill for an explanation", "`eng-design`" not in route("can you break this down for me in simple words", "s5")))
     for name, ok in ss_cases:
         if ok:
             passed += 1

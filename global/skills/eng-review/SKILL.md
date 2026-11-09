@@ -23,6 +23,27 @@ Use for security-sensitive, money-moving, schema-changing or large changes, and 
 - Brief them with: the goal, the diff or file list, the risk areas, and what you already verified. Ask for findings with file:line, severity and a concrete fix. Do not hand them your conclusions to confirm.
 - Treat their findings as claims: verify each one against the code before fixing or dismissing it.
 
+### Receiving review feedback (from a person, a bot or a subagent)
+- Read every comment before changing anything, then work in severity order.
+- Check each one against the code (trace it, reproduce it, or run the test):
+  - **Correct**: fix it, with a test when it is a behaviour bug.
+  - **Wrong**: explain why with the evidence (file:line, a test, the spec) and leave the code as it is.
+  - **Unclear**: ask the user (or the reviewer, if the user says so) before touching the code; a guessed fix is worse than a question.
+- No performative agreement ("great catch", "you're absolutely right"): say what changed and where, or why nothing changed.
+- A suggestion that conflicts with the spec, a security rule or a decision the user already made goes to the user, not into the code.
+- "Make it more complete" for something nothing calls: grep for callers first; if there are none, propose removing it instead.
+- One fix at a time, tests re-run after each. Draft a reply per comment (what changed and where, or the evidence for leaving it); post replies on the PR only when the user approves.
+
+### Red flags before saying "done"
+| The thought | The rule |
+|---|---|
+| "That should fix it" | Nothing is fixed until a command shows it. Run it and quote the result. |
+| "The subagent says the tests pass" | Its report is a claim: read its diff and run the tests yourself. |
+| "Too small to need a review" | Small diffs hide debug prints, stray files and secrets. Read it. |
+| "The tests were green earlier" | Earlier is not now. Re-run after the last change. |
+| "I'll mention the failing check later" | Report it now, with the output. |
+| "The user is in a hurry, so skip the gate" | Approval gates do not bend for speed: state the risk, ask, and offer the safe path. |
+
 ## 3. Audit until dry (for audits and pre-handoff)
 1. Review → list findings with severity.
 2. Fix confirmed Critical/High (and cheap Mediums); add regression tests.

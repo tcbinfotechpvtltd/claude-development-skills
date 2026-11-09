@@ -1,6 +1,6 @@
 ---
 name: eng-design
-description: Architecture and design procedure for new features, systems, APIs, data models and technology choices. Use before building anything non-trivial, when requirements are vague, when choosing between designs or frameworks, or when writing a spec or ADR.
+description: Architecture and design procedure for new features, systems, APIs, data models and technology choices. Use before building anything non-trivial, when requirements are vague, when choosing between designs or frameworks, when writing a spec or ADR, or when breaking multi-step work into an implementation plan and running it task by task.
 ---
 
 # Engineering design
@@ -43,6 +43,7 @@ Pick one and give the reason in one or two sentences. Prefer boring, proven tech
 ## 5. Write it down
 - Small change: plan in chat (files, approach, risks, verification).
 - Significant change: `docs/specs/<feature>.md` with the sections above, plus a task breakdown into vertical slices that can each be verified.
+- Multi-step work (several files, a long or multi-session run, tasks for subagents): write the task breakdown as an implementation plan, run it task by task and finish the branch with [implementation-plans.md](implementation-plans.md).
 - Diagrams follow the C4 model: system context, then containers (apps, databases, queues), then components where useful; code-level diagrams rarely. Add a deployment diagram for infra work and a dynamic (sequence) diagram for multi-party flows such as disbursal or webhooks. Mermaid in Markdown is fine.
 - Decision that is costly to reverse: an ADR at `docs/adr/NNNN-title.md` (Nygard format below; use MADR 4.0.0 when several options need a detailed comparison):
 

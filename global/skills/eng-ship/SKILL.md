@@ -29,6 +29,14 @@ Read [github.md](github.md) when creating or hardening a repo, writing or review
 7. Communication: who is told, maintenance window if needed.
 After deploy: smoke test the critical paths, watch error rates, then record the release (tag, CHANGELOG, release notes naming the rollback target).
 
+### Red flags before a production change
+| The thought | The rule |
+|---|---|
+| "It's only a one-line change on production" | Production stays read-only unless the user said otherwise in this session. Ask first. |
+| "The backup is probably recent" | Check that it exists and restores into a scratch environment, never over production, before any destructive step. |
+| "It worked on UAT, so production will be fine" | Production differs in data, config and load. Run the checklist anyway. |
+| "The guard blocked it; I'll do it another way" | The block is the answer. Report it and let the user decide. |
+
 ## Deploy patterns
 - Prefer automated, repeatable deploys (CI job or script in the repo) over hand-typed SSH sequences. Every manual step goes into the repo runbook.
 - Zero-downtime where practical: blue/green or rolling restarts; run migrations before code only when they are backward compatible.

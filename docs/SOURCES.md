@@ -24,6 +24,7 @@ Every external standard that eng-os skills and rules cite, with the edition in u
 | Architecture Decision Records (Nygard, MADR, Y-statement) | MADR 4.0.0 | templates page updated 2026-11-02 | eng-design | https://adr.github.io/adr-templates/ | 2026-11-04 |
 | The Twelve-Factor App | live site | last updated 2017 | eng-design, eng-ship | https://12factor.net/ | 2026-11-04 |
 | AWS Well-Architected Framework | 6 pillars | not shown | eng-design | https://docs.aws.amazon.com/wellarchitected/latest/framework/the-pillars-of-the-framework.html | 2026-11-04 |
+| obra/superpowers (agent workflow skills, MIT) | v7.0.2 | 2026-11-03 | eng-design/implementation-plans.md; red-flags tables in eng-review, eng-testing, eng-ship; review feedback in eng-review; subagent model choice in CLAUDE.md section 8; pressure tests in eng-os-review. Ideas adapted in our own words; not installed. | https://github.com/obra/superpowers | 2026-11-09 |
 
 ## Testing
 | Standard | Edition in use | Published | Used in | URL | Checked |
