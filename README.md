@@ -23,13 +23,13 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 ## At a glance
 | | |
 |---|---|
-| Version | 0.8.0 |
-| Works with | Claude Code desktop app and CLI. Verified on macOS with 2.1.309; Linux and WSL should work but have not been tested |
+| Version | 0.11.0 |
+| Works with | Claude Code desktop app and CLI. Verified on macOS with 2.1.317; Linux and WSL should work but have not been tested |
 | Applies to | every Claude Code chat and every project on the machine (desktop app, terminal, IDE), automatically: nobody calls a skill |
 | Setup | one command per employee, once; the same command updates it after a weekly reminder |
-| Cost per session | about 3.4k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
-| Quality checks | 153 automated tests for the safety hooks, a 63-point health check, and a scored test in a real Claude session |
-| Standards | 129 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
+| Cost per session | about 3.3k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
+| Quality checks | 296 automated tests for the safety and session hooks, a 116-point health check, a skill-trigger test (`eng-os eval --skills`), and a scored test in a real Claude session |
+| Standards | 149 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
 | Undo | one command restores your previous Claude setup exactly |
 
 ## What's inside
@@ -61,7 +61,7 @@ Nobody calls these. eng-os applies the right ones in every chat ([how](#how-the-
 | `eng-docs` | requirements, user manuals, test-case documents, runbooks, project history, handover | the document set every project keeps and when each is written and updated, requirement ids linking issues, PRs, tests and manual pages, append-only history, Diátaxis user manuals per role, writing rules, the bus-factor check |
 | `fintech-lending` | anything that moves money, computes loan amounts or stores borrower data | money as decimals, append-only double-entry ledgers, loan state machines, disbursal gates, vendor adapters and webhooks, RBI Digital Lending Directions 2025, DPDP Rules 2025, RBI NBFC cyber and outsourcing directions |
 | `eng-project-init` | a repo with no CLAUDE.md, or a stale one | builds a project CLAUDE.md from the repo: commands, architecture map, invariants, environments, gotchas |
-| `eng-os-review` | monthly (a reminder appears) | measures token use and adherence, checks Claude Code changes, re-checks every cited standard, proposes improvements as a PR |
+| `eng-os-review` | monthly: a reminder appears and you run `/eng-os-review` (Claude never starts it alone) | measures token use and adherence, checks Claude Code changes, re-checks every cited standard, proposes improvements as a PR |
 
 ### How the skills apply automatically in every chat
 Nobody types a skill name, and no chat needs any setup. Four layers apply the right skill on their own:
@@ -87,7 +87,7 @@ These load automatically when Claude touches matching files, even if no skill wa
 ### Safety guard
 A hook checks every Claude tool call in about 50 ms and costs no tokens:
 - **Refuses** catastrophic actions, such as wiping a home or system folder, dumping the keychain, or commits with a Claude co-author trailer.
-- **Asks you first** before force-pushes, pushes to `main`/`prod`/`uat`, `reset --hard`, deploys, `DROP`/`TRUNCATE`, state-changing SSH, printing `.env` files or secret environment variables, bulk deletes with `find`, `DELETE`/`PUT`/`PATCH` calls to remote APIs, destructive SQL through database tools, sending email or messages, and ad-platform changes that spend money.
+- **Asks you first** before force-pushes, pushes to `main`/`prod`/`uat`, `reset --hard`, deploys, `DROP`/`TRUNCATE`, state-changing SSH, printing `.env` files or secret environment variables, bulk deletes with `find`, `DELETE`/`PUT`/`PATCH` calls to remote APIs, destructive SQL and any SQL write through database tools, sending email or messages, ad-platform changes that spend money, adding MCP servers or plugins, MCP tools that change code, repositories, cloud resources or data, and browser tools that run code on your machine or upload local files.
 - **Stays silent** for everything else.
 
 The prompts appear even in bypass-permissions mode (verified). Details are in [section 3](#3-the-guard-deterministic-safety-layer).
@@ -105,7 +105,8 @@ A start-of-session hook names the skills for the project (see above) and otherwi
   - architecture (arc42), test plan with test cases and traceability;
   - user manual (Diátaxis) and What's new;
   - runbook, progress and history log, handover checklist.
-- `templates/github/`: issue forms (bug, feature), standard labels, CODEOWNERS, `dependabot.yml`.
+- `templates/docs/specs/`: the feature spec (problem, user stories, decisions as behaviour, test seams, out of scope, tasks).
+- `templates/github/`: issue forms (bug, feature, and an agent-ready task), standard labels, CODEOWNERS, `dependabot.yml`.
 - `templates/release/`: `CHANGELOG.md`, GitHub `release.yml` and `pull_request_template.md`.
 
 ### Documentation
@@ -114,7 +115,9 @@ A start-of-session hook names the skills for the project (see above) and otherwi
 | [INSTALL.md](INSTALL.md) | install, what changes on your machine, updating, undo, troubleshooting |
 | [docs/ENGINEERING-POLICY.md](docs/ENGINEERING-POLICY.md) | what every TCB engineer commits to when working with Claude Code |
 | [docs/COMPANY-ROLLOUT.md](docs/COMPANY-ROLLOUT.md) | putting eng-os on every machine: per-developer install, a plugin, organisation-managed settings |
+| [docs/MCP-POLICY.md](docs/MCP-POLICY.md) | the approved MCP servers and plugins, with exact pinned install commands, what is pilot-only or not approved, and how to approve a new one |
 | [docs/SOURCES.md](docs/SOURCES.md) | every external standard cited, with edition, date, link and when it was last checked |
+| [docs/research/2026-11-tool-survey.md](docs/research/2026-11-tool-survey.md) | the survey of 11 leading agent-tooling repos: what eng-os adopted from each, what it rejected, and why |
 | [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) | each requirement mapped to where it is implemented and how far it is proven |
 | [docs/VERIFICATION.md](docs/VERIFICATION.md) | test and live-session evidence for every release |
 | [docs/metrics.md](docs/metrics.md) | token and efficiency measurements over time |
@@ -419,8 +422,8 @@ Text that loads in every session is paid for in every session, so eng-os keeps t
 
 | Layer | When it is loaded | Approximate cost |
 |---|---|---|
-| Global instructions | every session | 2.1k tokens |
-| Skill list (names and descriptions) | every session | 1.3k tokens |
+| Global instructions | every session | 2.3k tokens |
+| Skill list (names and descriptions) | every session | 0.9k tokens |
 | One skill's full text | only when the task needs it | 0.6–2.4k tokens |
 | Reference files (per stack, standards, releases, GitHub, coding standards, test tooling) | only when a skill sends Claude to them | 0.6–1.5k tokens |
 | Path rules | only when a matching file is touched | 0.25–0.3k tokens |
@@ -449,7 +452,7 @@ Working habits that cut waste (global instructions section 8):
 - **Safety is enforced, not hoped for.** Risky actions are stopped by a hook that runs on every tool call, not by a sentence the model might forget. 126 automated cases cover it, and it was verified live in bypass mode.
 - **Built on current standards, with sources.** 129 standards, frameworks and tool versions are named with their edition and the date each was confirmed on its official site: OWASP, NIST, CIS, MITRE, CISA, SLSA, PCI, ISO, Google SRE and DORA, RBI, DPDP and CERT-In. Nothing is quoted from memory, and a health-check warning plus the monthly review keep them current.
 - **Made for TCB's real work.** The stack pitfalls, lending rules and severity examples come from TCB projects, audits and incidents, not generic advice.
-- **Cheap to run.** About 3.4k tokens per session. Detail lives in files that load only when needed. The 24-skill pack it replaced was used once in more than 700 sessions.
+- **Cheap to run.** About 3.3k tokens per session. Detail lives in files that load only when needed. The 24-skill pack it replaced was used once in more than 700 sessions.
 - **Honest results.** Claude must show evidence, label what is not verified, and never call anything "secure".
 - **The same standards for everyone.** Each developer still commits under their own name and keeps their own personal instructions. Improvements come in as pull requests.
 - **Safe to install and remove.** Every install that changes anything takes a backup first, validates before writing and rolls back on error. A restore gives back the exact previous setup. A broken settings file is refused, never overwritten.
@@ -478,17 +481,17 @@ Full list: [section 8](#8-limitations-what-claude-code-cannot-guarantee).
 
 | Layer | Live location | Loads | Approx. cost | Purpose |
 |---|---|---|---|---|
-| Global instructions | `~/.claude/CLAUDE.md` | every session, re-read after compaction | ~2.0k tokens | priority order, approval gates, engineering behaviour, security floor, skill routing table, git and token rules |
-| Skills (13) | `~/.claude/skills/<name>/SKILL.md` | listing always (~1.1k tokens); body only when invoked; reference files only when the body sends Claude to them | 0.6–1.5k tokens each when used | procedures: `eng-design` (+`implementation-plans.md`), `eng-security` (+`stacks.md`, `standards.md`), `eng-testing` (+`tooling.md`), `eng-review` (+`coding-standards.md`), `eng-ship` (+`releases.md`, `github.md`), `eng-delivery` (+`erp-implementation.md`), `eng-docs`, `frappe-erpnext`, `odoo`, `custom-apps` (+ one file per stack), `fintech-lending`, `eng-project-init`, `eng-os-review` |
+| Global instructions | `~/.claude/CLAUDE.md` | every session, re-read after compaction | ~2.3k tokens | priority order, approval gates, engineering behaviour, security floor, skill routing table, git and token rules |
+| Skills (13) | `~/.claude/skills/<name>/SKILL.md` | listing always (~0.9k tokens; `eng-os-review` is user-run and costs nothing); body only when invoked; reference files only when the body sends Claude to them | 0.6–1.5k tokens each when used | procedures: `eng-design` (+`implementation-plans.md`), `eng-security` (+`stacks.md`, `standards.md`), `eng-testing` (+`tooling.md`), `eng-review` (+`coding-standards.md`), `eng-ship` (+`releases.md`, `github.md`), `eng-delivery` (+`erp-implementation.md`), `eng-docs`, `frappe-erpnext`, `odoo`, `custom-apps` (+ one file per stack), `fintech-lending`, `eng-project-init`, `eng-os-review` |
 | Standards register | repo `docs/SOURCES.md` | never in context | 0 | every external standard the skills cite, with edition, publication date, URL and the date it was last confirmed on the official site |
-| Path-scoped rules (3) | `~/.claude/rules/*.md` | only when a matching file is read or edited | ~200–300 tokens each | must-follow invariants for Frappe code, DB migrations/SQL, CI/containers/infra |
+| Path-scoped rules (9) | `~/.claude/rules/*.md` | only when a matching file is read or edited | ~200–300 tokens each | must-follow invariants for Frappe, Odoo, Next.js, Flutter and CodeIgniter 3 code, DB migrations/SQL, CI/containers/infra, tests and project documents |
 | Guard hook | `~/.claude/eng-os/hooks/guard.py` (PreToolUse: Bash, file tools, `mcp__.*`) | every matching tool call, ~50 ms | 0 tokens unless it blocks | deny catastrophic actions; ask before destructive, irreversible, outward-facing, production and secret-exposing ones |
-| Session hook | `~/.claude/eng-os/hooks/session_start.py` | session start | 0 tokens normally; one line when due | monthly self-audit reminder; warns if live files were edited outside an install |
-| Settings keys | `~/.claude/settings.json` (merged, other keys untouched) | always | 0 | hook wiring, `attribution` off (commits under each developer's own identity), deny reading Claude's own OAuth file |
+| Session hook | `~/.claude/eng-os/hooks/session_start.py` | session start | a few lines when it applies | names the project's skills and inserts their core rules (again after compaction); monthly review reminder; weekly release check; warns if live files were edited outside an install |
+| Settings keys | `~/.claude/settings.json` (merged, other keys untouched) | always | 0 | hook wiring, `attribution` off (commits under each developer's own identity), deny reading Claude's own OAuth file, `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` unless you set your own |
 | Subagents | `~/.claude/agents/` (existing 4 kept) | when spawned | per run | `security-auditor`, `code-reviewer`, `test-engineer`, `web-performance-auditor` are used for fresh-context review; no new agents were needed |
 | CLI + tests | `~/.claude/eng-os/bin`, `tests`, `templates` | never in context | 0 | install/verify/test/usage/eval/restore, project template |
 
-**Always-loaded total added by eng-os: ~3.4k tokens** (CLAUDE.md ~2.1k plus skill listing ~1.3k, 13 skills). The installer also removed the ~1.7k-token listing of the 24 unused agent-skills and a SessionStart hook that ran in every session and injected nothing.
+**Always-loaded total added by eng-os: ~3.3k tokens** (CLAUDE.md ~2.3k plus skill listing ~0.9k, 12 listed skills). The installer also removed the ~1.7k-token listing of the 24 unused agent-skills and a SessionStart hook that ran in every session and injected nothing.
 
 ### Instruction hierarchy (conflict resolution)
 1. Safety floor (approval gates + security floor in the global CLAUDE.md, enforced in part by the guard)
@@ -502,10 +505,10 @@ Material conflicts are followed at the higher level and reported in one line. Th
 Across 700+ transcripts, the 24 previously installed generic skills were invoked by description **once**. Description matching alone is unreliable, so the global CLAUDE.md carries a 9-line trigger table, and project CLAUDE.md files name their required skills. Path-scoped rules handle the invariants that must apply without the model deciding to load anything.
 
 ## 3. The guard (deterministic safety layer)
-Fail-open (a crash never blocks work; errors are logged to `~/.claude/eng-os/state/guard-errors.log`), Python 3.9-compatible, stdlib only, ~50 ms per call. 206 guard cases in `tests/guard_cases.json` plus 31 session-hook and router cases.
+Fail-open (a crash never blocks work; errors are logged to `~/.claude/eng-os/state/guard-errors.log`), Python 3.9-compatible, stdlib only, ~50 ms per call. 259 guard cases in `tests/guard_cases.json` plus 37 session, router, install and eval-parser cases.
 
 - **Deny** (the user can still run these by hand): wiping `/`, home or system dirs; `mkfs`/`dd` to disks; fork bombs; reading Claude's OAuth credentials or dumping the keychain; git commits carrying a `Co-Authored-By: Claude` trailer (your rule).
-- **Ask** (approval prompt): force-push, direct push to protected branches (`main master prod production live uat release*`), `reset --hard`, `clean -f`, discarding changes, deleting branches; `gh pr merge`/repo delete/releases/secrets; DROP/TRUNCATE, UPDATE/DELETE without WHERE, writes to non-local databases; `bench drop-site/reinstall/restore`; docker volume deletion; terraform/kubectl/helm/aws/gcloud changes and deploys; package publishing; `sudo`; world-writable chmod; `curl | sh`; crontab/launchctl/authorized_keys changes; any state-changing SSH command (deploys, restarts, git pull, migrations, SQL, redirects, remote scripts) and reading remote secrets files; scp/rsync uploads and `rsync --delete`; recursive deletes outside the project/temp dirs, of whole repos, `.git`, or unexpanded variables; printing `.env`/keys/credentials files; writing content that looks like a real credential (except into `.env`); editing live global Claude config; SSH config. MCP: sending email/messages, calendar invites, sharing files, deletes in external services, Apollo sends and purchases, ad-platform changes (Meta, Google and similar) that set campaigns live or change budgets/bids; destructive or unscoped SQL through database MCP tools. Also: Grep printing the lines of secrets files (by path or glob); interpreters (`python3`, `node`...) reading them; printing environment variables (`printenv`, bare `env`, `export -p`, `echo $API_KEY`); `find -delete` or `-exec rm` that is unfiltered, outside the project or aimed at `.git`; `curl`/`wget`/`httpie` `DELETE`, `PUT` or `PATCH` to a non-local host.
+- **Ask** (approval prompt): force-push, direct push to protected branches (`main master prod production live uat release*`), `reset --hard`, `clean -f`, discarding changes, deleting branches; `gh pr merge`/repo delete/releases/secrets; DROP/TRUNCATE, UPDATE/DELETE without WHERE, writes to non-local databases; `bench drop-site/reinstall/restore`; docker volume deletion; terraform/kubectl/helm/aws/gcloud changes and deploys; package publishing; `sudo`; world-writable chmod; `curl | sh`; crontab/launchctl/authorized_keys changes; any state-changing SSH command (deploys, restarts, git pull, migrations, SQL, redirects, remote scripts) and reading remote secrets files; scp/rsync uploads and `rsync --delete`; recursive deletes outside the project/temp dirs, of whole repos, `.git`, or unexpanded variables; printing `.env`/keys/credentials files; writing content that looks like a real credential (except into `.env`); editing live global Claude config; SSH config. MCP: sending email/messages, calendar invites, sharing files, deletes in external services, Apollo sends and purchases, ad-platform changes (Meta, Google and similar) that set campaigns live or change budgets/bids; destructive or unscoped SQL through database MCP tools. Also: Grep printing the lines of secrets files (by path or glob); interpreters (`python3`, `node`...) reading them; printing environment variables (`printenv`, bare `env`, `export -p`, `echo $API_KEY`); `find -delete` or `-exec rm` that is unfiltered, outside the project or aimed at `.git`; `curl`/`wget`/`httpie` `DELETE`, `PUT` or `PATCH` to a non-local host. Since 0.11.0: `claude mcp add` and plugin installs (noting unpinned packages and write or real-browser-profile flags) and writes to `.mcp.json` or `~/.claude.json`; MCP tools that write to code, repositories, cloud resources or data (GitHub, AWS, Serena, filesystem, git and similar, including camelCase and verb-last names); any SQL write through database MCP tools; browser tools that run code on the machine or upload local files.
 - Everything else passes silently.
 
 Tune it in `global/eng-os/config.json` (protected branches, `disabled_rules`), then re-install.
@@ -530,7 +533,7 @@ Recommended on the maintainer's machine, not applied (check yours with `eng-os u
 - `marketing-skills@marketingskills` is enabled globally (36 skills) but was not invoked in the analysed transcripts. Disable it globally (`"enabledPlugins": {"marketing-skills@marketingskills": false}`) and enable it per project where you do marketing work.
 - The desktop org plugins (marketing, HR, product, sales…) and many claude.ai connectors (Apollo, Canva, Gamma, Gmail, Calendar, Drive…) are listed in every coding session. Toggle them off per session in the app's connector menu when coding.
 - Effort: thinking is always on and the main model is Opus. For routine or mechanical sessions, `/effort medium` (or `"effortLevel": "medium"` in settings) cuts output and thinking tokens. Keep high effort for design, security and hard debugging. This is left as your per-session choice rather than a global default.
-- The Homebrew CLI is 2.0.53 (the app bundles 2.1.309) and its OAuth login expired in July: `brew upgrade claude-code` then `claude /login` to use the terminal and `eng-os eval --run`.
+- The Homebrew CLI is 2.0.53 (the app bundles 2.1.317) and its OAuth login expired in July: `brew upgrade claude-code` then `claude /login` to use the terminal and `eng-os eval --run`.
 
 ## 5. Project-level instructions
 - Template: `~/.claude/eng-os/templates/project/CLAUDE.md` (what, domain risk, **required skills**, stack, commands, architecture map, invariants, env/branch mapping, conventions, gotchas). Under ~120 lines; no repetition of global rules.
