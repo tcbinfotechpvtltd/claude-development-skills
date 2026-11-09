@@ -1,0 +1,50 @@
+name: Task (ready for a developer or an agent)
+description: One thin, testable slice of work that someone with no project context could pick up
+title: "[Task]: "
+labels: ["task"]
+body:
+  - type: textarea
+    id: behaviour
+    attributes:
+      label: Behaviour to deliver
+      description: What the system should do when this is done, described as behaviour, not file paths. Link the spec and requirement ids (REQ-...).
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Testable checks. Each one should map to a test.
+      value: |
+        - [ ] Given ... when ... then ...
+        - [ ] The role that must be denied gets an error
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Out of scope
+      description: What this task must not change.
+    validations:
+      required: true
+  - type: input
+    id: blocked
+    attributes:
+      label: Blocked by
+      placeholder: "#123, or none"
+  - type: dropdown
+    id: gate
+    attributes:
+      label: Approval gate
+      description: Tasks that touch these stop for the lead's or client's approval before going further.
+      multiple: true
+      options: [None, Money movement, Auth or permissions, Personal or KYC data, Migration on shared data, Deploy or infrastructure, Outward-facing (messages, payments, publishing)]
+    validations:
+      required: true
+  - type: dropdown
+    id: data
+    attributes:
+      label: Test data allowed
+      options: [Synthetic only, Masked copy, Restricted (named approver)]
+    validations:
+      required: true

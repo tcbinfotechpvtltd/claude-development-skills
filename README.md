@@ -70,7 +70,7 @@ Nobody types a skill name, and no chat needs any setup. Four layers apply the ri
 3. **Path rules** (whenever matching files are touched): short must-follow rules load and point to their skill.
 4. **The global instructions** tell Claude to load whatever those layers name, plus a trigger table for everything else.
 
-Hooks cannot force a full skill to load, and in real sessions Claude usually did not load the skills it was pointed to. So layers 1 and 2 insert each skill's core rules directly, and layer 3 adds the file-specific ones: the essentials arrive even when a full skill is never loaded. The detailed procedures still load when Claude calls the skill.
+Hooks cannot force a full skill to load, and in real sessions Claude usually did not load the skills it was pointed to. So layers 1 and 2 insert each skill's core rules directly, and layer 3 adds the file-specific ones: the essentials arrive even when a full skill is never loaded. The detailed procedures still load when Claude calls the skill. The routing note now says "call the Skill tool with `x`" (wording that loads skills more often), and every skill description follows a tested trigger formula. `eng-os usage` shows how often a named skill was actually loaded, and `eng-os eval --skills` measures it per skill (0.11.0).
 
 ### Nine path-scoped rules
 These load automatically when Claude touches matching files, even if no skill was invoked:
@@ -238,7 +238,7 @@ From `eng-testing` and its three reference files:
   - security, property-based, fuzzing and mutation testing;
   - migration reconciliation, backup restore and DR drills, resilience (failing vendors), compatibility (browsers and devices), time and locale, production checks.
 - **Claude checks its own UI changes in a real browser** (`browser.md`):
-  - It uses the desktop app's built-in browser by default, Claude in Chrome only when you ask, and Playwright MCP or Chrome DevTools MCP in terminal sessions, pinned to a version and added only with your approval.
+  - It uses the desktop app's built-in browser by default, Claude in Chrome only when you ask, and Playwright MCP or Chrome DevTools MCP in terminal sessions, pinned to a version, isolated from your own browser profile, telemetry off, and added only with your approval.
   - It reads the page, checks console and network errors, exercises the happy, error, empty and double-submit cases, and tests permissions as an allowed and a denied user.
   - It checks phone, tablet and desktop widths, dark mode, keyboard and axe accessibility, and Lighthouse.
   - It reports the evidence, then turns critical checks into Playwright tests.
@@ -460,6 +460,7 @@ Working habits that cut waste (global instructions section 8):
 - Instructions and skills guide the model; they cannot force it. Only the guard and permission settings are hard controls.
 - The guard matches command patterns. A cleverly disguised command (a variable, base64, a script it cannot see) can get past it, and HTTP `POST` calls are not checked, so it is a safety net, not a sandbox.
 - With nobody at the keyboard (`claude -p`, unattended sessions), an approval prompt either stops the work or waits for you.
+- MCP servers and plugins: eng-os approves a short list with exact install commands ([docs/MCP-POLICY.md](docs/MCP-POLICY.md)) and the guard asks before adding any server or plugin and before MCP write tools on code, cloud and data servers. It cannot stop someone installing one by hand outside Claude.
 - It does not make anyone's software or organisation "compliant". It raises the floor and makes gaps visible.
 - On individual Claude plans, whether Anthropic may train on your sessions is each person's account setting. eng-os cannot enforce it, so the policy requires it off ([COMPANY-ROLLOUT.md](docs/COMPANY-ROLLOUT.md)).
 
@@ -540,8 +541,9 @@ Recommended on the maintainer's machine, not applied (check yours with `eng-os u
 | Command | Cost | What it checks |
 |---|---|---|
 | `eng-os verify` | 0 tokens | install drift, settings wiring, matcher coverage, hooks compile on both Pythons, guard error log, CLAUDE.md/skill/rule budgets, path scoping, duplicated sentences, standards in `docs/SOURCES.md` re-checked within 120 days |
-| `eng-os test [--installed]` | 0 tokens | 122 guard cases + 4 session-hook cases in a throwaway sandbox |
-| `eng-os usage --since D` | 0 tokens | efficiency metrics from local transcripts |
+| `eng-os test [--installed]` | 0 tokens | 259 guard cases + 37 session, router, install and eval-parser cases in a throwaway sandbox |
+| `eng-os usage --since D` | 0 tokens | efficiency metrics from local transcripts, plus how often a skill the hooks named was then loaded |
+| `eng-os eval --skills [--skill S]` | about 72 one-turn sessions (Sonnet, budget-capped) | skill-trigger rate: 5 should-load and 1 should-not case per skill (`tests/skill_cases.json`), read-only tools only |
 | `eng-os eval --prompt fresh-session` / `--transcript F` | one session | instruction loading, skill listing, nested CLAUDE.md, path rules, skill adherence, guard deny/ask in a real session |
 | `eng-os eval --run` | small (Haiku, budget-capped) | headless guard and context scenarios (needs a logged-in CLI) |
 

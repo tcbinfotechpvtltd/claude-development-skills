@@ -1,6 +1,7 @@
 ---
 name: eng-os-review
-description: Periodic self-evaluation and improvement of the eng-os global Claude Code system (CLAUDE.md, skills, rules, hooks, settings). Use when the SessionStart note says the audit is due, when the user asks to review or improve their Claude setup, or after a Claude Code upgrade.
+description: Periodic self-evaluation and improvement of the eng-os global Claude Code system (CLAUDE.md, skills, rules, hooks, settings). Run as /eng-os-review when the SessionStart note says the audit is due, to review or improve the Claude setup, or after a Claude Code upgrade.
+disable-model-invocation: true
 ---
 
 # eng-os review

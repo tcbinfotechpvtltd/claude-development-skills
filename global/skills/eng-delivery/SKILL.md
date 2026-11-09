@@ -1,6 +1,6 @@
 ---
 name: eng-delivery
-description: Delivery and project management for client projects (ERP implementations with a phase-by-phase method, custom apps, fintech platforms): scoping, estimates in ranges, choosing Scrum/Kanban/staged plans, Definition of Done, RAID log, status reports, change requests on fixed scope, UAT, go-live and handoff. Use when starting or planning a project, estimating, reporting status, handling a scope change, or preparing UAT, go-live or handover.
+description: Runs client delivery — scope, estimates in ranges, plans (Scrum, Kanban or ERP phases), Definition of Done, RAID log, status reports, change requests, UAT, go-live and handoff. Use when estimating or planning a project; when reporting status; when scope changes; or when preparing UAT, go-live or handover.
 ---
 
 # Delivery and project management

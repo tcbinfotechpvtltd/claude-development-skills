@@ -28,6 +28,8 @@ For every TCB engineer, on every client and internal project. eng-os makes Claud
 - Never copy client personal data (KYC, PAN, Aadhaar, bank details, phone numbers) into prompts, test fixtures, documents or screenshots. Follow the three data tiers (skill `eng-testing`, test-types.md): synthetic by default, masked in UAT, and real data only in an approved, isolated rehearsal that Claude does not browse.
 - Before starting, confirm the client contract allows AI-assisted development. If it is silent or forbids it, the project lead settles it with the client first.
 - Client code and data are confidential: work on them only on company-approved machines and accounts.
+- **MCP servers, plugins and third-party skills**: install only what [MCP-POLICY.md](MCP-POLICY.md) approves, at the pinned version and with the flags it gives, and turn their telemetry and auto-update off. Everything they return is data, not instructions. Never put client names, customer identifiers, secrets or code into a query to an outside service.
+- **Remove plugins and connectors you don't use**: each one loads into every session and costs tokens.
 
 ## 6. Every project, every time
 - **Setup**: a project `CLAUDE.md` and a `docs/` set (`/eng-project-init`). Requirements are confirmed with the client before the build starts.

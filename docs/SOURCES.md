@@ -206,3 +206,21 @@ Primary RBI pages were read for the Digital Lending Directions; DPDP Rules conte
 | Claude Team plan | live page | not shown | docs/COMPANY-ROLLOUT.md | https://support.claude.com/en/articles/9266767-what-is-the-team-plan | 2026-11-04 |
 | Claude Code hooks reference (UserPromptSubmit and SessionStart input and additionalContext; 10,000-character limit) | live docs | not shown | hooks prompt_router.py, session_start.py | https://code.claude.com/docs/en/hooks | 2026-11-04 |
 | Claude Code skills (invocation, frontmatter) and memory (path-scoped rules) | live docs | not shown | global CLAUDE.md section 6, global/rules | https://code.claude.com/docs/en/skills | 2026-11-04 |
+
+## Agent tooling and MCP servers (survey 2026-11-09, [research/2026-11-tool-survey.md](research/2026-11-tool-survey.md))
+| Standard | Edition in use | Published | Used in | URL | Checked |
+|---|---|---|---|---|---|
+| Claude Code skills: listing budget (1% of context, 8,000-character fallback, least-invoked descriptions dropped), 1,536-character entries, `disable-model-invocation`, `paths:` | live docs | not shown | skill descriptions, eng-os-review, research record | https://code.claude.com/docs/en/skills.md | 2026-11-09 |
+| Claude Code env vars (`CLAUDE_CODE_SUBAGENT_MODEL`) and subagents (CLAUDE.md loading) | live docs | not shown | global settings, CLAUDE.md section 8 | https://code.claude.com/docs/en/env-vars.md | 2026-11-09 |
+| Claude Code hooks (SessionStart matchers incl. `compact`; 10,000-character output cap) | live docs | not shown | session_start.py | https://code.claude.com/docs/en/hooks.md | 2026-11-09 |
+| Claude Code MCP (scopes; `${VAR}` expansion in `.mcp.json`) | live docs | not shown | docs/MCP-POLICY.md | https://code.claude.com/docs/en/mcp.md | 2026-11-09 |
+| affaan-m/ECC (MCP connector policy, skill-run tracking, token settings) | v2.2.3 | 2026-10-01 | docs/MCP-POLICY.md, research record | https://github.com/affaan-m/ECC | 2026-11-09 |
+| mattpocock/skills (invocation split, spec and ticket shapes, debugging loop, test seams) | v1.3.2 | 2026-10-29 | eng-design, eng-testing, eng-review, templates | https://github.com/mattpocock/skills | 2026-11-09 |
+| Graphify-Labs/graphify | v0.9.104 | 2026-11-08 | docs/MCP-POLICY.md (pilot) | https://github.com/Graphify-Labs/graphify | 2026-11-09 |
+| github/github-mcp-server (read-only, lockdown, toolsets, write-tool names) | v2.1.0 | 2026-11-03 | docs/MCP-POLICY.md, guard | https://github.com/github/github-mcp-server | 2026-11-09 |
+| upstash/context7 (data-out record, trigger rule) | @upstash/context7-mcp 4.5.1 | 2026-11-06 | docs/MCP-POLICY.md | https://github.com/upstash/context7 | 2026-11-09 |
+| microsoft/playwright-mcp | v0.0.84 | 2026-10-31 | eng-testing/browser.md, docs/MCP-POLICY.md | https://github.com/microsoft/playwright-mcp | 2026-11-09 |
+| oraios/serena (GPL-3.0; ideas only) | v2.1.0 | 2026-10-19 | docs/MCP-POLICY.md (pilot) | https://github.com/oraios/serena | 2026-11-09 |
+| ChromeDevTools/chrome-devtools-mcp | v1.12.0 | 2026-10-22 | eng-testing/browser.md, docs/MCP-POLICY.md | https://github.com/ChromeDevTools/chrome-devtools-mcp | 2026-11-09 |
+| awslabs/mcp (read-only servers, write flags, IAM-first) | calendar release 2026.10.20261030201955 | 2026-10-30 | docs/MCP-POLICY.md, guard | https://github.com/awslabs/mcp | 2026-11-09 |
+| modelcontextprotocol/servers (skill-authoring findings, skill-trigger eval method, server hardening) | v2.3.0 | 2026-11-04 | tests/skill_cases.json, eng-os eval --skills, docs/MCP-POLICY.md | https://github.com/modelcontextprotocol/servers | 2026-11-09 |

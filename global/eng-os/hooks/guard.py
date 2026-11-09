@@ -149,7 +149,36 @@ MCP_ASK = [
     (re.compile(r"__(?:share_file|update_file_permissions)$"), "shares files with other people"),
     (re.compile(r"apollo_(?:emailer_messages_send_now|emailer_campaigns_approve|emailer_campaigns_add_contact_ids|email_account_purchase_create|domain_purchase\w*)$"), "sends outreach or buys something in Apollo"),
     (re.compile(r"__(?:delete|delete_[a-z_]+|trash_file)$"), "deletes data in an external service"),
+    (re.compile(r"__browser_(?:run_code_unsafe|file_upload|drop)$|__upload_file$"), "runs code on this machine or sends a local file into a page"),
 ]
+# MCP servers for code, repositories, cloud infrastructure and data: their write tools ask (docs/MCP-POLICY.md keeps
+# them read-only). Matched on the server name the user chose in `claude mcp add`, and on the tool's leading verb.
+CODE_INFRA_SERVER = re.compile(
+    r"(?:^|[-_.])(?:github|gh|gitlab|bitbucket|git|aws|awslabs|iam|ecs|eks|lambda|serverless|cloudformation|cdk|ccapi|"
+    r"terraform|pulumi|kubernetes|k8s|docker|vercel|netlify|cloudflare|supabase|firebase|serena|filesystem|fs|"
+    r"postgres|mysql|mariadb|mongo|redis|sqlite|db|database|sql)(?:$|[-_.])", re.I)
+MCP_WRITE_ACTION = re.compile(
+    # a write verb leading the name ...
+    r"^(?:create|update|delete|safe_delete|remove|push|merge|add|fork|star|unstar|assign|request|dismiss|mark|manage|"
+    r"submit|resolve|unresolve|reprioritize|set|execute|exec|run|rerun|cancel|replace|insert|rename|edit|move|copy|"
+    r"write|attach|detach|put|apply|deploy|upload|invoke|start|stop|reboot|terminate|grant|revoke|enable|disable|"
+    r"restore|drop|truncate|build_and_push|call_aws|git_(?:add|commit|reset|checkout|create_branch|merge|push))(?:_|$)"
+    # ... an unambiguous one anywhere (`firestore_add_document`, `kubectl_apply`) ...
+    r"|(?:^|_)(?:create|update|delete|remove|push|merge|insert|apply|deploy|put|add|write|upload|rerun|cancel|"
+    r"terminate|drop|truncate|grant|revoke|attach|detach|fork|replace|rename)(?:_|$)"
+    r"|_(?:write|trigger|api_operation)$", re.I)
+MCP_WRITE_CAMEL = re.compile(  # camelCase tool names (`insertOne`, `updateMany`, `requestReview`); case-sensitive on purpose
+    r"^(?:create|update|delete|insert|put|add|remove|push|merge|request|apply|deploy|write|upload|drop|replace|rename|"
+    r"rerun|cancel)[A-Z]")
+# Adding MCP servers or plugins changes what every later session can do.
+MCP_CONFIG_CMD = re.compile(r"\bclaude(?:\s+--?[\w-]+(?:=\S+)?)*\s+(?:mcp\s+(?:add|add-json|add-from-claude-desktop)|plugins?\s+(?:install|marketplace\s+add|enable|update))\b")
+MCP_CONFIG_FILE = re.compile(r"(?:^|/)\.mcp\.json$|/\.claude\.json$")
+MCP_CONFIG_IN_CMD = re.compile(r"(?:^|[\s/'\"=])\.(?:mcp|claude)\.json(?=$|[\s'\";|&)])")
+UNPINNED_PKG = re.compile(r"\b(?:npx|uvx|bunx|pnpm\s+dlx)\s+(?:--?[\w-]+\s+)*(?:@[\w.-]+/)?[\w.-]+(?:@(?:latest|next|[\^~*<>][^\s'\"]*))?(?=$|\s|['\"])")
+MCP_DANGER_FLAG = re.compile(
+    r"--(?:autoConnect|auto-connect|browserUrl|browser-url|wsEndpoint|ws-endpoint|cdp-endpoint|extension|"
+    r"allow-unrestricted-file-access|allow-writes?|allow_write_query|no-confirmation)(?![\w-])|--caps[= ]\S*storage"
+    r"|\bALLOW_WRITE=true|\bREAD_OPERATIONS_ONLY=false|\bALLOW_SENSITIVE_DATA(?:_ACCESS)?=true", re.I)
 MCP_SKIP = re.compile(r"^mcp__(?:ccd_|Claude_Browser__|claude-in-chrome__|computer-use__|visualize__|terminal__|scheduled-tasks__list|mcp-registry__)")
 
 
@@ -425,6 +454,16 @@ def strings_in(value):
     return []
 
 
+def mcp_config_reason(cmd):
+    why = ["mcp-config: adds an MCP server or plugin that every later session can use; only approved ones, at the pinned "
+           "version with the listed flags (docs/MCP-POLICY.md in the eng-os repo)"]
+    if UNPINNED_PKG.search(cmd):
+        why.append("the package is not pinned to an exact version")
+    if MCP_DANGER_FLAG.search(cmd):
+        why.append("it enables writes or attaches to a real browser profile, which the policy does not approve")
+    return "; ".join(why)
+
+
 def check_bash(cmd, cwd, project, cfg):
     off = set(cfg.get("disabled_rules") or []) | trusted_off(cmd, cwd, project, cfg)
     creds, secret = secret_reads(cmd)
@@ -436,6 +475,10 @@ def check_bash(cmd, cwd, project, cfg):
     for rid, decision, rx, reason in BASH_RULES:
         if rid not in off and rx.search(cmd):
             return decision, "%s: %s" % (rid, reason)
+    if "mcp-config" not in off and MCP_CONFIG_CMD.search(cmd):
+        return "ask", mcp_config_reason(cmd)
+    if "mcp-config" not in off and MCP_CONFIG_IN_CMD.search(cmd) and SHELL_WRITE.search(cmd):
+        return "ask", "mcp-config: changes a file that lists the MCP servers Claude may use (.mcp.json or ~/.claude.json); only approved, pinned servers (docs/MCP-POLICY.md in the eng-os repo)"
     if "rm-outside" not in off:
         why = check_rm(cmd, cwd, project)
         if why:
@@ -508,6 +551,8 @@ def check_file_tool(tool, inp, cwd):
             return "ask", "secret-read: the glob %s selects secrets files, so matching lines would enter the transcript" % inp.get("glob")
         return None
     # write tools
+    if MCP_CONFIG_FILE.search(path):
+        return "ask", "mcp-config: %s lists the MCP servers Claude may use; only approved, pinned ones (docs/MCP-POLICY.md in the eng-os repo)" % os.path.basename(path)
     if GLOBAL_CONFIG_FILES.search(path):
         return "ask", "global-config: %s is managed by eng-os; edit the eng-os repo and run `eng-os install`" % path.replace(HOME, "~")
     if re.search(r"/\.ssh/(?:authorized_keys|config)$", path):
@@ -552,6 +597,8 @@ def check_mcp(tool, inp):
             return "ask", "mcp-sql-destructive: destructive SQL (DROP/TRUNCATE) through %s" % action
         if unscoped_sql(sql):
             return "ask", "mcp-sql-destructive: UPDATE/DELETE without WHERE through %s" % action
+        if SQL_WRITE.search(sql):
+            return "ask", "mcp-write: writes or changes data (INSERT/UPDATE/DELETE/ALTER/GRANT) through %s; approved servers stay read-only" % action
     if re.search(r"(^|[-_])ads?($|[-_])|adwords|advertis", server, re.I) and re.search(r"create|update|mutate|status|enable", action, re.I):
         blob = json.dumps(inp).lower()
         updating = re.search(r"update|mutate|status", action, re.I)
@@ -561,6 +608,10 @@ def check_mcp(tool, inp):
     for rx, why in MCP_ASK:
         if rx.search(tool):
             return "ask", "mcp-outward: %s (%s)" % (why, tool.split("__")[-1])
+    # SQL and query tools are judged by their statement above, so a plain SELECT stays allowed.
+    if CODE_INFRA_SERVER.search(server) and (MCP_WRITE_ACTION.search(action) or MCP_WRITE_CAMEL.search(action)) and not re.search(r"(?:^|_)(?:sql|query)(?:_|$)", action, re.I):
+        return "ask", ("mcp-write: %s changes code, a repository, cloud resources or data through the %s MCP server; "
+                       "approved servers stay read-only (docs/MCP-POLICY.md)" % (action, server))
     return None
 
 

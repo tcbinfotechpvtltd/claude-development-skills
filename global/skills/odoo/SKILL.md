@@ -1,6 +1,6 @@
 ---
 name: odoo
-description: Building, customising and upgrading Odoo modules (Community and Enterprise, versions 17 to 20): module layout and naming, ORM and view changes per version, access rights and record rules (ir.access in 20), controllers, QWeb reports, tests with odoo-bin, migration scripts and the upgrade service, performance. Use when working on any Odoo addon, database or implementation.
+description: Builds, customises and upgrades Odoo modules (versions 17 to 20) — models, views, access rights, record rules, controllers, QWeb reports, odoo-bin tests and migrations. Use when working on any Odoo addon, database, upgrade or implementation.
 ---
 
 # Odoo engineering

@@ -1,6 +1,6 @@
 ---
 name: eng-design
-description: Architecture and design procedure for new features, systems, APIs, data models and technology choices. Use before building anything non-trivial, when requirements are vague, when choosing between designs or frameworks, when writing a spec or ADR, or when breaking multi-step work into an implementation plan and running it task by task.
+description: Designs features, systems, APIs and data models before code — requirements, options with trade-offs, specs, ADRs, and implementation plans run task by task. Use when building anything non-trivial; when requirements are vague; when choosing a framework, database or design; or when writing a spec, ADR or implementation plan.
 ---
 
 # Engineering design
@@ -22,7 +22,7 @@ Capture, in a few lines each:
 - **Quality attributes** with numbers where possible: latency, throughput, data volume and growth, availability target, RPO/RTO, concurrency.
 - **Constraints**: regulation (RBI, DPDP, GST), existing stack, budget, team skills, deadlines, client hosting.
 - **Acceptance criteria**: observable checks that prove it works.
-- **Open questions**: anything that would change the design. Ask the user only those that materially change it. Answer the rest from code, docs or sensible defaults, and record them as assumptions.
+- **Open questions**: anything that would change the design. Ask the user only those that materially change it, and only once the decisions they depend on are settled: numbered, each with your recommended answer. Look facts up yourself; answer the rest from code, docs or sensible defaults, and record them as assumptions.
 
 ## 2. Understand the existing system
 Read the current architecture, conventions, data model and integration points before proposing anything new. Reuse what exists; extend the framework's native mechanisms (Frappe doctypes and hooks, Odoo ORM, Next.js routing, CI3 MVC) before building custom plumbing.
@@ -50,7 +50,7 @@ Pick one and give the reason in one or two sentences. Prefer boring, proven tech
 
 ## 5. Write it down
 - Small change: plan in chat (files, approach, risks, verification).
-- Significant change: `docs/specs/<feature>.md` with the sections above, plus a task breakdown into vertical slices that can each be verified.
+- Significant change: `docs/specs/<feature>.md` from the template `~/.claude/eng-os/templates/docs/specs/0000-template.md`: problem, solution, user stories (including the roles that must be denied), decisions written as behaviour and contracts rather than file paths, agreed test seams, out of scope, then the task breakdown into vertical slices that can each be verified. Tracked work uses the task issue template (behaviour, testable acceptance criteria, out of scope, blockers, approval gate).
 - Multi-step work (several files, a long or multi-session run, tasks for subagents): write the task breakdown as an implementation plan, run it task by task and finish the branch with [implementation-plans.md](implementation-plans.md).
 - Diagrams follow the C4 model: system context, then containers (apps, databases, queues), then components where useful; code-level diagrams rarely. Add a deployment diagram for infra work and a dynamic (sequence) diagram for multi-party flows such as disbursal or webhooks. Mermaid in Markdown is fine.
 - Decision that is costly to reverse: an ADR at `docs/adr/NNNN-title.md` (Nygard format below; use MADR 4.0.0 when several options need a detailed comparison):

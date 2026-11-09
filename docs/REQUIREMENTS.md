@@ -90,6 +90,8 @@ Status legend. **Verified**: observed working in a live Claude Code 2.1.309 sess
 | Requirement | Why it cannot be guaranteed | Best alternative in place |
 |---|---|---|
 | "Always" follow instructions and load the right skill | LLM adherence is probabilistic | Deterministic guard for the dangerous subset; routing table; path rules; measured adherence in eval |
+| Skills load when relevant | The model decides; when the skill listing is full, the least-used descriptions are dropped | Core rules inserted by the hooks (0.10.0); "call the Skill tool" wording and formula descriptions; measured with `eng-os usage` and `eng-os eval --skills` (0.11.0) |
+| Only approved MCP servers and plugins | Anyone can add one by hand outside Claude | Approved list (`docs/MCP-POLICY.md`); the guard asks inside Claude; machine-level managed settings would enforce it (not built) |
 | Maximum security | Pattern guards can be evaded (a command held in a variable, decoded from base64 or run from a script or `subprocess`); HTTP `POST` calls are not checked; `find | xargs rm` and `find -exec sh -c` are not checked; a filtered `find -delete` inside the project is allowed, like `rm`; calls to private IPs ask even on a home network; there is no OS sandbox in bypass mode | Defence in depth; recommend `sandbox` or containers for untrusted code; the probe in docs/VERIFICATION.md section 16 lists what is caught |
 | Persistence across all projects | Applies on this machine and user account only; cloud sessions and other machines need their own install | Repo is portable: clone it and run `bin/eng-os install` |
 | Headless eval (`eng-os eval --run`) | CLI OAuth expired; Homebrew CLI is 2.0.53 | Fresh desktop session used instead; `brew upgrade claude-code && claude /login` enables it |

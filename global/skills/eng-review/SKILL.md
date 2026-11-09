@@ -1,6 +1,6 @@
 ---
 name: eng-review
-description: Pre-commit, pre-PR and pre-handoff review protocol with severity rubric and "audit until dry" loop. Use before committing, opening or merging a PR, handing work to devops or a client, when asked to review code or a diff, or when auditing an existing codebase.
+description: Reviews work before it leaves your hands — self-review checklist, independent reviews, severity rubric and audit until dry. Use before a commit, PR, merge or handoff; when asked to review code, a diff or a PR; or when auditing a codebase.
 ---
 
 # Review and verification
@@ -30,6 +30,7 @@ Use for security-sensitive, money-moving, schema-changing or large changes, and 
 - `code-reviewer` subagent for general quality; `security-auditor` for security; `test-engineer` to find untested paths. If one is not installed, use a general-purpose subagent and brief it as that reviewer.
 - Brief them with: the goal, the diff or file list, the risk areas, and what you already verified. Ask for findings with file:line, severity and a concrete fix. Do not hand them your conclusions to confirm.
 - Treat their findings as claims: verify each one against the code before fixing or dismissing it.
+- Large or risky changes get the review in two parts, each in its own fresh context: one against the coding standards (section 1), one against the spec and its acceptance criteria.
 
 ### Receiving review feedback (from a person, a bot or a subagent)
 - Read every comment before changing anything, then work in severity order.
@@ -74,7 +75,7 @@ Verified: <commands run + results>
 Not verified / risks: <honest list>
 Next: <only if something remains>
 ```
-For reviews: findings sorted by severity, each `file:line — problem — impact — fix`, then a one-line verdict (ship / ship after fixes / do not ship).
+For reviews: findings sorted by severity, each `file:line — problem — impact — fix`, tagged by evidence (**read** in the code, **inferred**, or **unverified**), then a one-line verdict (ship / ship after fixes / do not ship).
 Reviewing someone else's change (Google eng-practices): approve once it clearly improves overall code health, even if imperfect; never approve one that makes it worse. Technical facts and data beat opinion; the style guide settles style. Prefix optional points with `Nit:`, and say what was done well.
 
 ## 5. Commit and PR

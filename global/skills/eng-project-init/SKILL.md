@@ -1,6 +1,6 @@
 ---
 name: eng-project-init
-description: Create or refresh a project's CLAUDE.md, path-scoped .claude/rules, documentation skeleton (docs/), GitHub templates and the eng-os installed-check from the eng-os templates by inspecting the repository. Use for a repo or project folder with no CLAUDE.md, when the user asks to set up or onboard a project, or when a project's CLAUDE.md is stale or bloated.
+description: Sets up or refreshes a project for Claude Code — CLAUDE.md, path rules, the docs skeleton, GitHub templates and the eng-os installed-check, from the eng-os templates. Use when a repo or folder has no CLAUDE.md; when asked to set up or onboard a project; or when its CLAUDE.md is stale or bloated.
 argument-hint: "[project path]"
 ---
 
@@ -32,9 +32,9 @@ Work from the project root given as the argument (default: the current project).
 - If an existing CLAUDE.md exists: preserve its project knowledge, remove what duplicates the global file, and fix what is stale. Show the user the diff summary.
 - Path-specific guidance in a big repo (for example migrations, a legacy module, generated code) goes to `.claude/rules/<topic>.md` with `paths:` frontmatter, so it loads only when those files are touched.
 - Personal, machine-specific notes (local ports, credentials locations) go to `CLAUDE.local.md`, which must be gitignored.
-- **Documentation skeleton** (skill `eng-docs`): copy the missing files from `~/.claude/eng-os/templates/docs/` into `docs/` (index, project brief, requirements, glossary, decisions, architecture, `adr/`, test plan, user manual, runbook, RAID log, progress status and `progress/` log, handover). Fill what the repo already proves, and mark the rest **TO CONFIRM**. Never overwrite an existing document; merge instead.
+- **Documentation skeleton** (skill `eng-docs`): copy the missing files from `~/.claude/eng-os/templates/docs/` into `docs/` (index, project brief, requirements, glossary, decisions, architecture, `adr/`, `specs/`, test plan, user manual, runbook, RAID log, progress status and `progress/` log, handover). Fill what the repo already proves, and mark the rest **TO CONFIRM**. Never overwrite an existing document; merge instead.
 - **Not under version control**: recommend `git init` and a private remote, because history, review and rollback depend on it. The user decides; the docs set goes in `docs/` either way.
-- **GitHub repos**: offer the templates in `~/.claude/eng-os/templates/github/` (issue forms, labels, CODEOWNERS, Dependabot) and `templates/release/` (PR template, release.yml, CHANGELOG). Applying repo settings such as rulesets or labels is a change to shared configuration, so the user approves it.
+- **GitHub repos**: offer the templates in `~/.claude/eng-os/templates/github/` (issue forms including the agent-ready task template, labels, CODEOWNERS, Dependabot) and `templates/release/` (PR template, release.yml, CHANGELOG). Applying repo settings such as rulesets or labels is a change to shared configuration, so the user approves it.
 - **Installed-check**: propose merging `~/.claude/eng-os/templates/project/claude-settings.json` into the repo's `.claude/settings.json`, so a teammate without eng-os is told at session start. It adds a hook that runs on every teammate's machine, so show the user the exact change and add it only on their approval; CODEOWNERS should cover `/.claude/`.
 
 ## 3. Check

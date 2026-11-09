@@ -1,6 +1,6 @@
 ---
 name: fintech-lending
-description: Domain rules for Indian digital lending systems (NBFC/LSP, loan origination and servicing, ledgers, disbursal and collection, KYC/eKYC, bureau, account aggregator, eSign/eNACH, payment gateways and webhooks) under RBI Digital Lending Directions 2025, RBI NBFC cyber/IT and outsourcing directions, and the DPDP Act 2023 with DPDP Rules 2025. Use when designing or changing anything that moves money, computes loan amounts, stores borrower data, or integrates a lending vendor.
+description: Applies Indian digital-lending rules (RBI Digital Lending Directions 2025, RBI NBFC IT and outsourcing directions, DPDP Act and Rules) to loan origination and servicing, ledgers, disbursal, collection, KYC, bureau, account aggregator, eSign/eNACH and payment gateways. Use when anything moves money; when computing loan amounts; when storing borrower data; or when integrating a lending vendor.
 ---
 
 # Fintech lending engineering

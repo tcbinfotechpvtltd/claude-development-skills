@@ -1,0 +1,125 @@
+{
+ "_doc": "Skill-trigger cases for `eng-os eval --skills`. Each prompt runs in a fresh one-turn `claude -p` session in an empty folder, with eng-os installed. A positive case passes when Claude calls the Skill tool with that skill; a negative case passes when it does not. Five positives and one negative per model-invoked skill (method from modelcontextprotocol/servers docs/skill-authoring.md). User-invoked skills (eng-os-review) are not listed. Keep prompts generic: no project, client or server names.",
+ "cases": {
+  "eng-design": {
+   "positive": [
+    "Design the data model for a loan restructuring feature: new tenure, revised EMI, and a history of every change.",
+    "We need a notifications module that sends SMS and email reminders before due dates. How should we architect it?",
+    "Should we use PostgreSQL or MongoDB for the new partner portal? Compare them and recommend one.",
+    "Write an ADR for moving our file uploads from local disk to S3.",
+    "Break the vendor onboarding feature down into tasks and write an implementation plan."
+   ],
+   "negative": ["Fix the typo in the README heading: 'Instalation' should be 'Installation'."]
+  },
+  "eng-security": {
+   "positive": [
+    "Add login with a one-time password sent by SMS to the customer portal.",
+    "Review this file upload endpoint for security problems before we ship it.",
+    "How should we store the payment gateway's webhook secret and verify webhook signatures?",
+    "Add role-based access so branch managers can only see their own branch's records.",
+    "We found an API key committed in the git history. What do we do now?"
+   ],
+   "negative": ["Change the colour of the primary button on the dashboard to dark blue."]
+  },
+  "eng-testing": {
+   "positive": [
+    "The invoice total test started failing after my last change. Find out why.",
+    "Write unit tests for the interest calculation function.",
+    "This end-to-end test is flaky on CI. Fix it properly.",
+    "Check the new signup page in the browser and make sure it works at phone width.",
+    "The app crashes with a KeyError when a customer has no address. Debug it."
+   ],
+   "negative": ["Explain what this regular expression does: ^[A-Z]{5}[0-9]{4}[A-Z]$"]
+  },
+  "eng-review": {
+   "positive": [
+    "Review my changes before I commit them.",
+    "Review the open pull request and tell me whether it is ready to merge.",
+    "Do a thorough code review of the payments module.",
+    "I'm about to hand this over to the devops team. Check that everything is ready.",
+    "Audit this repository for code quality problems."
+   ],
+   "negative": ["What is the difference between git merge and git rebase?"]
+  },
+  "eng-docs": {
+   "positive": [
+    "Write the user manual section for the leave approval screen.",
+    "Update the requirements document with the new GST rule the client confirmed today.",
+    "Write test cases for the vendor onboarding feature and link them to the requirements.",
+    "Write a runbook for restarting the background workers and clearing the job queue.",
+    "Prepare a handover document for the developer who is taking over this project."
+   ],
+   "negative": ["Add a one-line comment explaining what this loop does."]
+  },
+  "eng-ship": {
+   "positive": [
+    "Set up a GitHub Actions pipeline that runs the tests on every pull request.",
+    "Deploy the latest release to the UAT server.",
+    "Write a migration that adds a status column to the loans table on the shared database.",
+    "Set up nightly database backups to S3 and test a restore.",
+    "Prepare the changelog and release notes for version 2.3.0."
+   ],
+   "negative": ["Pretty-print this JSON for me: {\"a\":1,\"b\":[1,2]}"]
+  },
+  "frappe-erpnext": {
+   "positive": [
+    "Create a new doctype called Vehicle Inspection with a child table of checklist items.",
+    "Write a whitelisted API method in our Frappe app that returns pending approvals for the current user.",
+    "bench migrate fails with a patch error after the update. Help me fix it.",
+    "Add a custom field to Sales Invoice in ERPNext and show it on the print format.",
+    "Build a script report in ERPNext for stock ageing by warehouse."
+   ],
+   "negative": ["Write a Python script that renames every file in a folder to lowercase."]
+  },
+  "odoo": {
+   "positive": [
+    "Create an Odoo 19 module that adds a delivery time slot field to sale orders.",
+    "Inherit the partner form view in Odoo and add a GSTIN field.",
+    "Our QWeb invoice report shows the wrong tax total. Fix it.",
+    "Upgrade our custom Odoo modules from version 17 to 19.",
+    "Write record rules in Odoo so salespeople only see their own leads."
+   ],
+   "negative": ["Write a SQL query that counts the rows in each table of a PostgreSQL database."]
+  },
+  "custom-apps": {
+   "positive": [
+    "Add a page to our Next.js app that lists invoices with pagination.",
+    "Upgrade this Next.js app from version 15 to 16.",
+    "Add a controller to our CodeIgniter 3 app that exports reports to CSV.",
+    "Build a Flutter screen for the loan application form, with field validation.",
+    "Set up environment configuration for our Node.js API so the same build runs in UAT and production."
+   ],
+   "negative": ["Give me a shell one-liner that counts the lines in every .log file in this folder."]
+  },
+  "fintech-lending": {
+   "positive": [
+    "Implement the EMI schedule calculation for reducing-balance loans.",
+    "Add a disbursal step that sends the loan amount to the borrower's bank account after eSign.",
+    "Integrate the credit bureau pull into the loan application flow.",
+    "The loan ledger shows a mismatch between principal outstanding and the repayments received.",
+    "What does the RBI digital lending direction require us to show in the key fact statement?"
+   ],
+   "negative": ["Convert this list of dates from DD/MM/YYYY to ISO format."]
+  },
+  "eng-delivery": {
+   "positive": [
+    "Estimate how long the inventory module will take to build.",
+    "Write this week's status report for the client.",
+    "The client wants an approval workflow that was not in the agreed scope. How do we handle it?",
+    "Plan the go-live and data cutover for the ERP next month.",
+    "Prepare the UAT plan and the sign-off checklist for the client."
+   ],
+   "negative": ["Rename the function calc to calculate_total everywhere in this file."]
+  },
+  "eng-project-init": {
+   "positive": [
+    "Set up this repo for Claude Code: create a CLAUDE.md for it.",
+    "Onboard this project. We just got access to the client's repository.",
+    "This project has no CLAUDE.md. Create one with the commands and the architecture map.",
+    "Our CLAUDE.md is outdated and too long. Refresh it.",
+    "Set up the docs folder and the GitHub issue templates for this new project."
+   ],
+   "negative": ["List the files in this folder."]
+  }
+ }
+}
