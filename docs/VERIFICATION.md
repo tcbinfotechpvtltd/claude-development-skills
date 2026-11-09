@@ -143,3 +143,13 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | The update command `bash ~/.eng-os/install.sh` | "updating", release v0.8.0, 0 files changed |
 | The install command run a second time | git stops with "already exists" before anything runs; nothing changes |
 | Not verified | a real employee machine; Windows without WSL (not supported) |
+
+## 15. Release 0.9.0: ideas adapted from superpowers (2026-11-09)
+| Check | Result |
+|---|---|
+| Source read | obra/superpowers v7.0.2 (released 2026-11-03): its 15 skills, the startup hook, the README, the brainstorming server and its telemetry |
+| Budgets | global CLAUDE.md about 8,950 of 9,000 characters; every skill body under 14,000; always-loaded text up by about 75 tokens per session (about 3,490 in total) |
+| Independent review | A fresh Sonnet reviewer found no High issues, 6 Medium and 4 Low, all fixed:<br>• the user's go-ahead on a plan covers local commits only, and push, PR and other outward steps still need a yes<br>• subagent briefs state their limits<br>• discard covers local work only and checks for uncommitted changes first<br>• review replies are drafted and posted only with approval<br>• pressure tests use plan-only subagents, are marked indicative, and can never shorten a gate or security rule<br>• the model rule says to leave `model` out for design and review work<br>• quarantine needs a note and the user told<br>• backups are restored to a scratch environment<br>• tasks may say "Test first: n/a" with a reason<br>• the router no longer fires on "break this down for me" (test added; the old pattern matched it) |
+| Tests and verify | `bin/eng-os test` 155/155 (new cases: "implementation plan" routes to `eng-design`; "break this down for me" does not); installed into a throwaway home, `verify` 103 checks, 0 fail, 0 warn, including the new reference-file link and no duplicated instructions |
+| Not verified | whether the red-flags tables change behaviour in real sessions; the first pressure tests at the next eng-os review will show it |
+

@@ -43,7 +43,7 @@ On a material conflict follow the higher level and say so in one line. If a requ
 The user never has to name a skill. At session start and on each request, eng-os hooks name the skills that match the project and the request ("eng-os skill routing"), and path rules load when matching files are touched. Load the named skills with the Skill tool before starting, unless already loaded, clearly unrelated, or the task is trivial.
 | Trigger | Skill |
 |---|---|
-| Designing a feature, system, API or schema; choosing tech; spec/ADR | `eng-design` |
+| Designing a feature, system, API or schema; choosing tech; spec/ADR; multi-step implementation plans | `eng-design` |
 | Auth, sessions, input, uploads, secrets, PII/KYC, payments, new endpoints, dependencies, security review | `eng-security` |
 | Writing or fixing tests, debugging a failure, flaky tests, checking a UI change in a browser | `eng-testing` |
 | Before commit, PR or handoff; reviewing code or an audit | `eng-review` |
@@ -70,6 +70,6 @@ Load only what the task needs; skip skills for trivial edits. Skills a project C
 - Locate with grep/rg, then read only the ranges you need. Trim long output (`tail`, `grep`, `head`); never dump lockfiles, logs, minified or generated files.
 - Don't re-read unchanged files already in context or repeat verification that already passed.
 - Run independent tool calls in parallel; chain dependent shell steps in one command.
-- Use subagents only for broad searches, verbose output, independent parallel work or fresh-context review, with a tight brief. Set `model`: `haiku` for lookups and summaries, `sonnet` for well-specified mechanical work; inherit for design, security, review and hard debugging.
+- Use subagents only for broad searches, verbose output, independent parallel work or fresh-context review, with a tight brief. Set `model` (left out, a subagent usually inherits the session's model): `haiku` for lookups, summaries and tasks whose brief holds the exact change, `sonnet` for other well-specified work; leave it out only for design, security, review and hard debugging. Cheap models take more turns on multi-step work: judge cost per finished task, not per token.
 - One task per session; start fresh for unrelated work. Prefer CLI tools over MCP when equivalent; screenshots only as final proof.
 - Replies lead with the result: what changed, how it was verified, what remains. No filler.

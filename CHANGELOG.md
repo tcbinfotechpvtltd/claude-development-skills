@@ -1,6 +1,14 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.9.0 — 2026-11-09
+Five ideas adapted from obra/superpowers v7.0.2 (MIT), rewritten for eng-os gates; superpowers itself is not installed.
+- **Implementation plans** (`eng-design/implementation-plans.md`): small test-first tasks with exact files and checks, run one at a time with a review gate, ending in a PR, never a local merge into `main`. The user's go-ahead on a plan covers local commits only; pushing and opening the PR still need a yes. A discard covers local work only and needs the user to confirm the exact list. The router now sends "implementation plan" requests to `eng-design`.
+- **Red-flags tables**: the excuses agents use to skip a rule, each with its answer, for saying "done" (`eng-review`), tests first and debugging (`eng-testing`), and production changes (`eng-ship`).
+- **Handling review feedback** (`eng-review`): check each comment against the code, push back with evidence, no performative agreement, conflicts go to the user, replies posted only with approval.
+- **Subagent model choice** (global CLAUDE.md section 8): always set the model; cheap models take more turns on multi-step work, so cost is judged per finished task.
+- **Pressure tests** (`eng-os-review`): changed or often-skipped rules are tested on a fresh subagent, with and without the skill text, in the eval sandbox.
+
 ## 0.8.1 — 2026-11-04
 - **Shorter install command**, easier to share: `git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-os && bash ~/.eng-os/install.sh`. Updating is `bash ~/.eng-os/install.sh`, which `install.sh` now prints at the end. The 0.8.0 command still works.
 - INSTALL.md gives the current counts (13 skills, 9 rules).

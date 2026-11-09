@@ -23,7 +23,8 @@ ROUTES = [
     ("eng-testing", r"tests?|testing|unit tests?|e2e|playwright|bugs?|failing|fails|failed|errors?|exceptions?|traceback|"
                     r"debug\w*|flaky|crash\w*|not working|broken|regressions?"),
     ("eng-design", r"design|architecture|architect|schema|data model|erd|api contract|specs?|specification|adr|"
-                   r"new (\w+ )?(feature|module|app|system|service|api|integration)|which (framework|database|library)"),
+                   r"new (\w+ )?(feature|module|app|system|service|api|integration)|which (framework|database|library)|"
+                   r"implementation plan|step[- ]by[- ]step plan|task breakdown|break (it|this|the work) down into (tasks|steps)"),
     ("eng-ship", r"deploy\w*|releases?|ci|cd|pipelines?|github actions|docker|servers?|vps|aws|nginx|migrations?|"
                  r"backups?|restore|monitoring|incidents?|outage|rollback|changelog|versioning|tag"),
     ("eng-docs", r"document\w*|docs|manuals?|user guide|requirements?|brd|srs|runbook|handover|test cases?"),
