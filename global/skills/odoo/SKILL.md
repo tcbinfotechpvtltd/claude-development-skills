@@ -5,6 +5,15 @@ description: Building, customising and upgrading Odoo modules (Community and Ent
 
 # Odoo engineering
 
+## Core rules
+- Write for the project's Odoo version: 17 to 20 break code differently (see the version table in this skill).
+- Core addons are never edited; extend through a custom module with `_inherit`, xpath view inheritance and overrides that call `super()`.
+- Every new model ships with access rights and record rules, multi-company rules included.
+- Public methods are RPC endpoints, so they check access and validate input; `sudo()` needs a written reason.
+- SQL goes through the ORM or the `SQL` wrapper with parameters, domains are never built by concatenating input, and code never calls `cr.commit()`.
+- Every database copy is neutralized (`odoo-bin neutralize`) before it starts; module upgrades run on a copy first.
+- Tests run on a test database, with key ones run as a non-admin user.
+
 ## Before changing anything
 - Client implementations follow the phase-by-phase method in skill `eng-delivery` ([erp-implementation.md](../eng-delivery/erp-implementation.md)): standard first, configuration second, code only for real gaps.
 - Confirm the Odoo version and edition (Community or Enterprise; on-premise, Odoo.sh or Online), the database, the addons path and the custom modules, and record them in the project CLAUDE.md. Code differs materially between 17, 18, 19 and 20 (table below): write for the project's version.

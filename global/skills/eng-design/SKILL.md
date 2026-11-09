@@ -7,6 +7,14 @@ description: Architecture and design procedure for new features, systems, APIs, 
 
 Goal: the simplest design that meets the real requirements, with trade-offs made explicit. Scale effort to risk: a small feature gets a paragraph, a new system gets a written spec.
 
+## Core rules
+- Before picking a solution, write down the problem, what is in and out of scope, and the acceptance criteria; ask only questions whose answers change the design.
+- Read the current architecture first and reuse the framework's own mechanisms before adding new plumbing.
+- A choice that is costly to reverse gets 2–3 options with trade-offs, then an ADR in `docs/adr/`.
+- Data defaults: money as DECIMAL or integer minor units, UTC timestamps, constraints in the database, a tenant key on shared tables, explicit state machines for lifecycles.
+- Each vendor sits behind its own adapter with timeouts, bounded retries and a reconciliation job.
+- Multi-step work runs from a written plan of small test-first tasks: [implementation-plans.md](implementation-plans.md).
+
 ## 1. Requirements before solutions
 Capture, in a few lines each:
 - **Problem and users**: who needs what, and why now. The business outcome, not the feature list.

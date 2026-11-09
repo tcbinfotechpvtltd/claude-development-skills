@@ -7,6 +7,14 @@ description: Project documentation that survives people leaving — requirements
 
 Goal: anyone can understand, run, change and support the project from the repo alone. The test: if the developer left today, could someone else carry on next week without calling them?
 
+## Core rules
+- The same PR updates every document the change touches: requirements, test cases and traceability, user manual, runbook, CHANGELOG.
+- Each working session adds a new dated file under `docs/progress/`; earlier entries stay as written, except to redact a leaked secret or personal data.
+- `REQ-nnn` ids tie issues, PRs, test cases and manual pages together.
+- Rules, rates, policies and dates come from the client or the user; until confirmed they carry **TO CONFIRM**.
+- Documents and screenshots never hold credentials, secret values or real customer data.
+- When a PR leaves a document out of date, its description says why.
+
 ## The document set
 Docs as code: Markdown in the repo, changed in the same pull request as the code, reviewed like code. Templates live in `~/.claude/eng-os/templates/docs/`, and skill `eng-project-init` copies them in.
 

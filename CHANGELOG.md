@@ -1,6 +1,20 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.10.0 — 2026-11-09
+Two fixes found by measuring real use: skills were named in about 82 sessions but loaded in about 5, and the guard missed everyday ways to expose secrets or change remote data.
+- **Core rules apply without loading the skill.** Each of the 12 routable skills now starts with a `## Core rules` section (525–852 characters). The prompt router inserts it with the routing note: once per session, at most four skills, under 4,500 characters. The session-start hook inserts the core rules of the project's own stack and lending skills, and restates them after compaction or `/clear`, when routing starts afresh. `eng-os verify` checks that every routable skill has a core section of at most 1,000 characters.
+- **Guard gaps closed** (76 new test cases, covering both what must ask and what must stay allowed):
+  - Grep that prints the lines of secrets files (content mode), by path or by glob (`.env*`, `*.pem`, `*.key`; `*.json` and the default file-name listing stay allowed). `*.key` files now count as secrets for Read and shell readers too.
+  - Interpreters reading them (`python3 -c "open('.env')"`, `node -e`); `node --env-file=.env app.js` stays allowed.
+  - New `env-dump` rule: `printenv`, bare `env`, `export -p`, `set`, and `echo`/`printenv` of secret-named variables.
+  - New `http-mutating` rule: `curl`/`wget`/`httpie` `DELETE`, `PUT` or `PATCH` to a non-local host, including bundled flags (`-sXPUT`) and httpie options before the method. Loopback, `*.localhost`, `*.test`, `*.local` and single-label hosts (docker-compose services) count as local; private IPs and `*.internal` still ask.
+  - New `find-delete` rule: `find -delete` or `-exec rm` that is unfiltered, outside the project or temp folders, or aimed at `.git`.
+  - New `mcp-sql-destructive` rule: `DROP`/`TRUNCATE` and `UPDATE`/`DELETE` without `WHERE` through database MCP tools, multi-line SQL included. A `WHERE` inside a comment no longer counts, for shell SQL clients too.
+  - The Claude co-author block is now checked before every approval rule, so approving another part of a command can never let the trailer through.
+- Still not caught, and documented: disguised commands (variables, base64, `subprocess`), HTTP `POST`, `find | xargs rm` and `find -exec sh -c`, and filtered `find -delete` inside the project (allowed, like `rm`).
+- Independent review: 0 High, 4 Medium, 10 Low; all fixed except the noted documented gaps and one rare false positive (`zip -x .env`).
+
 ## 0.9.0 — 2026-11-09
 Five ideas adapted from obra/superpowers v7.0.2 (MIT), rewritten for eng-os gates; superpowers itself is not installed.
 - **Implementation plans** (`eng-design/implementation-plans.md`): small test-first tasks with exact files and checks, run one at a time with a review gate, ending in a PR, never a local merge into `main`. The user's go-ahead on a plan covers local commits only; pushing and opening the PR still need a yes. A discard covers local work only and needs the user to confirm the exact list. The router now sends "implementation plan" requests to `eng-design`.

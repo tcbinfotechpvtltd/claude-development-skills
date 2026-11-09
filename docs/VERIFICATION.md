@@ -153,3 +153,15 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | Tests and verify | `bin/eng-os test` 155/155 (new cases: "implementation plan" routes to `eng-design`; "break this down for me" does not); installed into a throwaway home, `verify` 103 checks, 0 fail, 0 warn, including the new reference-file link and no duplicated instructions |
 | Not verified | whether the red-flags tables change behaviour in real sessions; the first pressure tests at the next eng-os review will show it |
 
+## 16. Release 0.10.0: core rules inserted, guard gaps closed (2026-11-09)
+| Check | Result |
+|---|---|
+| The problem, measured | Transcripts since 2026-11-04: the router named skills in about 82 sessions; eng-os skills were loaded in about 5. Path rules loaded in 16 sessions; the guard spoke in 40. |
+| Core rules | 12 routable skills each carry a `## Core rules` section of 525–852 characters. The router output for "odoo invoice report test is failing" is 1,689 characters (two skills). A four-skill request stays under 4,500. The installed session hook inserts the Frappe core rules for a Frappe folder and records the skill so the router does not repeat it. After compaction the rules are restated and routing starts afresh. |
+| Guard probe (41 risky commands, fed as data) | before: 33 caught. After: 36 caught. Closed: `python3` reading `.env`, `printenv`, `curl -X DELETE`, `DROP` through a database MCP tool. Still allowed:<br>• three disguised commands (variable, base64, `subprocess`);<br>• a filtered `find -name '*.py' -delete` inside the project, allowed like `rm`;<br>• Grep on `.env` in its default mode, which lists only file names (in content mode, which prints the lines, it asks: tested). |
+| Independent review | A fresh Sonnet reviewer found 0 High, 4 Medium and 10 Low issues. Fixed:<br>• `curl -sXPUT` and `http --auth u:p DELETE` were missed;<br>• multi-line SQL and a `WHERE` hidden in a comment got past the database-tool check;<br>• the co-author block came after new approval rules;<br>• false positives on default-mode Grep, `$SSH_KEY_PATH`, single-quoted text, `env -i`, `find -prune` and docker-compose hosts;<br>• skills cut by the size cap were never retried;<br>• three core-rule wordings were corrected.<br>Left as documented gaps: `find \| xargs rm`, `find -exec sh -c`, and the rare `zip -x .env` false positive. |
+| Tests | `bin/eng-os test` 237/237: 206 guard cases (76 new, for both the asks and the commands that must stay allowed) and 31 session and router cases (6 new) |
+| Install and verify | installed into a throwaway home: `verify` 116 checks, 0 fail, 0 warn, including the new core-rules check for all 12 skills and no duplicated instructions. Always-loaded text is unchanged (about 2,240 + 1,251 tokens). |
+| Hook speed | router 43 ms, session start 49 ms, guard 59 ms per call |
+| Not verified | whether Claude follows the inserted core rules better in real sessions. Measure with `eng-os usage` and the transcripts at the next review: rule-following in routed sessions, not Skill-tool calls. |
+

@@ -8,6 +8,14 @@ argument-hint: "[project path]"
 
 Goal: a concise project CLAUDE.md (target under 120 lines) that lets any future session work correctly without re-exploring the codebase. It complements the global standards; it never repeats them.
 
+## Core rules
+- Fill the project CLAUDE.md only from evidence; leave a section out rather than guess, and list unknowns as open questions.
+- Keep it under about 120 lines, with nothing copied from the global instructions.
+- Write key names only, never credential values.
+- An existing CLAUDE.md or document is merged, never overwritten, and the user sees what changed.
+- Hooks or repository settings that affect teammates are added only with the user's approval.
+- A project outside version control gets a recommendation to run `git init`.
+
 ## 1. Discover (read-only, cheaply)
 Work from the project root given as the argument (default: the current project).
 - Stack and versions: manifests (`package.json`, `composer.json`, `pyproject.toml`/`requirements*.txt`, `pubspec.yaml`, `__manifest__.py`, `hooks.py` + `modules.txt` for Frappe), lockfiles, `.nvmrc`/`.python-version`, Dockerfiles.

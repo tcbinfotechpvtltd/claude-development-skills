@@ -65,12 +65,12 @@ Nobody calls these. eng-os applies the right ones in every chat ([how](#how-the-
 
 ### How the skills apply automatically in every chat
 Nobody types a skill name, and no chat needs any setup. Four layers apply the right skill on their own:
-1. **Project detection** (session start): eng-os recognises Frappe/ERPNext, Odoo, Next.js, Node, Flutter, CodeIgniter 3 and Python projects from their files, and lending work from the project CLAUDE.md, then names the matching skills. Other stacks (Laravel, WordPress, Django, React Native, Java, .NET, Go, Rust, Ruby, iOS) are named too: the general skills apply and their conventions go in the project's own CLAUDE.md. Any project without a CLAUDE.md, in git or not, is offered `/eng-project-init`. Detection works from file types only: eng-os never names or assumes a specific project, so projects can come and go.
-2. **Prompt routing** (every request): keywords in the request ("loan", "deploy", "failing test", "user manual", "estimate", "Odoo"...) name the matching skills. Each skill is named at most once per session (about 40 tokens), and it stays silent when nothing matches.
+1. **Project detection** (session start): eng-os recognises Frappe/ERPNext, Odoo, Next.js, Node, Flutter, CodeIgniter 3 and Python projects from their files, and lending work from the project CLAUDE.md, then names the matching skills and inserts their core rules. Other stacks (Laravel, WordPress, Django, React Native, Java, .NET, Go, Rust, Ruby, iOS) are named too: the general skills apply and their conventions go in the project's own CLAUDE.md. Any project without a CLAUDE.md, in git or not, is offered `/eng-project-init`. Detection works from file types only: eng-os never names or assumes a specific project, so projects can come and go.
+2. **Prompt routing** (every request): keywords in the request ("loan", "deploy", "failing test", "user manual", "estimate", "Odoo"...) name the matching skills and insert each one's **Core rules**: a short must-follow list of about 150–250 tokens, for at most four skills. Each skill is routed at most once per session (and again after the context is compacted), and it stays silent when nothing matches.
 3. **Path rules** (whenever matching files are touched): short must-follow rules load and point to their skill.
 4. **The global instructions** tell Claude to load whatever those layers name, plus a trigger table for everything else.
 
-Hooks can name a skill but cannot force it to load, so layers 1–2 are strong prompts and layer 3 guarantees the essential rules arrive.
+Hooks cannot force a full skill to load, and in real sessions Claude usually did not load the skills it was pointed to. So layers 1 and 2 insert each skill's core rules directly, and layer 3 adds the file-specific ones: the essentials arrive even when a full skill is never loaded. The detailed procedures still load when Claude calls the skill.
 
 ### Nine path-scoped rules
 These load automatically when Claude touches matching files, even if no skill was invoked:
@@ -87,7 +87,7 @@ These load automatically when Claude touches matching files, even if no skill wa
 ### Safety guard
 A hook checks every Claude tool call in about 50 ms and costs no tokens:
 - **Refuses** catastrophic actions, such as wiping a home or system folder, dumping the keychain, or commits with a Claude co-author trailer.
-- **Asks you first** before force-pushes, pushes to `main`/`prod`/`uat`, `reset --hard`, deploys, `DROP`/`TRUNCATE`, state-changing SSH, printing `.env` files, sending email or messages, and ad-platform changes that spend money.
+- **Asks you first** before force-pushes, pushes to `main`/`prod`/`uat`, `reset --hard`, deploys, `DROP`/`TRUNCATE`, state-changing SSH, printing `.env` files or secret environment variables, bulk deletes with `find`, `DELETE`/`PUT`/`PATCH` calls to remote APIs, destructive SQL through database tools, sending email or messages, and ad-platform changes that spend money.
 - **Stays silent** for everything else.
 
 The prompts appear even in bypass-permissions mode (verified). Details are in [section 3](#3-the-guard-deterministic-safety-layer).
@@ -458,7 +458,7 @@ Working habits that cut waste (global instructions section 8):
 
 ## Limits (honest)
 - Instructions and skills guide the model; they cannot force it. Only the guard and permission settings are hard controls.
-- The guard matches command patterns. A cleverly disguised command or a script it cannot see can get past it, so it is a safety net, not a sandbox.
+- The guard matches command patterns. A cleverly disguised command (a variable, base64, a script it cannot see) can get past it, and HTTP `POST` calls are not checked, so it is a safety net, not a sandbox.
 - With nobody at the keyboard (`claude -p`, unattended sessions), an approval prompt either stops the work or waits for you.
 - It does not make anyone's software or organisation "compliant". It raises the floor and makes gaps visible.
 - On individual Claude plans, whether Anthropic may train on your sessions is each person's account setting. eng-os cannot enforce it, so the policy requires it off ([COMPANY-ROLLOUT.md](docs/COMPANY-ROLLOUT.md)).
@@ -501,10 +501,10 @@ Material conflicts are followed at the higher level and reported in one line. Th
 Across 700+ transcripts, the 24 previously installed generic skills were invoked by description **once**. Description matching alone is unreliable, so the global CLAUDE.md carries a 9-line trigger table, and project CLAUDE.md files name their required skills. Path-scoped rules handle the invariants that must apply without the model deciding to load anything.
 
 ## 3. The guard (deterministic safety layer)
-Fail-open (a crash never blocks work; errors are logged to `~/.claude/eng-os/state/guard-errors.log`), Python 3.9-compatible, stdlib only, ~50 ms per call. 122 guard cases in `tests/guard_cases.json` plus 4 session-hook cases.
+Fail-open (a crash never blocks work; errors are logged to `~/.claude/eng-os/state/guard-errors.log`), Python 3.9-compatible, stdlib only, ~50 ms per call. 206 guard cases in `tests/guard_cases.json` plus 31 session-hook and router cases.
 
 - **Deny** (the user can still run these by hand): wiping `/`, home or system dirs; `mkfs`/`dd` to disks; fork bombs; reading Claude's OAuth credentials or dumping the keychain; git commits carrying a `Co-Authored-By: Claude` trailer (your rule).
-- **Ask** (approval prompt): force-push, direct push to protected branches (`main master prod production live uat release*`), `reset --hard`, `clean -f`, discarding changes, deleting branches; `gh pr merge`/repo delete/releases/secrets; DROP/TRUNCATE, UPDATE/DELETE without WHERE, writes to non-local databases; `bench drop-site/reinstall/restore`; docker volume deletion; terraform/kubectl/helm/aws/gcloud changes and deploys; package publishing; `sudo`; world-writable chmod; `curl | sh`; crontab/launchctl/authorized_keys changes; any state-changing SSH command (deploys, restarts, git pull, migrations, SQL, redirects, remote scripts) and reading remote secrets files; scp/rsync uploads and `rsync --delete`; recursive deletes outside the project/temp dirs, of whole repos, `.git`, or unexpanded variables; printing `.env`/keys/credentials files; writing content that looks like a real credential (except into `.env`); editing live global Claude config; SSH config. MCP: sending email/messages, calendar invites, sharing files, deletes in external services, Apollo sends and purchases, ad-platform changes (Meta, Google and similar) that set campaigns live or change budgets/bids.
+- **Ask** (approval prompt): force-push, direct push to protected branches (`main master prod production live uat release*`), `reset --hard`, `clean -f`, discarding changes, deleting branches; `gh pr merge`/repo delete/releases/secrets; DROP/TRUNCATE, UPDATE/DELETE without WHERE, writes to non-local databases; `bench drop-site/reinstall/restore`; docker volume deletion; terraform/kubectl/helm/aws/gcloud changes and deploys; package publishing; `sudo`; world-writable chmod; `curl | sh`; crontab/launchctl/authorized_keys changes; any state-changing SSH command (deploys, restarts, git pull, migrations, SQL, redirects, remote scripts) and reading remote secrets files; scp/rsync uploads and `rsync --delete`; recursive deletes outside the project/temp dirs, of whole repos, `.git`, or unexpanded variables; printing `.env`/keys/credentials files; writing content that looks like a real credential (except into `.env`); editing live global Claude config; SSH config. MCP: sending email/messages, calendar invites, sharing files, deletes in external services, Apollo sends and purchases, ad-platform changes (Meta, Google and similar) that set campaigns live or change budgets/bids; destructive or unscoped SQL through database MCP tools. Also: Grep printing the lines of secrets files (by path or glob); interpreters (`python3`, `node`...) reading them; printing environment variables (`printenv`, bare `env`, `export -p`, `echo $API_KEY`); `find -delete` or `-exec rm` that is unfiltered, outside the project or aimed at `.git`; `curl`/`wget`/`httpie` `DELETE`, `PUT` or `PATCH` to a non-local host.
 - Everything else passes silently.
 
 Tune it in `global/eng-os/config.json` (protected branches, `disabled_rules`), then re-install.

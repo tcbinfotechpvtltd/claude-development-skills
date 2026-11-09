@@ -5,6 +5,14 @@ description: Pre-commit, pre-PR and pre-handoff review protocol with severity ru
 
 # Review and verification
 
+## Core rules
+- Before saying "done", read the whole diff: design fit, correctness, scope, security, compatibility and tests.
+- Strip debug prints, commented-out code, stray files and secrets before a commit.
+- Changes to money, auth, KYC, schemas or production get an independent reviewer subagent; check each of its findings against the code before acting.
+- Review comments are claims: verify them, push back with evidence, and skip performative agreement.
+- State the status as implemented, tested or verified, with the commands that were run and what was not verified.
+- One logical change per commit, with a message that explains why.
+
 ## 1. Self-review every change before calling it done
 Read the full diff (`git diff` / `git diff --staged`), not your memory of it, plus enough surrounding code for context. Check:
 - **Design** (the most important item): does the change belong here, fit the architecture, and interact sensibly with the rest of the system?

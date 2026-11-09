@@ -58,6 +58,7 @@ LEGACY = (
 )
 LEGACY_HOOK_COMMANDS = (".claude/hooks/session-start.sh", ".claude/hooks/sdd-cache", ".claude/hooks/simplify-ignore")
 BUDGET = {"claude_md_chars": 9000, "claude_md_lines": 200, "skill_desc_chars": 600, "skill_body_chars": 14000,
+          "core_rules_chars": 1000,
           "rule_chars": 5000}
 SOURCE_MAX_AGE_DAYS = 120  # cited standards older than this are flagged for re-verification (eng-os-review)
 
@@ -458,6 +459,15 @@ def cmd_verify(args):
             for ref in re.findall(r"\]\(([\w./-]+\.md)\)", body):
                 check(os.path.exists(os.path.join(skills_dir, d, ref)), "skill %s: referenced file %s exists" % (d, ref))
     res.append(("INFO", "user skill listing ~%d chars (~%d tokens) across %d skills" % (listing, listing // 4, len(names))))
+    # every skill the prompt router can name carries a short "## Core rules" section, which the hooks insert
+    router = os.path.join(ENGOS, "hooks", "prompt_router.py")
+    routable = re.findall(r'^\s*\("([a-z-]+)", r"', open(router).read(), re.M) if os.path.exists(router) else []
+    for d in routable:
+        p = os.path.join(skills_dir, d, "SKILL.md")
+        m = re.search(r"^## Core rules[^\n]*\n(.*?)(?=^## |\Z)", open(p).read(), re.S | re.M) if os.path.isfile(p) else None
+        size = len(m.group(1).strip()) if m else 0
+        check(bool(m) and 0 < size <= BUDGET["core_rules_chars"],
+              "skill %s: core rules section %s" % (d, "%d chars <= %d" % (size, BUDGET["core_rules_chars"]) if m else "missing"))
 
     rules_dir = os.path.join(CLAUDE, "rules")
     always = 0
@@ -687,6 +697,26 @@ def cmd_test(args):
     ss_cases.append(("router: lending", "`fintech-lending`" in route("add an EMI schedule to the loan sanction screen", "s3")))
     ss_cases.append(("router: implementation plan", "`eng-design`" in route("write an implementation plan for the export screen", "s4")))
     ss_cases.append(("router: no design skill for an explanation", "`eng-design`" not in route("can you break this down for me in simple words", "s5")))
+    # core rules: inserted with the routing note, once per session, within the size cap
+    out = route("the payment webhook test is failing", "s6")
+    ss_cases.append(("router: core rules inserted", "`eng-testing` core rules:" in out and "smallest failing test" in out))
+    ctx = json.loads(route("design a secure loan disbursal API with tests, docs and a deploy plan", "s7") or "{}")
+    ctx = ctx.get("hookSpecificOutput", {}).get("additionalContext", "")
+    ss_cases.append(("router: four skills stay under the size cap", ctx.count("core rules:") >= 2 and len(ctx) <= 4500))
+    def run_ss_data(payload):
+        r = subprocess.run([py, ss], input=json.dumps(payload), capture_output=True, text=True, env=env, timeout=20)
+        return r.stdout
+    frappe_app = os.path.join(tmp, "frappe_app")
+    os.makedirs(frappe_app)
+    open(os.path.join(frappe_app, "hooks.py"), "w").write("app_name = 'x'\n")
+    open(os.path.join(frappe_app, "modules.txt"), "w").write("X\n")
+    out = run_ss_data({"source": "startup", "cwd": frappe_app, "session_id": "fr1"})
+    ss_cases.append(("session start: project skill core rules inserted", "`frappe-erpnext` core rules:" in out and "apps/frappe" in out))
+    ss_cases.append(("router: project skill not repeated after session start",
+                     "`frappe-erpnext`" not in route("bench migrate fails on the frappe doctype", "fr1")))
+    out = run_ss_data({"source": "compact", "cwd": frappe_app, "session_id": "fr1"})
+    ss_cases.append(("after compaction: project core rules restated", "`frappe-erpnext` core rules:" in out and "self-audit" not in out))
+    ss_cases.append(("after compaction: router inserts core rules again", "`eng-testing` core rules:" in route("a test is failing again", "fr1")))
     for name, ok in ss_cases:
         if ok:
             passed += 1
