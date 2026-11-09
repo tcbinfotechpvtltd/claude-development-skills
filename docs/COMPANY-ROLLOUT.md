@@ -1,8 +1,10 @@
 # Rolling eng-os out to the whole company
 
+Each company installs the same eng-os. At install it sets its own name and chooses its optional packs (`frappe-erpnext`, `odoo`, `fintech-lending`), so the standards Claude follows name that company and carry only the stack and domain guidance it needs. Companies testing eng-os before it is published get read access to the private repo; the history-exposure note under "Private or public repo" applies to them too.
+
 There are three ways to put eng-os on every machine, from easiest to strongest. They can be combined. Facts below were checked in the Claude Code documentation and Anthropic's privacy pages on 2026-11-04.
 
-## TCB today: individual Claude plans (Pro or Max)
+## If your engineers are on individual Claude plans (Pro or Max)
 - **What is available**:
   - option 1 (the installer), now with `eng-os update` and a weekly notice when a release is published;
   - option 2 (a plugin);
@@ -13,7 +15,7 @@ There are three ways to put eng-os on every machine, from easiest to strongest. 
   - With it on, data is kept for 5 years; with it off, for 30 days.
   - The company cannot set or check it for anyone. Client code is confidential, so the [policy](ENGINEERING-POLICY.md) requires it off, and each engineer confirms that before their first client session.
 - **Never send `/feedback` from client work**: those transcripts are kept for 5 years whatever the setting.
-- **Client contracts**: check them against Anthropic's Consumer Terms while TCB stays on individual plans.
+- **Client contracts**: check them against Anthropic's Consumer Terms while the company stays on individual plans.
 - **A Team plan is a leadership decision.** It would bring commercial terms (Anthropic does not train on code or prompts; 30-day retention), an admin console, SSO, spend controls and server-managed settings. That makes option 3 possible. It needs at least 2 seats.
 
 ## 1. Per-developer install (works today, tested)
@@ -68,7 +70,7 @@ bash ~/.eng-os/install.sh
 Making it public would expose:
 - the full git history, including earlier internal versions;
 - the maintainer's email on every commit;
-- TCB's internal policy and the exact rules of its safety guard.
+- the company's internal policy and the exact rules of its safety guard.
 
 If you ever publish it, publish a fresh copy without history (a new repo with one initial commit), add a LICENSE, and review the docs for anything internal first.
 

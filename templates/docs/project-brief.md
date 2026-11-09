@@ -4,7 +4,7 @@
 |---|---|
 | Client and sponsor | |
 | Client single point of contact (decides) | |
-| TCB project lead | |
+| Our project lead | |
 | Commercial frame | fixed scope / time and material (change control applies to fixed scope) |
 | AI-assisted development | permitted by the contract: yes / no / to confirm |
 | Start, key milestones, go-live target | |

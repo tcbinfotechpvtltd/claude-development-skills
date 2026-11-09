@@ -1,20 +1,20 @@
-# eng-os: TCB Infotech's engineering system for Claude Code
+# eng-os: an engineering system for Claude Code, for software companies
 
-Set it up once on each employee's machine, and from then on **every Claude Code chat, in every project, follows TCB's engineering standards automatically**. Nobody calls a skill or configures anything per project: eng-os recognises the project and the request, then applies the right skills, rules and safety checks by itself. It is security first, works from evidence, gets on with routine work by itself, asks before anything risky, and keeps token use low. It covers Frappe/ERPNext, Odoo, PHP CodeIgniter 3, Next.js, Flutter, Linux VPS/AWS and Indian digital lending.
+Set it up once on each engineer's machine, and from then on **every Claude Code chat, in every project, follows your company's engineering standards automatically**. Nobody calls a skill or configures anything per project: eng-os recognises the project and the request, then applies the right skills, rules and safety checks by itself. It is security first, works from evidence, gets on with routine work by itself, asks before anything risky, and keeps token use low. The core covers design, security, testing, review, delivery, documentation and DevOps for any stack, with stack guidance for Next.js/Node, PHP (including CodeIgniter 3), Flutter and Python. Optional packs add ERPNext/Frappe, Odoo and Indian digital lending (RBI, DPDP). Each company sets its name and picks its packs at install. eng-os was built at TCB Infotech, which runs it on every engineer's machine, and is now being tested by other companies.
 
-### How it reaches every employee
-1. **One-time setup per employee**: paste this one command into a terminal (macOS, Linux or WSL; in VS Code use the built-in terminal):
+### How it reaches every engineer
+1. **One-time setup per engineer**: paste this one command into a terminal (macOS, Linux or WSL; in VS Code use the built-in terminal):
    ```bash
    git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-os && bash ~/.eng-os/install.sh
    ```
-   It downloads the latest release, asks for your name and work email if git does not already know them, runs the self-tests, then installs and configures everything in your Claude Code: the global instructions, all skills, the rules, the safety guard and the automatic hooks. Claude Code in VS Code, the desktop app and the terminal share the same configuration, so one install covers all three. Details: [INSTALL.md](INSTALL.md).
+   It downloads the latest release, asks for your name and work email if git does not already know them, asks once on a new machine for your company name and which optional packs to install (`all`, `none`, or a list from `frappe-erpnext`, `odoo`, `fintech-lending`), runs the self-tests, then installs and configures everything in your Claude Code: the global instructions, the core skills and the packs you chose, the rules, the safety guard and the automatic hooks. Claude Code in VS Code, the desktop app and the terminal share the same configuration, so one install covers all three. Details: [INSTALL.md](INSTALL.md).
 2. **Automatic from then on**:
    - in every Claude Code chat: the desktop app's Code tab, the terminal CLI and the IDE extensions;
    - for every project, current or future, in git or not;
    - with nothing to call, remember or switch on.
 3. **Updates**: Claude says when a new release is out, at most once a week. `bash ~/.eng-os/install.sh` installs it, after running the tests.
 
-On individual Claude plans no one can install software on someone else's machine, so step 1 is the one thing each employee does themselves. eng-os works inside Claude Code only: regular claude.ai chats and the mobile app do not read these files.
+On individual Claude plans no one can install software on someone else's machine, so step 1 is the one thing each engineer does themselves. eng-os works inside Claude Code only: regular claude.ai chats and the mobile app do not read these files.
 
 **New here? Install it with [INSTALL.md](INSTALL.md)** (about 5 minutes), and read the [engineering policy](docs/ENGINEERING-POLICY.md). Rolling it out to everyone: [docs/COMPANY-ROLLOUT.md](docs/COMPANY-ROLLOUT.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
@@ -46,6 +46,7 @@ Contents: [What's inside](#whats-inside) · [What you get in each area](#what-yo
 8. **Token efficiency**: targeted reads, parallel tool calls, cheaper models for mechanical subagent work, one task per session.
 
 ### Thirteen skills, applied automatically
+Ten are the core every company gets. Three are optional packs chosen at install: `frappe-erpnext`, `odoo` and `fintech-lending` (Indian digital lending). A pack that is not installed is never named or inserted.
 Nobody calls these. eng-os applies the right ones in every chat ([how](#how-the-skills-apply-automatically-in-every-chat)). To keep chats fast and cheap, each skill's full text is pulled in only when the work in front of Claude needs it.
 | Skill | Used for | What it brings |
 |---|---|---|
@@ -57,7 +58,7 @@ Nobody calls these. eng-os applies the right ones in every chat ([how](#how-the-
 | `frappe-erpnext` | Frappe, ERPNext, HRMS and custom apps, bench | site isolation, permission-safe APIs, DocType JSON and patches, bench workflows, v15/v16 gotchas |
 | `odoo` | Odoo modules, views, reports, upgrades (versions 17 to 20) | official module layout and naming, breaking changes per version, access rights and record rules (`ir.access` in 20), controllers, QWeb reports, `odoo-bin` tests, migration scripts and the upgrade service, performance |
 | `custom-apps` + `nextjs.md`, `flutter.md`, `php-ci3.md`, `python.md` | Next.js/React/Node, PHP CodeIgniter 3, Flutter and Python apps | supported runtime versions with end-of-life dates, architecture per stack (App Router data layer, Flutter MVVM, thin CI3 controllers), Next.js 16 upgrade traps, legacy CI3 risk, deploy shape |
-| `eng-delivery` + `erp-implementation.md` | scoping, estimates, plans, status, change requests, ERP implementations, UAT, handoff | in/out-of-scope, three-point estimates in ranges, Scrum/Kanban/staged plans, the TCB ERP method (discover, fit-to-standard, build, data migration, UAT and training, cutover, hypercare), a Definition of Done that includes documents, issue tracking, RAID log, weekly status, change control, UAT, go-live and handoff |
+| `eng-delivery` + `erp-implementation.md` | scoping, estimates, plans, status, change requests, ERP implementations, UAT, handoff | in/out-of-scope, three-point estimates in ranges, Scrum/Kanban/staged plans, a phase-by-phase ERP method (discover, fit-to-standard, build, data migration, UAT and training, cutover, hypercare), a Definition of Done that includes documents, issue tracking, RAID log, weekly status, change control, UAT, go-live and handoff |
 | `eng-docs` | requirements, user manuals, test-case documents, runbooks, project history, handover | the document set every project keeps and when each is written and updated, requirement ids linking issues, PRs, tests and manual pages, append-only history, Diátaxis user manuals per role, writing rules, the bus-factor check |
 | `fintech-lending` | anything that moves money, computes loan amounts or stores borrower data | money as decimals, append-only double-entry ledgers, loan state machines, disbursal gates, vendor adapters and webhooks, RBI Digital Lending Directions 2025, DPDP Rules 2025, RBI NBFC cyber and outsourcing directions |
 | `eng-project-init` | a repo with no CLAUDE.md, or a stale one | builds a project CLAUDE.md from the repo: commands, architecture map, invariants, environments, gotchas |
@@ -113,7 +114,7 @@ A start-of-session hook names the skills for the project (see above) and otherwi
 | File | What it holds |
 |---|---|
 | [INSTALL.md](INSTALL.md) | install, what changes on your machine, updating, undo, troubleshooting |
-| [docs/ENGINEERING-POLICY.md](docs/ENGINEERING-POLICY.md) | what every TCB engineer commits to when working with Claude Code |
+| [docs/ENGINEERING-POLICY.md](docs/ENGINEERING-POLICY.md) | what every engineer commits to when working with Claude Code (a template each company adopts or adjusts) |
 | [docs/COMPANY-ROLLOUT.md](docs/COMPANY-ROLLOUT.md) | putting eng-os on every machine: per-developer install, a plugin, organisation-managed settings |
 | [docs/MCP-POLICY.md](docs/MCP-POLICY.md) | the approved MCP servers and plugins, with exact pinned install commands, what is pilot-only or not approved, and how to approve a new one |
 | [docs/SOURCES.md](docs/SOURCES.md) | every external standard cited, with edition, date, link and when it was last checked |
@@ -172,7 +173,7 @@ What changes in your Claude Code once eng-os is installed, area by area, and whi
   - Follow docstatus rules; idempotent background jobs; permission-aware reports.
   - Post accounting and stock only through documents; filter every query by company.
 - **Testing**: `bench run-tests` on a dedicated test site, never a client site. After changes: migrate, build and clear the cache. Verify as a non-admin role.
-- **Gotchas learned on TCB projects**: the v16 setup-wizard reload loop fix, realtime/socketio, Homebrew MariaDB authentication, `get_all` vs `get_list`, backing up `encryption_key`.
+- **Gotchas learned on real client projects**: the v16 setup-wizard reload loop fix, realtime/socketio, Homebrew MariaDB authentication, `get_all` vs `get_list`, backing up `encryption_key`.
 - **Security** (`stacks.md`):
   - Guest endpoints validated and rate-limited; Jinja `| safe` sanitised; KYC files private.
   - An Administrator and 2FA policy.
@@ -356,7 +357,7 @@ The `eng-delivery` skill adds the delivery discipline a consultancy needs. It co
   - a staged plan with exit criteria and tolerances for fixed-scope ERP or build projects (PRINCE2 7 ideas);
   - Scrum (2020 guide) for evolving products;
   - Kanban (guide v2025.5) for support and AMC streams, with WIP, throughput, cycle time and work-item age.
-- **A TCB Definition of Done**: acceptance criteria met, tests, review, security check, UAT smoke test, release notes, docs.
+- **A default Definition of Done** (projects may tighten it): acceptance criteria met, tests, review, security check, UAT smoke test, release notes, docs.
 - **Tracking**:
   - a RAID log (`docs/raid.md`) reviewed weekly;
   - a weekly status template (done with evidence, next, client actions, decisions, risks, schedule, scope and budget against the baseline);
@@ -451,7 +452,7 @@ Working habits that cut waste (global instructions section 8):
 ## Why it is good
 - **Safety is enforced, not hoped for.** Risky actions are stopped by a hook that runs on every tool call, not by a sentence the model might forget. 126 automated cases cover it, and it was verified live in bypass mode.
 - **Built on current standards, with sources.** 129 standards, frameworks and tool versions are named with their edition and the date each was confirmed on its official site: OWASP, NIST, CIS, MITRE, CISA, SLSA, PCI, ISO, Google SRE and DORA, RBI, DPDP and CERT-In. Nothing is quoted from memory, and a health-check warning plus the monthly review keep them current.
-- **Made for TCB's real work.** The stack pitfalls, lending rules and severity examples come from TCB projects, audits and incidents, not generic advice.
+- **Made from real work.** The stack pitfalls, lending rules and severity examples come from real client projects, audits and incidents, not generic advice. Packs keep that depth out of the way of companies that don't need it.
 - **Cheap to run.** About 3.3k tokens per session. Detail lives in files that load only when needed. The 24-skill pack it replaced was used once in more than 700 sessions.
 - **Honest results.** Claude must show evidence, label what is not verified, and never call anything "secure".
 - **The same standards for everyone.** Each developer still commits under their own name and keeps their own personal instructions. Improvements come in as pull requests.

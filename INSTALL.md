@@ -1,6 +1,6 @@
-# Installing eng-os (for TCB Infotech developers)
+# Installing eng-os
 
-eng-os sets up Claude Code with TCB's engineering standards: global instructions, 13 skills, 9 path-scoped rules and a safety guard. After this one-time setup it applies automatically in every Claude Code chat and every project on your machine: you never call a skill or configure a project by hand. The architecture and the reasoning behind each piece are in [README.md](README.md).
+eng-os sets up Claude Code with your company's engineering standards: global instructions, 13 skills, 9 path-scoped rules and a safety guard. After this one-time setup it applies automatically in every Claude Code chat and every project on your machine: you never call a skill or configure a project by hand. The architecture and the reasoning behind each piece are in [README.md](README.md).
 
 ## Requirements
 - macOS or Linux. On Windows use WSL; native Windows has not been tested.
@@ -17,7 +17,13 @@ git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-
 - **Then**: restart Claude Code (in VS Code: **Developer: Reload Window**). Every chat in every project now follows the standards; you never call a skill.
 - **Private repo**: git signs you in to GitHub. If it asks for a password or says it could not read a username, run `gh auth login` once (GitHub CLI; answer Yes to authenticating Git), then run the command again. Your GitHub account needs read access to the repo.
 - **Updating**: run `bash ~/.eng-os/install.sh`. It switches to the latest release, re-runs the tests and installs. Claude reminds you when a release is out. Running the install command a second time only reports that `~/.eng-os` already exists and changes nothing.
-- **Unattended setup**: set `ENG_OS_NAME` and `ENG_OS_EMAIL` to skip the questions.
+- **Company and packs**: on a new machine the installer asks for your company name and which optional packs to install:
+  - `frappe-erpnext`: ERPNext and Frappe apps;
+  - `odoo`: Odoo modules;
+  - `fintech-lending`: Indian digital lending under RBI and DPDP rules.
+  
+  Answer `all`, `none` or a comma-separated list. The core skills (design, security, testing, review, delivery, docs, DevOps, custom apps) are always installed. To change the packs later, run `~/.claude/eng-os/bin/eng-os install --packs=...`; your answers are kept in `~/.claude/eng-os/company.json`, and machines that had eng-os before 0.12.0 keep their company and every pack.
+- **Unattended setup**: set `ENG_OS_NAME`, `ENG_OS_EMAIL`, `ENG_OS_COMPANY` and `ENG_OS_PACKS` to skip the questions.
 - **Windows without WSL**: not supported yet.
 
 ### Manual install (same result)
@@ -29,7 +35,7 @@ git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-
 ## What changes on your machine
 | Path | Change |
 |---|---|
-| `~/.claude/CLAUDE.md` | Replaced by the TCB standards, with your name and email in the commit rule. **Your existing file is kept**: its text is saved to `~/.claude/eng-os/personal.md` and appended as section 9. To change it later, edit `personal.md` and re-install |
+| `~/.claude/CLAUDE.md` | Replaced by the eng-os standards, with your company, your packs and your name and email filled in. **Your existing file is kept**: its text is saved to `~/.claude/eng-os/personal.md` and appended as section 9. To change it later, edit `personal.md` and re-install |
 | `~/.claude/skills/` | Adds `eng-design`, `eng-security`, `eng-testing`, `eng-review`, `eng-ship`, `eng-delivery`, `eng-docs`, `frappe-erpnext`, `odoo`, `custom-apps`, `fintech-lending`, `eng-project-init`, `eng-os-review`. A skill of yours with one of these names is replaced (it is in the backup). Your other skills are untouched |
 | `~/.claude/rules/` | Adds 9 rules that load only when matching files are touched (Frappe, Odoo, Next.js, Flutter, CodeIgniter 3, tests, docs, DB migrations/SQL, CI/infra) |
 | `~/.claude/settings.json` | Merged; your other keys stay. Adds: a guard hook on tool calls, a session-start check, a prompt router that names the skills for each request, a deny rule on Claude's own login file, and `attribution` off (no Claude co-author lines) |
@@ -38,11 +44,11 @@ git clone https://github.com/tcbinfotechpvtltd/claude-development-skills ~/.eng-
 Nothing else is touched: no project files, plugins, MCP servers or agents. Nothing is sent anywhere. `eng-os usage` reads only your local transcripts.
 
 ## Before your first project
-Read the [engineering policy](docs/ENGINEERING-POLICY.md): it is what every TCB engineer commits to when working with Claude Code. In each project repo, run `/eng-project-init` once to get its `CLAUDE.md`, the `docs/` set, the GitHub templates and the installed-check.
+Read the [engineering policy](docs/ENGINEERING-POLICY.md): it is what every engineer commits to when working with Claude Code. Each company adopts it as it is or adjusts it. In each project repo, run `/eng-project-init` once to get its `CLAUDE.md`, the `docs/` set, the GitHub templates and the installed-check.
 
 ## What you will notice
 - **Approval prompts** before risky actions, even in bypass mode. Examples: force-push or push to `main`/`prod`/`uat`, `reset --hard`, deploys, `DROP`/`TRUNCATE`, state-changing SSH, printing `.env` files, sending email, ad-platform changes (Meta, Google and similar) that spend money. Catastrophic commands (wiping home, dumping the keychain) are refused outright. In headless `claude -p` an approval prompt becomes a refusal, because nobody is there to answer.
-- **Commit trailers**: commits carrying a Claude co-author trailer are blocked (TCB policy, `block_claude_coauthor` in `global/eng-os/config.json`).
+- **Commit trailers**: commits carrying a Claude co-author trailer are blocked (the default policy, `block_claude_coauthor` in `global/eng-os/config.json`).
 - **Skills apply automatically.** You never type a skill name: eng-os recognises the project and your request and names the right skills to Claude (for example `odoo` in an Odoo repo, `fintech-lending` for a loan feature, `eng-docs` when you ask for a manual). Rules for each stack load when Claude touches those files. Project CLAUDE.md files can make skills mandatory.
 - **Monthly review**: after 30 days, a start-of-session note asks you to run `/eng-os-review`.
 

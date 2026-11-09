@@ -1,6 +1,26 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.12.0 — 2026-11-09
+eng-os is now for any software company, not only TCB. It is shared privately with a few companies for testing, with an MIT licence planned for a public release.
+- **Company set at install**: `eng-os install --company="..."`, or the installer asks once on a new machine. The global instructions name that company and describe its work from the packs it chose. Kept in `~/.claude/eng-os/company.json`.
+- **Optional packs** (`global/packs.json`): `frappe-erpnext` (skill and rule), `odoo` (skill and rule) and `fintech-lending` (Indian digital lending).
+  - Choose with `--packs=all|none|<list>`.
+  - Packs left out are not installed, and their rows in the skill table are dropped.
+  - The router never names them, and project detection says the pack exists but is not installed.
+  - Removing a pack also removes its rule file.
+- **Existing installs keep everything**: an upgrade with no new answers reads the company from the installed CLAUDE.md and keeps every pack. TCB machines get the same standards as 0.11.0, apart from two lines:
+  - the work description;
+  - the ID rule: "never store a full national ID number (for example Aadhaar)", which covers every national ID and stays as strict for Aadhaar.
+- **Company-neutral documents**: README, INSTALL, engineering policy, rollout guide, MCP policy, the delivery skill, and the project templates.
+- `eng-os verify` checks that the global CLAUDE.md is fully rendered (no placeholders or pack tags left), and checks core rules only for installed skills. `eng-os status` shows the company and packs.
+- **Safer installs**:
+  - only skill folders eng-os installed are ever replaced or removed (a folder of your own with a pack's name is kept);
+  - a pack rule you edited is kept;
+  - two installs in the same second get separate backups;
+  - the guard never treats the home folder as a temp folder.
+- Requires an explicit `--packs` value (`none`, `all` or a list); company names are one plain line of at most 80 characters.
+
 ## 0.11.0 — 2026-11-09
 The best ideas from a survey of 11 agent-tooling repos ([docs/research/2026-11-tool-survey.md](docs/research/2026-11-tool-survey.md)), checked against the Claude Code docs and rewritten for eng-os. None of the repos is installed.
 - **Skills that actually load:**

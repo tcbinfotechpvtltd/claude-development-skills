@@ -38,6 +38,7 @@ ENGOS = os.path.join(CLAUDE, "eng-os")
 MANIFEST = os.path.join(ENGOS, "manifest.json")
 BACKUPS = os.path.join(ENGOS, "backups")
 USER_FILE = os.path.join(ENGOS, "user.json")    # per-user commit identity, never in the repo
+COMPANY_FILE = os.path.join(ENGOS, "company.json")  # company name and selected packs, never in the repo
 PERSONAL = os.path.join(ENGOS, "personal.md")   # per-user additions appended to the global CLAUDE.md
 PERSONAL_HEADING = "## 9. Personal additions"
 HERE = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -110,9 +111,18 @@ def frontmatter(path):
 
 
 # ------------------------------------------------------------------ plan
-def build_plan(src):
-    """Return list of (src_file, live_file) for everything eng-os manages."""
+def load_packs(src):
+    """The optional packs defined in global/packs.json: {name: {label, skills, rules, for}}."""
+    return (load_json(os.path.join(src, "global", "packs.json"), {}) or {}).get("packs", {})
+
+
+def build_plan(src, packs=None):
+    """Return list of (src_file, live_file) for everything eng-os manages: the core plus the selected packs
+    (all packs when `packs` is None)."""
     g = os.path.join(src, "global")
+    left_out = {k: d for k, d in load_packs(src).items() if packs is not None and k not in packs}
+    skip_skills = {x for d in left_out.values() for x in d.get("skills", [])}
+    skip_rules = {x for d in left_out.values() for x in d.get("rules", [])}
     plan = [(os.path.join(g, "CLAUDE.md"), os.path.join(CLAUDE, "CLAUDE.md"))]
     for sub, dest in (("eng-os", ENGOS), ("rules", os.path.join(CLAUDE, "rules")),
                       ("skills", os.path.join(CLAUDE, "skills")), ("agents", os.path.join(CLAUDE, "agents"))):
@@ -122,7 +132,10 @@ def build_plan(src):
                 if f.endswith((".pyc", ".DS_Store")):
                     continue
                 s = os.path.join(dp, f)
-                plan.append((s, os.path.join(dest, os.path.relpath(s, base))))
+                rel = os.path.relpath(s, base)
+                if (sub == "skills" and rel.split(os.sep)[0] in skip_skills) or (sub == "rules" and rel in skip_rules):
+                    continue
+                plan.append((s, os.path.join(dest, rel)))
     for d in ("bin", "tests", "templates"):
         for dp, _, files in os.walk(os.path.join(src, d)):
             for f in files:
@@ -132,8 +145,16 @@ def build_plan(src):
     return plan
 
 
-def managed_skill_dirs(src):
-    return [os.path.join(CLAUDE, "skills", d) for d in os.listdir(os.path.join(src, "global", "skills"))]
+def managed_skill_dirs(src, plan=None, manifest_files=None):
+    """eng-os skill folders that install may replace: ones in the new plan, or ones an earlier install recorded.
+    A folder of the user's own that shares a pack's name is never touched."""
+    names = os.listdir(os.path.join(src, "global", "skills"))
+    if plan is None:
+        return [os.path.join(CLAUDE, "skills", d) for d in names]
+    planned = {os.path.relpath(d, os.path.join(CLAUDE, "skills")).split(os.sep)[0] for _, d in plan
+               if d.startswith(os.path.join(CLAUDE, "skills") + os.sep)}
+    recorded = {f.split("/")[3] for f in (manifest_files or {}) if f.startswith("~/.claude/skills/") and f.count("/") >= 4}
+    return [os.path.join(CLAUDE, "skills", d) for d in names if d in planned or d in recorded]
 
 
 def merge_settings(live, frag, drop_legacy=False):
@@ -193,6 +214,10 @@ def validate_stage(stage):
 
 def backup(paths, tag):
     bid = now() + "-" + tag
+    n = 1
+    while os.path.exists(os.path.join(BACKUPS, bid)):  # two installs in the same second must not share a backup
+        n += 1
+        bid = "%s-%s-%d" % (now(), tag, n)
     root = os.path.join(BACKUPS, bid)
     entries = []
     for p in sorted(set(paths)):
@@ -265,9 +290,74 @@ def identity(args):
     return {"name": name, "email": email}
 
 
-def render_claude_md(src_file, user, personal, out_dir):
-    """The global CLAUDE.md with this user's identity and personal additions filled in."""
-    text = open(src_file).read().replace("{{GIT_AUTHOR}}", "%s <%s>" % (user["name"], user["email"]))
+def parse_packs(raw, available):
+    """`all`, `none`, or a comma list. Empty is an error, so an unset variable never removes packs silently."""
+    raw = (raw or "").strip().lower()
+    if not raw:
+        sys.exit("eng-os: --packs is empty; use --packs=none, --packs=all or a list from: %s" % ", ".join(available))
+    if raw == "all":
+        return sorted(available)
+    if raw == "none":
+        return []
+    picked = sorted({p.strip() for p in raw.split(",") if p.strip()})
+    if "all" in picked or "none" in picked:
+        sys.exit("eng-os: use all or none on its own, not inside a list")
+    return picked
+
+
+def check_company_name(name):
+    """The name goes into the header of the global CLAUDE.md: one plain line, no template syntax."""
+    if len(name) > 80 or re.search(r"[\x00-\x1f\x7f]|\{\{|\}\}|<!--|-->", name):
+        sys.exit("eng-os: company name must be one line of at most 80 characters, without {{ }} or <!-- -->")
+    return name
+
+
+def company(args, src):
+    """Company name and packs: flags, then company.json, then (upgrading an install from before 0.12.0) the
+    company named in the installed CLAUDE.md, with every pack, so nothing changes for existing users."""
+    available = load_packs(src)
+    saved = load_json(COMPANY_FILE, {}) or {}
+    name = arg_value(args, "--company") or saved.get("company")
+    flag = next((a.split("=", 1)[1] for a in args if a.startswith("--packs=")), None)
+    packs = parse_packs(flag, available) if flag is not None else saved.get("packs")
+    if os.path.exists(MANIFEST) and (not name or packs is None):
+        # an install from before 0.12.0 (or a company.json without packs): keep its company and every pack
+        try:
+            with open(os.path.join(CLAUDE, "CLAUDE.md")) as fh:
+                m = re.match(r"# Global engineering standards \((.+)\)\s*$", fh.readline())
+        except OSError:
+            m = None
+        name = name or (m.group(1).strip() if m else None)
+        packs = sorted(available) if packs is None else packs
+    if not name:
+        sys.exit('eng-os: company unknown. Run: eng-os install --company="Your Company" --packs=none|all|%s'
+                 % ",".join(available))
+    if packs is None:
+        sys.exit("eng-os: packs not chosen. Add --packs=none, --packs=all or a list from: %s" % ", ".join(available))
+    name = check_company_name(name.strip())
+    unknown = [p for p in packs if p not in available]
+    if unknown:
+        sys.exit("eng-os: unknown pack %s (available: %s)" % (", ".join(unknown), ", ".join(available)))
+    return {"company": name, "packs": sorted(packs)}
+
+
+def render_claude_md(src_file, user, personal, out_dir, comp=None, available=None):
+    """The global CLAUDE.md with the company, its packs, this user's identity and personal additions filled in.
+    Lines tagged `<!-- pack:NAME -->` are kept only when that pack is installed."""
+    comp = comp or {"company": "your company", "packs": sorted(available or {})}
+    available = available or {}
+    labels = [d["label"] for k, d in available.items() if k in comp["packs"]]
+    work = ", ".join(labels + ["custom web and mobile apps (Next.js, PHP, Flutter, Python)", "Linux servers and AWS"])
+    kept = []
+    for line in open(src_file).read().split("\n"):
+        m = re.search(r"\s*<!-- pack:([a-z0-9-]+) -->\s*$", line)
+        if m:
+            if m.group(1) not in comp["packs"]:
+                continue
+            line = line[:m.start()]
+        kept.append(line)
+    values = {"GIT_AUTHOR": "%s <%s>" % (user["name"], user["email"]), "COMPANY": comp["company"], "WORK": work}
+    text = re.sub(r"\{\{(GIT_AUTHOR|COMPANY|WORK)\}\}", lambda m: values[m.group(1)], "\n".join(kept))
     if personal.strip():
         text = (text.rstrip("\n") + "\n\n" + PERSONAL_HEADING
                 + " (from ~/.claude/eng-os/personal.md; may tighten, never relax sections 1-4)\n"
@@ -283,7 +373,9 @@ def cmd_install(args):
     archive_legacy = "--archive-legacy" in args
     src = repo_root()
     user = identity(args)
-    plan = build_plan(src)
+    comp = company(args, src)
+    available = load_packs(src)
+    plan = build_plan(src, comp["packs"])
     frag = load_json(os.path.join(src, "global", "settings.json"))
     if frag is None:
         sys.exit("global/settings.json is missing or invalid")
@@ -302,7 +394,7 @@ def cmd_install(args):
     stage = tempfile.mkdtemp(prefix="engos-stage-")
     render_dir = tempfile.mkdtemp(prefix="engos-render-")
     try:
-        plan[0] = (render_claude_md(plan[0][0], user, personal, render_dir), plan[0][1])
+        plan[0] = (render_claude_md(plan[0][0], user, personal, render_dir, comp, available), plan[0][1])
         for s, d in plan:
             t = os.path.join(stage, os.path.relpath(d, CLAUDE))
             os.makedirs(os.path.dirname(t), exist_ok=True)
@@ -315,7 +407,14 @@ def cmd_install(args):
             sys.exit("install aborted: staged files failed validation; live config untouched")
         found = [os.path.join(CLAUDE, l) for l in LEGACY if os.path.lexists(os.path.join(CLAUDE, l))]
         legacy = found if archive_legacy else []
-        targets = sorted(set([d for _, d in plan] + managed_skill_dirs(src) + [settings_path] + legacy
+        # rule files of a pack that is no longer selected (skill folders are replaced wholesale below)
+        dests = {tilde(d) for _, d in plan}
+        stale = [f for f in managed if f.startswith("~/.claude/rules/") and f not in dests and os.path.exists(os.path.expanduser(f))]
+        stale_rules = [os.path.expanduser(f) for f in stale if sha(os.path.expanduser(f)) == managed[f]]
+        edited_rules = [os.path.expanduser(f) for f in stale if sha(os.path.expanduser(f)) != managed[f]]
+        skill_dirs = managed_skill_dirs(src, plan, managed)
+        dropped_skills = [d for d in skill_dirs if os.path.isdir(d) and not any(x.startswith(d + os.sep) for _, x in plan)]
+        targets = sorted(set([d for _, d in plan] + skill_dirs + [settings_path] + legacy + stale_rules
                              + [os.path.join(ENGOS, x) for x in ("hooks", "bin", "tests", "templates", "manifest.json", "config.json")]))
         changed = [d for s, d in plan if not os.path.exists(d) or sha(s) != sha(d)]
         print("eng-os install from %s" % tilde(src))
@@ -324,6 +423,12 @@ def cmd_install(args):
             print("    ~ " + tilde(d))
         print("  settings.json: %s" % ("changed" if merged != live_settings else "unchanged"))
         print("  commit identity: %s <%s>" % (user["name"], user["email"]))
+        print("  company: %s; packs: %s" % (comp["company"], ", ".join(comp["packs"]) or "none"))
+        if stale_rules or dropped_skills:
+            print("  packs no longer selected, removed: %s" % ", ".join(
+                [os.path.basename(d) + "/" for d in dropped_skills] + [os.path.basename(r) for r in stale_rules]))
+        if edited_rules:
+            print("  kept (you edited them): %s" % ", ".join(tilde(r) for r in edited_rules))
         if adopt:
             print("  your existing ~/.claude/CLAUDE.md is kept: saved to %s and appended as section 9" % tilde(PERSONAL))
         if found and not archive_legacy:
@@ -334,7 +439,7 @@ def cmd_install(args):
             print("dry run: nothing written")
             return 0
         if (not changed and merged == live_settings and not legacy and os.path.exists(MANIFEST)
-                and load_json(USER_FILE) == user):
+                and load_json(USER_FILE) == user and load_json(COMPANY_FILE) == comp and not stale_rules):
             print("already up to date: nothing written, no backup needed")
             return cmd_verify([])
 
@@ -344,12 +449,16 @@ def cmd_install(args):
             os.makedirs(ENGOS, exist_ok=True)
             with open(USER_FILE, "w") as fh:
                 json.dump(user, fh, indent=1)
+            with open(COMPANY_FILE, "w") as fh:
+                json.dump(comp, fh, indent=1)
+            for r in stale_rules:
+                os.remove(r)
             if adopt:
                 with open(PERSONAL, "w") as fh:
                     fh.write(personal)
             for l in legacy:
                 shutil.rmtree(l) if os.path.isdir(l) and not os.path.islink(l) else os.remove(l)
-            for sk in managed_skill_dirs(src):
+            for sk in skill_dirs:
                 if os.path.isdir(sk):
                     shutil.rmtree(sk)
             for sub in ("hooks", "bin", "tests", "templates"):
@@ -438,6 +547,8 @@ def cmd_verify(args):
         t, _, extra = open(cm).read().partition("\n" + PERSONAL_HEADING)
         check(len(t) <= BUDGET["claude_md_chars"] and t.count("\n") <= BUDGET["claude_md_lines"],
               "global CLAUDE.md within budget (%d chars ~%d tokens, %d lines)" % (len(t), len(t) // 4, t.count("\n")))
+        left = sorted(set(re.findall(r"\{\{[A-Z_]+\}\}|<!-- pack:[a-z0-9-]+ -->", t)))
+        check(not left, "global CLAUDE.md fully rendered (company, packs, identity)%s" % (": left " + ", ".join(left) if left else ""))
         if extra:
             res.append(("INFO", "personal additions in CLAUDE.md: %d chars (~%d tokens, from %s)" % (len(extra), len(extra) // 4, tilde(PERSONAL))))
     else:
@@ -452,7 +563,8 @@ def cmd_verify(args):
             continue
         fm, body = frontmatter(p)
         if not fm:
-            check(False, "skill %s has frontmatter" % d)
+            owned = man and any(k.startswith("~/.claude/skills/%s/" % d) for k in man["files"])
+            check(False, "skill %s has frontmatter%s" % (d, "" if owned else " (your own skill, not eng-os's)"), "FAIL" if owned else "WARN")
             continue
         desc = fm.get("description", "") + fm.get("when_to_use", "")
         if fm.get("disable-model-invocation", "").lower() != "true":
@@ -470,6 +582,10 @@ def cmd_verify(args):
     router = os.path.join(ENGOS, "hooks", "prompt_router.py")
     routable = re.findall(r'^\s*\("([a-z-]+)", r"', open(router).read(), re.M) if os.path.exists(router) else []
     for d in routable:
+        if not os.path.isdir(os.path.join(skills_dir, d)):
+            continue  # a pack this company did not install; the hooks skip it too
+        if man and not any(k.startswith("~/.claude/skills/%s/" % d) for k in man["files"]):
+            continue  # the user's own skill with a pack's name: not eng-os's to check
         p = os.path.join(skills_dir, d, "SKILL.md")
         m = re.search(r"^## Core rules[^\n]*\n(.*?)(?=^## |\Z)", open(p).read(), re.S | re.M) if os.path.isfile(p) else None
         size = len(m.group(1).strip()) if m else 0
@@ -731,6 +847,59 @@ def cmd_test(args):
     ss_cases.append(("install: env default added when absent", merge_settings({}, {"env": {"A": "b"}}).get("env") == {"A": "b"}))
     ss_cases.append(("install: env that is not an object is replaced, not a crash", merge_settings({"env": None}, {"env": {"A": "b"}}).get("env") == {"A": "b"}))
     ss_cases.append(("install: a malformed env fragment is ignored", merge_settings({"env": {"A": "x"}}, {"env": ["bad"]}).get("env") == {"A": "x"}))
+    # company and packs: the core is company-neutral; packs are installed, rendered and routed only when chosen
+    available = load_packs(src)
+    user_t = {"name": "T", "email": "t@example.com"}
+    none_md = open(render_claude_md(os.path.join(src, "global", "CLAUDE.md"), user_t, "", tmp,
+                                    {"company": "Acme Ltd", "packs": []}, available)).read()
+    ss_cases.append(("company: CLAUDE.md names the company, not TCB", none_md.startswith("# Global engineering standards (Acme Ltd)") and "TCB" not in none_md))
+    ss_cases.append(("company: no packs, no pack rows or labels", "`odoo` |" not in none_md and "ERPNext/Frappe" not in none_md and "Indian digital lending" not in none_md))
+    ss_cases.append(("company: fully rendered", not re.search(r"\{\{[A-Z_]+\}\}|<!-- pack:", none_md)))
+    all_md = open(render_claude_md(os.path.join(src, "global", "CLAUDE.md"), user_t, "", tmp,
+                                   {"company": "Acme Ltd", "packs": sorted(available)}, available)).read()
+    ss_cases.append(("company: all packs, rows and labels present", "`fintech-lending` |" in all_md and "Odoo" in all_md and "<!-- pack:" not in all_md))
+    rel = lambda plan: {os.path.relpath(d, CLAUDE) for _, d in plan}
+    core = rel(build_plan(src, []))
+    ss_cases.append(("packs: none leaves out pack skills and rules", not any(p.startswith(("skills/odoo/", "skills/frappe-erpnext/", "skills/fintech-lending/")) or p in ("rules/odoo.md", "rules/frappe-erpnext.md") for p in core)))
+    ss_cases.append(("packs: core skills always installed", "skills/eng-security/SKILL.md" in core and "rules/tests.md" in core))
+    ss_cases.append(("packs: one pack adds only its files", rel(build_plan(src, ["odoo"])) - core == {p for p in rel(build_plan(src, None)) if p.startswith("skills/odoo/") or p == "rules/odoo.md"}))
+    ss_cases.append(("packs: all, none and lists parse", parse_packs("all", available) == sorted(available) and parse_packs("none", available) == [] and parse_packs(" odoo, frappe-erpnext ", available) == ["frappe-erpnext", "odoo"]))
+    only = os.path.join(tmp, "skills-core-only")
+    for sk in ("eng-testing", "eng-design"):
+        shutil.copytree(os.path.join(src, "global", "skills", sk), os.path.join(only, sk))
+    env_core = dict(env, ENGOS_SKILLS=only)
+    r = subprocess.run([py, pr], input=json.dumps({"prompt": "the odoo invoice report test is failing", "session_id": "pk1"}),
+                       capture_output=True, text=True, env=env_core, timeout=20).stdout
+    ss_cases.append(("packs: router skips a pack that is not installed", "`eng-testing`" in r and "`odoo`" not in r))
+    r = subprocess.run([py, ss], input=json.dumps({"source": "startup", "cwd": frappe_app, "session_id": "pk2"}),
+                       capture_output=True, text=True, env=env_core, timeout=20).stdout
+    ss_cases.append(("packs: session start points to a missing pack", "not installed on this machine" in r and "`frappe-erpnext` core rules:" not in r))
+    def exits(fn, *a):
+        try:
+            fn(*a)
+        except SystemExit:
+            return True
+        return False
+    ss_cases.append(("packs: an empty --packs value is an error, not none", exits(parse_packs, "", available) and exits(parse_packs, "all,odoo", available)))
+    ss_cases.append(("company: names with a newline or template syntax are refused", exits(check_company_name, "A\nB") and exits(check_company_name, "{{WORK}}") and exits(check_company_name, "x" * 81)))
+    ss_cases.append(("company: brackets in a name are fine", check_company_name("Acme (Pvt) Ltd") == "Acme (Pvt) Ltd"))
+    inj = open(render_claude_md(os.path.join(src, "global", "CLAUDE.md"), {"name": "{{COMPANY}}", "email": "x@example.com"}, "", tmp,
+                                {"company": "Acme", "packs": []}, available)).read()
+    ss_cases.append(("company: one-pass rendering, a value never expands another placeholder", "{{COMPANY}} <x@example.com>" in inj))
+    fake = os.path.join(tmp, "user-skills")
+    os.makedirs(os.path.join(fake, "odoo"))
+    recorded = managed_skill_dirs(src, build_plan(src, []), {"~/.claude/skills/eng-review/SKILL.md": "x"})
+    ss_cases.append(("packs: a user's own folder named like a pack is never removed", not any(d.endswith(os.sep + "odoo") for d in recorded)))
+    sys.dont_write_bytecode = True
+    sys.path.insert(0, hooks)
+    import guard as g
+    real_home = g.HOME
+    try:
+        g.HOME = "/private/tmp/h-test"
+        ss_cases.append(("guard: home inside a temp folder is not scratch", not g.in_scratch("/private/tmp/h-test/Documents") and not g.in_scratch("/private/tmp")))
+        ss_cases.append(("guard: other temp folders still are", g.in_scratch("/private/tmp/build-123")))
+    finally:
+        g.HOME = real_home
     ev = subprocess.run([py, os.path.join(src, "bin", "eng-os-eval.py"), "--self-test"], capture_output=True, text=True, timeout=60)
     ss_cases.append(("eval: transcript and stream parsers (%s)" % (ev.stdout.strip().splitlines() or ["no output"])[0], ev.returncode == 0))
     for name, ok in ss_cases:
@@ -761,6 +930,8 @@ def cmd_status(args):
     u = load_json(USER_FILE) or {}
     print("commit identity: %s <%s>%s" % (u.get("name", "?"), u.get("email", "?"),
                                           "   personal additions: " + tilde(PERSONAL) if os.path.exists(PERSONAL) else ""))
+    c = load_json(COMPANY_FILE) or {}
+    print("company: %s   packs: %s" % (c.get("company", "? (set at the next install)"), ", ".join(c.get("packs") or []) or "none"))
     return 0
 
 

@@ -1,0 +1,11 @@
+{
+ "_doc": "Optional eng-os packs. The core (every other skill and rule) is always installed; a pack is installed only when the company selects it at install (`eng-os install --packs=...`, kept in ~/.claude/eng-os/company.json). The hooks name and insert only installed skills. `label` is used in the global CLAUDE.md's description of the company's work.",
+ "packs": {
+  "frappe-erpnext": {"label": "ERPNext/Frappe", "skills": ["frappe-erpnext"], "rules": ["frappe-erpnext.md"],
+                     "for": "Frappe framework apps: ERPNext, HRMS and custom apps on v15/v16"},
+  "odoo": {"label": "Odoo", "skills": ["odoo"], "rules": ["odoo.md"],
+           "for": "Odoo modules and implementations, versions 17 to 20"},
+  "fintech-lending": {"label": "Indian digital lending (NBFC/LSP)", "skills": ["fintech-lending"], "rules": [],
+                      "for": "Indian digital lending under RBI and DPDP rules: loans, ledgers, disbursal, KYC, bureau, payment gateways"}
+ }
+}

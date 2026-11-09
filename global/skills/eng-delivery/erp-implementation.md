@@ -1,6 +1,6 @@
 # ERP implementation method (ERPNext/Frappe and Odoo)
 
-TCB's method, built from Frappe's partner implementation procedure, Odoo's implementation methodology, Microsoft's Success by Design and SAP Activate's fit-to-standard idea. Framework specifics are in skills `frappe-erpnext` and `odoo`; documents in skill `eng-docs`.
+A method built from Frappe's partner implementation procedure, Odoo's implementation methodology, Microsoft's Success by Design and SAP Activate's fit-to-standard idea. Framework specifics are in skills `frappe-erpnext` and `odoo` where those packs are installed; documents in skill `eng-docs`.
 
 ## Phases
 | Phase | What happens | Exit (written, signed) |
