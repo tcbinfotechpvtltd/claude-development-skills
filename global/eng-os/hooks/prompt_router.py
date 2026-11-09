@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """eng-os UserPromptSubmit hook: tells Claude which eng-os skills a request needs, so nobody has to name them.
-Keyword routing, each skill suggested at most once per session, silent when nothing matches.
-Zero model tokens unless it speaks (~40 tokens). Fail-open, Python 3.9 compatible, stdlib only.
+Keyword routing, each skill routed at most once per session, silent when nothing matches. For each newly routed
+skill it inserts that skill's "## Core rules" section, so the essentials apply even when Claude does not load the
+full skill (measured: named skills were loaded in only a few sessions). About 150-250 tokens per routed skill,
+once per session. Fail-open, Python 3.9 compatible, stdlib only.
 """
 import json
 import os
@@ -9,7 +11,12 @@ import re
 import sys
 
 ENGOS = os.environ.get("ENGOS_HOME") or os.path.expanduser("~/.claude/eng-os")
+# hooks/ sits in <claude>/eng-os/hooks when installed and in global/eng-os/hooks in the repo; skills/ is beside eng-os/
+SKILLS = os.environ.get("ENGOS_SKILLS") or os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "skills")
 MAX_SKILLS = 4
+MAX_CORE_CHARS = 1200     # per skill; `eng-os verify` keeps each section at or under 1,000
+MAX_CONTEXT_CHARS = 4500  # well under Claude Code's 10,000-character hook output cap
 
 # Most specific first: domain and stack skills, then activity skills.
 ROUTES = [
@@ -34,6 +41,35 @@ ROUTES = [
     ("eng-project-init", r"onboard\w*|set ?up (this|the) (project|repo)|claude\.md"),
 ]
 PATTERNS = [(skill, re.compile(r"\b(?:%s)\b" % rx, re.I)) for skill, rx in ROUTES]
+CORE = re.compile(r"^## Core rules[^\n]*\n(.*?)(?=^## |\Z)", re.S | re.M)
+
+
+def core_rules(skill):
+    """The skill's '## Core rules' section, or '' when it is missing or unreadable."""
+    try:
+        with open(os.path.join(SKILLS, skill, "SKILL.md"), errors="replace") as fh:
+            m = CORE.search(fh.read())
+    except OSError:
+        return ""
+    return m.group(1).strip()[:MAX_CORE_CHARS] if m else ""
+
+
+def routing_context(skills, lead):
+    """(text, done): a header naming the skills, then each one's core rules while they fit in MAX_CONTEXT_CHARS.
+    `done` lists the skills that need no repeat this session: core rules inserted, or none to insert. A skill
+    whose rules did not fit is routed again on a later request."""
+    text = ("%s %s. Their core rules follow and apply now; load the full skill with the Skill tool when the task "
+            "needs its procedures." % (lead, ", ".join("`%s`" % s for s in skills)))
+    done = []
+    for s in skills:
+        core = core_rules(s)
+        block = "\n\n`%s` core rules:\n%s" % (s, core)
+        if not core:
+            done.append(s)
+        elif len(text) + len(block) <= MAX_CONTEXT_CHARS:
+            text += block
+            done.append(s)
+    return text, done
 
 
 def main():
@@ -58,13 +94,11 @@ def main():
     new = [s for s in matched if s not in seen][:MAX_SKILLS]
     if not new:
         return 0
+    text, done = routing_context(new, "eng-os skill routing: this request matches")
     os.makedirs(state_dir, exist_ok=True)
     with open(seen_file, "w") as fh:
-        json.dump(sorted(seen | set(new)), fh)
-    print(json.dumps({"hookSpecificOutput": {
-        "hookEventName": "UserPromptSubmit",
-        "additionalContext": "eng-os skill routing: the eng-os skills covering this request are %s."
-                             % ", ".join("`%s`" % s for s in new)}}))
+        json.dump(sorted(seen | set(done)), fh)
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": text}}))
     return 0
 
 

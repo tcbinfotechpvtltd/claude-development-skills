@@ -5,6 +5,14 @@ description: Delivery and operations procedure covering CI/CD pipelines, environ
 
 # Shipping and operations
 
+## Core rules
+- Production changes need the user's explicit approval in this session, after a dry run on UAT.
+- Before a production deploy: backup verified, migrations tried on a copy, rollback written down, health checks named.
+- Where the stack builds an artifact, build it once and promote that same artifact; environments differ only in configuration.
+- Take the branch-to-environment mapping from the project CLAUDE.md before deploying anything.
+- Check configuration by key names; secret values are never printed.
+- After a deploy, smoke-test the critical paths, watch error rates and record the release with its rollback target.
+
 ## Environments and promotion
 - Flow: local → UAT/staging → production. Build once, promote the same artifact; environments differ only in config (env vars / secret store).
 - Know the branch → environment mapping from the project CLAUDE.md before touching anything; if it is missing, find it (CI config, deploy scripts) and record it there.

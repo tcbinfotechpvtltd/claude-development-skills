@@ -5,6 +5,8 @@
   - a newer eng-os release tag exists on the repo's remote (checked at most once a week)
   - the session's project uses a recognisable stack (with or without a stack-specific eng-os skill),
     or is a project (git or not) without a CLAUDE.md. Nothing here names a specific project.
+  - for the project's eng-os skills, their "## Core rules" sections (also restated after compaction or /clear,
+    when the per-session routing record is reset so the prompt router can insert core rules again).
 Also prunes per-session guard state older than 3 days. Fail-open, Python 3.9 compatible.
 """
 import hashlib
@@ -124,9 +126,12 @@ def record_stacks(state, found):
         json.dump(seen, fh, indent=1)
 
 
-def detect_project(cwd):
+def detect_project(cwd, skills=None, record=True):
     """Which eng-os skills fit the project in cwd: markers in cwd and its direct subfolders (and Odoo modules inside an
-    addons folder). A folder that merely holds many separate projects stays silent."""
+    addons folder). A folder that merely holds many separate projects stays silent. Returns the notes; when `skills`
+    is a list, the matching eng-os skill names are appended to it."""
+    if skills is None:
+        skills = []
     home = os.path.expanduser("~")
     if not cwd or not os.path.isdir(cwd) or os.path.realpath(cwd) in (os.path.realpath(home), "/"):
         return []
@@ -146,16 +151,21 @@ def detect_project(cwd):
             found.extend(x for x in f if x not in found)
     if not found and (os.path.exists(j("pyproject.toml")) or os.path.exists(j("requirements.txt"))):
         found.append(("Python", "custom-apps (python.md)"))
-    try:
-        record_stacks(os.path.join(ENGOS, "state"), found)
-    except Exception:
-        pass
+    if record:
+        try:
+            record_stacks(os.path.join(ENGOS, "state"), found)
+        except Exception:
+            pass
     notes = []
     covered = [(n, s) for n, s in found if s]
     uncovered = [n for n, s in found if not s]
     if covered:
         notes.append("this project looks like %s; the eng-os skill for it is %s." % (
             " + ".join(n for n, _ in covered), ", ".join("`%s`" % s for _, s in covered)))
+        for _, s in covered:
+            base = s.split(" ", 1)[0]
+            if base not in skills:
+                skills.append(base)
     if uncovered:
         notes.append("this project uses %s, which has no stack-specific eng-os skill: the general eng-os skills apply, "
                      "and its conventions belong in the project CLAUDE.md." % " + ".join(uncovered))
@@ -163,6 +173,8 @@ def detect_project(cwd):
     facts = "\n".join(line for line in brief.splitlines() if "<e.g." not in line).replace("fintech-lending", "")
     if re.search(r"\b(loans?|lending|nbfc|lsp|disburs\w*|kyc|ledger)\b", facts, re.I):
         notes.append("its CLAUDE.md describes lending or KYC work, which skill `fintech-lending` covers.")
+        if "fintech-lending" not in skills:
+            skills.append("fintech-lending")
     is_git = os.path.isdir(j(".git"))
     if not brief and (is_git or found):
         notes.append("this project has no CLAUDE.md yet%s; `/eng-project-init` creates one with the docs set and templates."
@@ -170,13 +182,58 @@ def detect_project(cwd):
     return notes
 
 
+def project_cores(data, skills):
+    """Core rules of the project's skills (at most 3), recorded as already routed for this session so the prompt
+    router does not repeat them. '' when there is nothing to add."""
+    skills = skills[:3]
+    if not skills:
+        return ""
+    sys.dont_write_bytecode = True  # keep the installed hooks folder free of __pycache__
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import prompt_router
+    text, done = prompt_router.routing_context(skills, "eng-os project skills:")
+    seen_file = route_file(data)
+    try:
+        with open(seen_file) as fh:
+            seen = set(json.load(fh))
+    except (OSError, ValueError):
+        seen = set()
+    os.makedirs(os.path.dirname(seen_file), exist_ok=True)
+    with open(seen_file, "w") as fh:
+        json.dump(sorted(seen | set(done)), fh)
+    return text
+
+
+def route_file(data):
+    """Same per-session file the prompt router uses to route each skill once."""
+    session = re.sub(r"[^A-Za-z0-9_-]", "", str(data.get("session_id") or "nosession"))[:80]
+    return os.path.join(ENGOS, "state", "route-%s.json" % session)
+
+
 def main():
     try:
         data = json.loads(sys.stdin.read() or "{}")
     except ValueError:
         data = {}
-    if data.get("source") not in (None, "startup"):
-        return 0  # resume/clear/compact: CLAUDE.md is reloaded by the harness; stay silent
+    source = data.get("source")
+    if source in ("compact", "clear"):
+        # The context that held earlier core rules is gone: let the router insert them again, and restate the
+        # project's own skills. Everything else stays silent (CLAUDE.md is reloaded by the harness).
+        try:
+            os.remove(route_file(data))
+        except OSError:
+            pass
+        skills = []
+        try:
+            detect_project(data.get("cwd"), skills, record=False)
+            text = project_cores(data, skills)
+        except Exception:
+            text = ""
+        if text:
+            print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}))
+        return 0
+    if source not in (None, "startup"):
+        return 0  # resume: the conversation context is intact; stay silent
     notes = []
     try:
         with open(os.path.join(ENGOS, "manifest.json")) as fh:
@@ -206,8 +263,9 @@ def main():
                 drift.append(rel + " (missing)")
         if drift:
             notes.append("installed files differ from the reviewed install (%s). Treat them as unreviewed; tell the user and suggest `~/.claude/eng-os/bin/eng-os verify`." % ", ".join(drift[:5]))
+    skills = []
     try:
-        notes.extend(detect_project(data.get("cwd")))
+        notes.extend(detect_project(data.get("cwd"), skills))
     except Exception:
         pass
     state = os.path.join(ENGOS, "state")
@@ -227,9 +285,13 @@ def main():
                     os.remove(p)
                 except OSError:
                     pass
+    try:
+        cores = project_cores(data, skills)
+    except Exception:
+        cores = ""
     if notes:
-        print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart",
-                                                 "additionalContext": "eng-os: " + " ".join(notes)}}))
+        text = "eng-os: " + " ".join(notes) + ("\n\n" + cores if cores else "")
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": text}}))
     return 0
 
 

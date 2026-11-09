@@ -7,6 +7,15 @@ description: Secure-by-design procedure and checklists (OWASP Top 10:2025, ASVS 
 
 Security is continuous: every change gets the depth of review its risk deserves. Never declare a system secure. Report what was verified, what was not, and the residual risk.
 
+## Core rules
+- Threat-model any change touching auth, input, data or integrations: assets, entry points, trust boundaries.
+- Check authorization on the server for the specific object and tenant on every request; client-sent ids, roles and prices are never trusted.
+- Queries are parameterized, output is encoded for its context, and untrusted data never reaches eval, unsafe deserialization or a shell string.
+- Webhooks: constant-time signature check, timestamp window, stored event id for idempotency.
+- Rate-limit OTP, login and expensive endpoints; OTPs expire quickly, work once and never appear in logs.
+- PAN, Aadhaar and account numbers show only the last 4 digits in screens and logs.
+- Add negative tests (wrong user, wrong tenant, tampered or replayed request) and report the residual risk rather than a verdict of "secure".
+
 ## 1. Threat model the change (5 minutes, in your head or in the PR)
 - **Assets**: what is valuable here (money, PII/KYC, credentials, admin functions, availability).
 - **Entry points**: every way untrusted data or a caller reaches this code (HTTP, webhook, file, queue, CLI, cron, admin UI).

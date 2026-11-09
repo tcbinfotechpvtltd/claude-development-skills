@@ -8,6 +8,15 @@ description: Domain rules for Indian digital lending systems (NBFC/LSP, loan ori
 Regulatory text changes. These are engineering defaults, not legal advice: when a rule decides behaviour (fees, cooling-off, data location, disclosures), confirm the current RBI/DPDP wording or the client's compliance owner and record the source in the project docs. Never guess money or compliance logic; ask.
 Rules below were checked against RBI and DPDP sources on 2026-11-04. RBI consolidated its instructions into Master Directions on 28 Nov 2025: the digital lending rules are restated in Chapter III of the NBFC (Credit Facilities) Directions 2025 with the same values. Which text governs a given client is its compliance owner's call.
 
+## Core rules
+- Money is integer paise or DECIMAL, never a float; it is rounded once, where the rule says, with a named rounding mode.
+- Ledgers are append-only double entry, and corrections are reversing entries.
+- Disbursal happens only when every server-side gate passes (KYC, sanction, signed agreement, cooling-off, the borrower's own verified account), guarded by a unique idempotency key.
+- A money-moving vendor call saves its idempotency key first; after a timeout, query the status instead of retrying.
+- Webhooks are signature- and timestamp-checked, stored by event id, processed idempotently and reconciled daily.
+- Borrower data: the minimum, with consent, stored in India; full Aadhaar is never stored; PAN and account numbers are masked.
+- Fees, rates, cooling-off and disclosure rules are confirmed with the client's compliance owner, never guessed.
+
 ## Money and ledgers
 - Amounts in integer paise or fixed DECIMAL(18,2+) in the database; Decimal in code (Python `Decimal`, PHP `bcmath`/integer paise, JS integer paise or a decimal library). Never binary floats for money.
 - Store currency with every amount. Round once, at the point the business rule defines, with a named rounding mode (half-up vs banker's); test the boundaries.

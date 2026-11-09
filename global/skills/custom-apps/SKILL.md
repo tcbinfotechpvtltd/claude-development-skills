@@ -13,6 +13,14 @@ Load the file for the stack in hand; each holds its architecture, current upgrad
 
 Security pitfalls per stack: [stacks.md](../eng-security/stacks.md). Formatter and linter per language: [coding-standards.md](../eng-review/coding-standards.md). Test tooling: [tooling.md](../eng-testing/tooling.md).
 
+## Core rules
+- Check the runtime against this skill's version table; an end-of-life runtime is a security finding to report with an upgrade plan.
+- Configuration comes from environment variables with a committed `.env.example`; client bundles and app binaries carry no secrets.
+- Business rules live in plain, testable functions behind the transport layer, with one adapter per vendor.
+- Lock files are committed, and advisories are checked before a dependency is added or upgraded.
+- Read the stack file (Next.js, Flutter, CodeIgniter 3 or Python) before changing that stack's code.
+- Health checks, structured logs and error tracking exist before an app reaches production.
+
 ## Runtime versions (checked 2026-11-04)
 | Runtime | Use for new work | Still supported | End of life / note |
 |---|---|---|---|

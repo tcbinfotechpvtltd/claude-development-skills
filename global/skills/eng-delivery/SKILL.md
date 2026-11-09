@@ -7,6 +7,14 @@ description: Delivery and project management for client projects (ERP implementa
 
 Goal: predictable delivery the client can see, with no surprises on scope, time, money or risk. Methods are tools: pick the one that fits the work. Claude drafts scopes, estimates, plans, logs, reports and change requests from evidence. It never invents dates, prices or commitments; commercial terms come from the user, and anything sent to a client is the user's action.
 
+## Core rules
+- Before building, write scope in and out, assumptions and acceptance criteria into `docs/project-brief.md`.
+- Estimates are ranges with their assumptions, covering testing, UAT, migration, training and deployment as well as code.
+- On fixed scope, every change request is logged and approved in writing by the client before work starts.
+- Dates, prices and commitments come from the user; anything sent to a client is the user's action.
+- `docs/raid.md` stays current, and bad news is reported the day it is known, with options.
+- Work counts as done only against this skill's Definition of Done.
+
 ## 1. Scope and agreement (before any build)
 - Client goal and success criteria in their words; **in scope / out of scope** lists; assumptions; what we need from the client (data, access, decisions, vendor credentials, sign-offs) with dates.
 - Deliverables, each with acceptance criteria and a named sign-off owner.

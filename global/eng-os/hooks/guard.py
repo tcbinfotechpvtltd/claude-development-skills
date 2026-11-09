@@ -10,6 +10,7 @@ Fail-open by design: an internal error never blocks work; it is logged to
 ~/.claude/eng-os/state/guard-errors.log and surfaced by `eng-os verify`.
 Python 3.9 compatible, stdlib only. Unit tests: tests/guard_cases.json.
 """
+import fnmatch
 import json
 import os
 import re
@@ -34,7 +35,7 @@ SECRET_PATH = re.compile(
     r"""(?:^|[\s/'"=:(@])(?:"""
     r"""\.env(?!\.(?:example|sample|template|dist|defaults)\b)(?:\.[\w.-]+)?"""
     r"""|id_(?:rsa|ed25519|ecdsa|dsa)(?!\.pub)"""
-    r"""|[\w.-]+\.(?:pem|p12|pfx|keystore|jks|ppk)"""
+    r"""|[\w.-]+\.(?:pem|key|p12|pfx|keystore|jks|ppk)"""
     r"""|\.aws/credentials|\.netrc|\.pgpass|\.git-credentials|\.npmrc|\.pypirc"""
     r"""|\.docker/config\.json|\.kube/config|credentials\.json|service[-_]?account[\w.-]*\.json"""
     r"""|[\w.-]*_secrets(?:/|\b)|secrets\.(?:json|ya?ml|env|txt|toml)"""
@@ -45,9 +46,25 @@ CLAUDE_CREDS = ".claude/.credentials.json"
 NEVER_READ = re.compile(r"\.claude/\.credentials\.json")
 KEYCHAIN_DUMP = re.compile(r"\bsecurity\s+(?:find-(?:generic|internet)-password\b.*\s-w\b|dump-keychain)")
 READ_VERBS = re.compile(r"(?:^|[\s;&|(`$'\"])(?:cat|less|more|head|tail|bat|strings|xxd|od|hexdump|base64|grep|egrep|rg|awk|sed|cut|sort|cp|scp|rsync|open|pbcopy|curl|nl|tac|jq|yq|python3?|node|php|ruby)\b")
-# commands that print, copy or send a file named in their own arguments
+# commands that print, copy or send a file named in their own arguments (interpreters: `python3 -c "open('.env')"`)
 READ_CMDS = set("cat less more head tail bat strings xxd od hexdump base64 grep egrep rg awk sed cut sort cp scp rsync "
-                "open pbcopy curl nl tac jq yq zip tar".split())
+                "open pbcopy curl nl tac jq yq zip tar python python3 node php ruby perl deno bun".split())
+ENV_FILE_FLAG = re.compile(r"--env-file(?:=|\s+)\S+")  # `node --env-file=.env app.js` loads it without printing it
+# Grep `glob` values that pick out secret files: they match one of these names and none of the ordinary ones
+SECRET_NAMES = (".env", ".env.local", ".env.production", "id_rsa", "id_ed25519", "server.pem", "server.key", "credentials.json",
+                "secrets.yaml", ".npmrc", ".netrc", ".pgpass", "service-account.json")
+ORDINARY_NAMES = ("package.json", "main.py", "index.ts", "README.md", "config.yaml", "settings.py", "app.php", "app.js")
+# environment variable names whose underscore-separated parts mark them as secrets ($API_KEY, $DB_PASSWORD; not $MONKEY)
+SECRET_VAR = re.compile(r"(?:^|_)(?:API_?KEY|KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIALS?|PRIVATE_KEY)(?:_|$)")
+SAFE_VAR_SUFFIX = re.compile(r"_(?:PATH|FILE|DIR|ID|NAME|URL|URI|LENGTH|LEN|SIZE|COUNT|TYPE|ENABLED|MIN|MAX)$")
+VAR_REF = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)")
+HTTP_MUTATING = ("DELETE", "PUT", "PATCH")
+HTTP_VERBS = ("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
+FIND_FILTERS = {"-name", "-iname", "-path", "-ipath", "-wholename", "-iwholename", "-regex", "-iregex", "-mtime",
+                "-mmin", "-atime", "-amin", "-ctime", "-cmin", "-newer", "-size", "-empty", "-user", "-group", "-perm"}
+SYSTEM_DIRS = ("/System", "/Library", "/usr", "/etc", "/var", "/bin", "/sbin", "/opt", "/private/etc", "/private/var")
+SQL_DESTRUCTIVE = re.compile(r"(?i)\b(?:drop\s+(?:database|schema|table|user)|truncate\s+(?:table\s+)?[`\"\w.]+|alter\s+table\s+[`\"\w.]+\s+drop\b)")
+DB_TOOL = re.compile(r"sql|query|exec|database|(?:^|[-_])db(?:$|[-_])|postgres|mysql|maria|supabase|sqlite|bigquery|snowflake|neon|mongo|redshift|clickhouse", re.I)
 
 SECRET_CONTENT = [
     ("aws-key", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
@@ -88,8 +105,7 @@ BASH_RULES = [
      "discards uncommitted work or rewrites/deletes git history"),
     ("gh-irreversible", "ask", re.compile(r"\bgh\s+(?:pr\s+merge|repo\s+(?:delete|archive|rename|edit\b[^\n;|&]*--visibility)|release\s+(?:create|delete|upload|edit)|secret\s+(?:set|delete)|variable\s+(?:set|delete)|workflow\s+run|api\b[^\n;|&]*(?:-X|--method)\s*(?:DELETE|PUT|PATCH|POST))\b"),
      "merges, publishes, deletes or changes GitHub state"),
-    ("sql-destructive", "ask", re.compile(r"(?i)\b(?:drop\s+(?:database|schema|table|user)|truncate\s+(?:table\s+)?[`\"\w.]+|alter\s+table\s+[`\"\w.]+\s+drop\b)"),
-     "destructive SQL (DROP/TRUNCATE)"),
+    ("sql-destructive", "ask", SQL_DESTRUCTIVE, "destructive SQL (DROP/TRUNCATE)"),
     ("bench-destructive", "ask", re.compile(r"\bbench\b[^\n;|&]*\b(?:drop-site|reinstall|restore|remove-app|uninstall-app|new-site\b[^\n;|&]*--force|--force\b[^\n;|&]*new-site|trim-database|trim-tables|delete-site)\b"),
      "Frappe bench operation that drops or overwrites site data"),
     ("docker-destructive", "ask", re.compile(r"\bdocker(?:-compose)?\b[^\n;|&]*\b(?:system\s+prune|volume\s+(?:rm|prune)|image\s+prune\s+-a|down\b[^\n;|&]*(?:\s-v\b|--volumes))"),
@@ -277,8 +293,136 @@ def secret_reads(cmd):
         if os.path.basename(argv[0]) in READ_CMDS:
             args = " " + " ".join(argv[1:])
             creds = creds or CLAUDE_CREDS in args
-            secret = secret or bool(SECRET_PATH.search(args))
+            secret = secret or bool(SECRET_PATH.search(ENV_FILE_FLAG.sub(" ", args)))
     return creds, secret
+
+
+def env_dump(cmd):
+    """Commands that print environment variables, which often hold secrets."""
+    for argv in segments(cmd):
+        base, args = os.path.basename(argv[0]), argv[1:]
+        if base == "printenv":
+            if not args or any(secret_var(a) for a in args if not a.startswith("-")):
+                return "printenv"
+        elif base == "env":
+            rest = list(args)
+            while rest and rest[0].startswith("-"):  # options only, no command: env prints the environment
+                rest = rest[2:] if rest[0] in ("-u", "--unset") else rest[1:]
+            if not rest and not any(a in ("-i", "--ignore-environment") or a == "-" for a in args):
+                return "env"
+        elif base in ("export", "declare", "typeset") and set("".join(args)) <= set("-px"):
+            return " ".join(argv)
+        elif base == "set" and not args:
+            return "set"
+        elif base in ("echo", "printf", "print"):
+            for a in args:
+                for name in VAR_REF.findall(a):
+                    if secret_var(name):
+                        return "%s $%s" % (base, name)
+    return None
+
+
+def secret_var(name):
+    """A variable name that marks a secret value: $API_KEY, $DB_PASSWORD; not $SSH_KEY_PATH or $PASSWORD_MIN_LENGTH."""
+    n = name.upper()
+    return bool(SECRET_VAR.search(n)) and not SAFE_VAR_SUFFIX.search(n)
+
+
+def local_host(host):
+    """Loopback, *.localhost/*.test/*.local and single-label names (docker-compose services such as `minio`).
+    Private IPs and *.internal still count as remote: from a server they can be production."""
+    h = host.lower().strip("[]")
+    return (h in LOCAL_HOSTS or h.endswith((".localhost", ".test", ".local")) or h == ""
+            or (re.match(r"^[a-z0-9-]+$", h) is not None and not h.isdigit()))
+
+
+def http_mutating(cmd):
+    """curl / wget / httpie sending DELETE, PUT or PATCH to a host that is not local (or to a host it cannot tell)."""
+    for argv in segments(cmd):
+        base, args = os.path.basename(argv[0]), argv[1:]
+        method = None
+        if base == "curl":
+            for i, a in enumerate(args):
+                m = re.match(r"^-[A-Za-z]*X(.*)$", a)  # -X DELETE, -XDELETE, and bundled short flags (-sXPUT, -sX PUT)
+                if a == "--request" and i + 1 < len(args):
+                    method = args[i + 1]
+                elif a.startswith("--request="):
+                    method = a.split("=", 1)[1]
+                elif m and not a.startswith("--"):
+                    method = m.group(1) or (args[i + 1] if i + 1 < len(args) else None)
+        elif base == "wget":
+            for i, a in enumerate(args):
+                if a == "--method" and i + 1 < len(args):
+                    method = args[i + 1]
+                elif a.startswith("--method="):
+                    method = a.split("=", 1)[1]
+        elif base in ("http", "https", "xh"):
+            # the method is the first bare HTTP verb; options such as --auth u:p take values that come before it
+            verbs = [a for a in args if a.upper() in HTTP_VERBS]
+            method = verbs[0] if verbs else None
+        if not method or method.upper() not in HTTP_MUTATING:
+            continue
+        hosts = re.findall(r"(?i)\bhttps?://(\[[^\]]+\]|[^/\s:'\"?#]+)", " ".join(args))
+        if not hosts:  # curl and httpie also take bare hosts (example.com/api, localhost:8000, :8000 for httpie)
+            hosts = [m.group(1) for a in args if not a.startswith("-")
+                     for m in [re.match(r"^(\[[^\]]+\]|[\w.-]*)(?::\d+)?(?:/|$)", a)]
+                     if m and (a.startswith(":") or "." in m.group(1) or m.group(1).lower() == "localhost")]
+        remote = [h for h in hosts if not local_host(h)]
+        if remote or not hosts:
+            return "%s %s to %s" % (base, method.upper(), remote[0] if remote else "a host it could not determine")
+    return None
+
+
+def check_find(cmd, cwd, project):
+    """find ... -delete / -exec rm: same location limits as rm, and it must be filtered."""
+    for argv in segments(cmd):
+        if os.path.basename(argv[0]) != "find":
+            continue
+        args = argv[1:]
+        deleting = "-delete" in args or any(
+            a in ("-exec", "-execdir", "-ok", "-okdir") and i + 1 < len(args) and os.path.basename(args[i + 1]) in ("rm", "unlink", "shred")
+            for i, a in enumerate(args))
+        if not deleting:
+            continue
+        while args and args[0] in ("-H", "-L", "-P"):
+            args = args[1:]
+        roots = []
+        for a in args:
+            if a.startswith("-") or a in ("(", "!", ")"):
+                break
+            roots.append(a)
+        for r in roots or ["."]:
+            p = norm(r, cwd)
+            if "$" in p:
+                return "the search root contains an unexpanded variable (%s)" % r
+            scratch = any(under(p, t) for t in scratch_roots())
+            if not scratch and (p in ("/", HOME, os.path.dirname(HOME)) or any(under(p, s) for s in SYSTEM_DIRS)):
+                return "deletes files under the filesystem root, a system directory or the home directory (%s)" % r
+            if not (under(p, project) or under(p, cwd) or scratch):
+                return "deletes files outside the project and temp dirs (%s)" % r
+        if not any(a in FIND_FILTERS for a in args):
+            return "deletes everything under %s: no -name, -path or age filter" % (", ".join(roots) or ".")
+        for i, a in enumerate(args):
+            if a in ("-name", "-iname", "-path", "-ipath") and i + 1 < len(args) and ".git" in args[i + 1] and "-prune" not in args:
+                return "deletes git metadata (%s %s)" % (a, args[i + 1])
+    return None
+
+
+def unscoped_sql(text):
+    """UPDATE/DELETE statements without a WHERE clause; comments are ignored, so `/* where */` does not count."""
+    text = re.sub(r"/\*.*?\*/|--\s[^\n]*", " ", text, flags=re.S)  # "-- " comments; never CLI flags like --host
+    return any(SQL_UNSCOPED.search(st) and not re.search(r"(?i)\bwhere\b", st) for st in text.split(";"))
+
+
+def strings_in(value):
+    """All string values inside a tool input, with real newlines kept (json.dumps would turn them into a literal \\n)."""
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [s for v in value.values() for s in strings_in(v)]
+    if isinstance(value, list):
+        return [s for v in value for s in strings_in(v)]
+    return []
 
 
 def check_bash(cmd, cwd, project, cfg):
@@ -286,6 +430,9 @@ def check_bash(cmd, cwd, project, cfg):
     creds, secret = secret_reads(cmd)
     if creds:
         return "deny", "credential-dump: reads Claude's own OAuth credentials"
+    # hard blocks first, so an approval for another part of the command can never let them through
+    if cfg.get("block_claude_coauthor") and re.search(r"\bgit\b[^\n]*\bcommit\b", cmd) and COAUTHOR.search(cmd):
+        return "deny", "coauthor: the user's rule is commits under their name only; remove the 'Co-Authored-By: Claude' trailer and retry"
     for rid, decision, rx, reason in BASH_RULES:
         if rid not in off and rx.search(cmd):
             return decision, "%s: %s" % (rid, reason)
@@ -293,12 +440,18 @@ def check_bash(cmd, cwd, project, cfg):
         why = check_rm(cmd, cwd, project)
         if why:
             return "ask", "rm-outside: " + why
+    if "find-delete" not in off:
+        why = check_find(cmd, cwd, project)
+        if why:
+            return "ask", "find-delete: " + why
+    if "http-mutating" not in off:
+        why = http_mutating(cmd)
+        if why:
+            return "ask", "http-mutating: %s changes or deletes data in a remote service" % why
     if "git-protected-push" not in off and re.search(r"\bgit\b[^\n;|&]*\bpush\b", cmd):
         why = check_push(cmd, cwd, cfg)
         if why:
             return "ask", "git-protected-push: " + why
-    if cfg.get("block_claude_coauthor") and re.search(r"\bgit\b[^\n]*\bcommit\b", cmd) and COAUTHOR.search(cmd):
-        return "deny", "coauthor: the user's rule is commits under their name only; remove the 'Co-Authored-By: Claude' trailer and retry"
     if SSH_CMD.search(cmd):
         if SSH_SECRET.search(cmd) and READ_VERBS.search(cmd):
             return "ask", "ssh-secret: reads a remote secrets/config file (credentials would enter the transcript)"
@@ -314,11 +467,15 @@ def check_bash(cmd, cwd, project, cfg):
     m = DB_CLIENT.search(cmd)
     if m and m.group(1).lower() not in LOCAL_HOSTS and SQL_WRITE.search(cmd):
         return "ask", "remote-db-write: writes to a non-local database (%s)" % m.group(1)
-    if re.search(r"\b(?:mysql|mariadb|psql|sqlite3|bench|frappe\.db|execute)\b", cmd) and any(
-            SQL_UNSCOPED.search(st) and not re.search(r"(?i)\bwhere\b", st) for st in cmd.split(";")):
+    if re.search(r"\b(?:mysql|mariadb|psql|sqlite3|bench|frappe\.db|execute)\b", cmd) and unscoped_sql(cmd):
         return "ask", "sql-unscoped: UPDATE/DELETE without WHERE"
     if secret and "secret-read" not in off:
         return "ask", "secret-read: prints/copies/sends a secrets file (its values would enter the transcript)"
+    if "env-dump" not in off:
+        why = env_dump(re.sub(r"'[^']*'", "''", cmd))  # single-quoted text is literal, never an expansion
+        if why:
+            return "ask", ("env-dump: `%s` prints environment variables, which often hold secrets (they would enter the "
+                           "transcript); to check one is set, use `[ -n \"$NAME\" ] && echo set`" % why)
     if GLOBAL_CONFIG_FILES.search(cmd) and SHELL_WRITE.search(cmd) and "eng-os install" not in cmd and "eng-os restore" not in cmd:
         return "ask", "global-config: edits live global Claude config; change the eng-os repo (`eng-os status` shows where) and run `eng-os install` instead"
     return None
@@ -343,8 +500,12 @@ def check_file_tool(tool, inp, cwd):
     if tool in ("Read", "Grep", "Glob"):
         if NEVER_READ.search(path):
             return "deny", "credential-file: Claude's own OAuth credentials are never needed"
-        if tool == "Read" and SECRET_PATH.search(" " + path):
+        # Grep prints matching lines only in "content" mode; its default lists file names
+        shows = tool == "Read" or (tool == "Grep" and inp.get("output_mode") == "content")
+        if shows and SECRET_PATH.search(" " + path):
             return "ask", "secret-read: reading %s puts secret values into the transcript; prefer listing key names only" % os.path.basename(path)
+        if shows and tool == "Grep" and secret_glob(inp.get("glob") or ""):
+            return "ask", "secret-read: the glob %s selects secrets files, so matching lines would enter the transcript" % inp.get("glob")
         return None
     # write tools
     if GLOBAL_CONFIG_FILES.search(path):
@@ -365,11 +526,32 @@ def check_file_tool(tool, inp, cwd):
     return None
 
 
+def secret_glob(glob):
+    """A Grep glob that picks out secrets files: it matches a typical secret name and no ordinary source file."""
+    if not glob:
+        return False
+    alts = [glob]
+    m = re.match(r"^(.*)\{([^{}]*)\}(.*)$", glob)
+    if m:
+        alts = [m.group(1) + a + m.group(3) for a in m.group(2).split(",")]
+    for g in alts:
+        g = g.split("/")[-1]
+        if any(fnmatch.fnmatchcase(n, g) for n in SECRET_NAMES) and not any(fnmatch.fnmatchcase(n, g) for n in ORDINARY_NAMES):
+            return True
+    return False
+
+
 def check_mcp(tool, inp):
     if MCP_SKIP.search(tool):
         return None
     parts = tool.split("__")
     server, action = (parts[1] if len(parts) > 2 else ""), parts[-1]
+    if DB_TOOL.search(server) or DB_TOOL.search(action):
+        sql = "\n".join(strings_in(inp))
+        if SQL_DESTRUCTIVE.search(re.sub(r"/\*.*?\*/", " ", sql, flags=re.S)):
+            return "ask", "mcp-sql-destructive: destructive SQL (DROP/TRUNCATE) through %s" % action
+        if unscoped_sql(sql):
+            return "ask", "mcp-sql-destructive: UPDATE/DELETE without WHERE through %s" % action
     if re.search(r"(^|[-_])ads?($|[-_])|adwords|advertis", server, re.I) and re.search(r"create|update|mutate|status|enable", action, re.I):
         blob = json.dumps(inp).lower()
         updating = re.search(r"update|mutate|status", action, re.I)

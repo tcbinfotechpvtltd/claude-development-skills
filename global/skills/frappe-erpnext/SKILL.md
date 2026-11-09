@@ -7,6 +7,15 @@ description: Conventions, workflows and gotchas for Frappe framework apps (ERPNe
 
 Security invariants for Frappe code are in the user rule `frappe-erpnext` (it auto-loads when app files are touched) and in [stacks.md](../eng-security/stacks.md). This skill holds the procedures.
 
+## Core rules
+- `apps/frappe` and `apps/erpnext` are never edited; customise through a custom app (fixtures, `hooks.py`, overrides).
+- Commands touch only the site you were asked to work on; each client has an isolated site.
+- A restored client site is neutralized before it first starts: emails muted, scheduler off, vendor credentials cleared.
+- Whitelisted methods check permissions; user-facing reads use `frappe.get_list`, which applies them, and SQL is parameterized.
+- Accounting and stock move only through documents, never direct GL or stock-ledger inserts, and queries on company-scoped doctypes filter by company.
+- Patches are idempotent and listed in `patches.txt`; tests run on a dedicated test site.
+- On a production bench: backup first, explicit approval, Server Scripts stay disabled.
+
 ## Before changing anything
 - For a client ERPNext implementation, run the project with the ERP method in [erp-implementation.md](../eng-delivery/erp-implementation.md): configure standard features before writing any code.
 - Identify bench path, Frappe/ERPNext versions (`bench version`), the site, its port, and which apps are installed (`bench --site <s> list-apps`). Record them in the project CLAUDE.md if they are missing.

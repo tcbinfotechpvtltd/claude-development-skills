@@ -5,6 +5,14 @@ description: Test strategy, test-first bug fixing and systematic root-cause debu
 
 # Testing and debugging
 
+## Core rules
+- A bug is reproduced first with the smallest failing test; the fix addresses the root cause and the test stays.
+- New business rules (money, dates, eligibility, permissions, state changes) get tests in the same change, written first where practical.
+- Tests are deterministic: frozen time, seeded randomness, recorded or sandbox vendor responses.
+- Debug from evidence: read the whole error and the logs, list two or three hypotheses, test one at a time.
+- A test is never made green by deleting or skipping it, adding sleeps or swallowing the exception.
+- Report which suites ran with pass, fail and skip counts; check UI changes in a real browser when the session has one.
+
 ## What to test (risk-based, not coverage-chasing)
 The minimum per change and the full map of test types (what each catches, when, how): [test-types.md](test-types.md). Checking UI changes in a real browser: [browser.md](browser.md).
 - **Always**: business rules and calculations (money, interest, tax, eligibility, dates), state transitions, authorization (allowed and denied paths), input validation, every fixed bug, integration adapters (with recorded or sandbox responses).
