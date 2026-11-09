@@ -31,6 +31,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 HOME = os.path.expanduser("~")
 CLAUDE = os.path.join(HOME, ".claude")
@@ -522,6 +523,7 @@ def cmd_verify(args):
     check(any("eng-os/hooks/guard.py" in c for c in cmds), "guard hook wired in settings")
     check(any("eng-os/hooks/session_start.py" in c for c in cmds), "session-start hook wired in settings")
     check(any("eng-os/hooks/prompt_router.py" in c for c in cmds), "prompt-router hook wired in settings")
+    check(any("eng-os/hooks/post_tool.py" in c for c in cmds), "output-trim hook wired in settings")
     check(not any(l in c for c in cmds for l in LEGACY_HOOK_COMMANDS), "no legacy agent-skills hooks wired", "WARN")
     for c in cmds:
         for p in re.findall(r'"\$HOME/([^"]+\.py)"', c):
@@ -533,7 +535,7 @@ def cmd_verify(args):
                   for m in matchers), "guard matcher covers %s" % tool)
     for py in ("/usr/bin/python3", shutil.which("python3") or ""):
         if py and os.path.exists(py):
-            for h in ("guard.py", "session_start.py", "prompt_router.py"):
+            for h in ("guard.py", "session_start.py", "prompt_router.py", "post_tool.py"):
                 p = os.path.join(ENGOS, "hooks", h)
                 r = subprocess.run([py, "-c", "import sys; compile(open(sys.argv[1]).read(), sys.argv[1], 'exec')", p],
                                    capture_output=True, text=True)
@@ -900,6 +902,68 @@ def cmd_test(args):
         ss_cases.append(("guard: other temp folders still are", g.in_scratch("/private/tmp/build-123")))
     finally:
         g.HOME = real_home
+    # token savers (0.13.0): context-size note, resume brief, re-read note, large-output trim
+    def run_hook(name, payload, extra_env=None):
+        e = dict(env, **(extra_env or {}))
+        return subprocess.run([py, os.path.join(hooks, name)], input=json.dumps(payload), capture_output=True,
+                              text=True, env=e, timeout=20).stdout
+    tr = os.path.join(tmp, "transcript.jsonl")
+    def at(tokens):
+        with open(tr, "a") as fh:
+            fh.write(json.dumps({"type": "assistant", "message": {"usage": {"input_tokens": 5, "cache_read_input_tokens": tokens}}}) + "\n")
+    at(150000)
+    ss_cases.append(("context note: silent below 200k", "context note" not in run_hook("prompt_router.py", {"prompt": "ok", "session_id": "cx1", "transcript_path": tr})))
+    at(250000)
+    o = run_hook("prompt_router.py", {"prompt": "ok", "session_id": "cx1", "transcript_path": tr})
+    ss_cases.append(("context note: once past 200k, even on a short prompt", "about 250k tokens" in o))
+    at(300000)
+    ss_cases.append(("context note: not repeated at the same level", "context note" not in run_hook("prompt_router.py", {"prompt": "ok", "session_id": "cx1", "transcript_path": tr})))
+    at(450000)
+    ss_cases.append(("context note: again past 400k", "about 450k tokens" in run_hook("prompt_router.py", {"prompt": "ok", "session_id": "cx1", "transcript_path": tr})))
+    ss_cases.append(("context note: missing transcript is silent", run_hook("prompt_router.py", {"prompt": "ok", "session_id": "cx2", "transcript_path": "/nonexistent"}) == ""))
+    ss_cases.append(("context note: switch off with ENG_OS_CONTEXT_NOTE=0", run_hook("prompt_router.py", {"prompt": "ok", "session_id": "cx3", "transcript_path": tr}, {"ENG_OS_CONTEXT_NOTE": "0"}) == ""))
+    proj = os.path.join(tmp, "brief")
+    os.makedirs(os.path.join(proj, "docs", "progress"))
+    open(os.path.join(proj, "docs", "progress.md"), "w").write("# Progress\n\n## Current status\n- **Goal**: ship refunds\n- **State**: on track\n- **Next**: write the refund API tests\n- **Open decisions**: <decision>\n\n## Log\n")
+    open(os.path.join(proj, "docs", "progress", "2026-11-08-refund-model.md"), "w").write("# 2026-11-08 — refund model\n- **Follow-ups**: wire the webhook\n")
+    o = run_hook("session_start.py", {"source": "startup", "cwd": proj, "session_id": "rb1"})
+    ss_cases.append(("resume brief: status and latest entry from docs/progress", "Next: write the refund API tests" in o and "refund model" in o and "wire the webhook" in o and "<decision>" not in o))
+    o = run_hook("session_start.py", {"source": "compact", "cwd": proj, "session_id": "rb1"})
+    ss_cases.append(("resume brief: restated after compaction", "Goal: ship refunds" in o))
+    rf = os.path.join(root, "reread.txt")
+    open(rf, "w").write("hello\n")
+    rd = lambda inp: run_hook("guard.py", {"session_id": "rr1", "tool_name": "Read", "tool_input": inp, "cwd": root})
+    first, second = rd({"file_path": rf}), rd({"file_path": rf})
+    ss_cases.append(("re-read note: silent on the first read, noted on an unchanged full re-read", first == "" and "has not changed since" in second))
+    ss_cases.append(("re-read note: a range read is never noted", rd({"file_path": rf, "offset": 1, "limit": 1}) == ""))
+    time.sleep(1.1)
+    open(rf, "a").write("more\n")
+    ss_cases.append(("re-read note: silent after the file changed", rd({"file_path": rf}) == ""))
+    run_hook("session_start.py", {"source": "compact", "cwd": root, "session_id": "rr1"})
+    ss_cases.append(("re-read note: record cleared by compaction", rd({"file_path": rf}) == ""))
+    big = "\n".join("line %d ok" % i for i in range(4000)) + "\nE   AssertionError: total was 99\n" + "\n".join("tail %d" % i for i in range(50))
+    o = run_hook("post_tool.py", {"tool_name": "Bash", "session_id": "pt1", "tool_input": {"command": "pytest"},
+                                  "tool_response": {"stdout": big, "stderr": "", "interrupted": False}})
+    try:
+        upd = json.loads(o)["hookSpecificOutput"]["updatedToolOutput"]
+    except (ValueError, KeyError):
+        upd = {}
+    saved = re.search(r"Full stdout: (\S+\.log)", upd.get("stdout", ""))
+    ss_cases.append(("output trim: big output trimmed, error line kept, other fields kept",
+                     len(upd.get("stdout", "")) < 10000 and "AssertionError: total was 99" in upd.get("stdout", "") and upd.get("interrupted") is False))
+    ss_cases.append(("output trim: full output saved privately", bool(saved) and os.path.exists(saved.group(1)) and open(saved.group(1)).read().count("line ") >= 4000
+                     and oct(os.stat(saved.group(1)).st_mode & 0o777) == "0o600"))
+    ss_cases.append(("output trim: '# eng-os:full' in the command keeps everything", run_hook("post_tool.py", {"tool_name": "Bash", "session_id": "pt1", "tool_input": {"command": "cat big.log  # eng-os:full"}, "tool_response": {"stdout": big, "stderr": ""}}) == ""))
+    ss_cases.append(("output trim: odd input leaves output untouched", run_hook("post_tool.py", {"tool_name": "Bash", "tool_input": "x", "tool_response": "y"}) == ""))
+    sub = run_hook("guard.py", {"session_id": "rr2", "agent_id": "a1", "tool_name": "Read", "tool_input": {"file_path": rf}, "cwd": root})
+    sub2 = run_hook("guard.py", {"session_id": "rr2", "agent_id": "a1", "tool_name": "Read", "tool_input": {"file_path": rf}, "cwd": root})
+    main1 = run_hook("guard.py", {"session_id": "rr2", "tool_name": "Read", "tool_input": {"file_path": rf}, "cwd": root})
+    ss_cases.append(("re-read note: a subagent's reads are neither noted nor recorded", sub == "" and sub2 == "" and main1 == ""))
+    with open(tr, "a") as fh:
+        fh.write(json.dumps({"type": "system", "subtype": "compact_boundary"}) + "\n")
+    ss_cases.append(("context note: silent right after compaction", "context note" not in run_hook("prompt_router.py", {"prompt": "ok", "session_id": "cx4", "transcript_path": tr})))
+    ss_cases.append(("output trim: small output untouched", run_hook("post_tool.py", {"tool_name": "Bash", "session_id": "pt1", "tool_response": {"stdout": "ok\n", "stderr": ""}}) == ""))
+    ss_cases.append(("output trim: switch off with ENG_OS_TRIM_OUTPUT=0", run_hook("post_tool.py", {"tool_name": "Bash", "session_id": "pt1", "tool_response": {"stdout": big, "stderr": ""}}, {"ENG_OS_TRIM_OUTPUT": "0"}) == ""))
     ev = subprocess.run([py, os.path.join(src, "bin", "eng-os-eval.py"), "--self-test"], capture_output=True, text=True, timeout=60)
     ss_cases.append(("eval: transcript and stream parsers (%s)" % (ev.stdout.strip().splitlines() or ["no output"])[0], ev.returncode == 0))
     for name, ok in ss_cases:

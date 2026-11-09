@@ -68,7 +68,7 @@ Load only what the task needs; skip skills for trivial edits. Skills a project C
 - A lesson that applies beyond this project (a framework gotcha, a better procedure, a guard false positive): propose it for eng-os as a pull request.
 
 ## 8. Token efficiency (never at the cost of correctness)
-- Locate with grep/rg, then read only the ranges you need. Trim long output (`tail`, `grep`, `head`); never dump lockfiles, logs, minified or generated files.
+- Locate with grep/rg, then read only the ranges you need. Every line a command prints is re-read on each later turn, so keep output small: quiet flags for tests and installs (`pytest -q --tb=short`, `npm test --silent`, `pip install -q`), `| tail -n 40` or `| grep` for logs and builds, and a short script that prints just the answer instead of more than 200 lines of JSON or logs. Never dump lockfiles, minified or generated files.
 - Don't re-read unchanged files already in context or repeat verification that already passed.
 - Run independent tool calls in parallel; chain dependent shell steps in one command.
 - Use subagents only for broad searches, verbose output, independent parallel work or fresh-context review, with a tight brief. Subagents default to `sonnet` (eng-os sets `CLAUDE_CODE_SUBAGENT_MODEL`); pass `model: haiku` for lookups, summaries and tasks whose brief holds the exact change, and the session's own model for design, security, review and hard debugging. Cheap models take more turns on multi-step work: judge cost per finished task, not per token.

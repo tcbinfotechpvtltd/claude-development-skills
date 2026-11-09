@@ -79,6 +79,7 @@ def analyze_file(path, since):
         "agents": collections.Counter(), "reads": collections.Counter(),
         "compactions": 0, "guard_blocks": 0, "tool_errors": 0,
         "named": set(), "loaded": set(),
+        "uses": {}, "out_chars": collections.Counter(), "turns": 0, "turns_200k": 0, "turns_400k": 0,
     }
     seen = set()
     for o in iter_records(path):
@@ -111,6 +112,9 @@ def analyze_file(path, since):
                 s["cache_read"] += u.get("cache_read_input_tokens", 0)
                 s["output"] += u.get("output_tokens", 0)
                 s["max_context"] = max(s["max_context"], ctx)
+                s["turns"] += 1
+                s["turns_200k"] += ctx > 200000
+                s["turns_400k"] += ctx > 400000
                 if s["first_context"] is None and ctx:
                     s["first_context"] = ctx
                 if msg.get("model"):
@@ -121,6 +125,7 @@ def analyze_file(path, since):
                 name = b.get("name", "?")
                 inp = b.get("input") or {}
                 s["tools"][name] += 1
+                s["uses"][b.get("id")] = name if not name.startswith("mcp__") else "mcp:" + name.split("__")[1][:20]
                 if name == "Skill":
                     s["skills"][inp.get("skill", "?")] += 1
                     if inp.get("skill") in SKILLS:
@@ -132,6 +137,7 @@ def analyze_file(path, since):
         elif o.get("type") == "user" and isinstance(msg.get("content"), list):
             for b in msg["content"]:
                 if isinstance(b, dict) and b.get("type") == "tool_result":
+                    s["out_chars"][s["uses"].get(b.get("tool_use_id"), "?")] += len(tool_result_text(b))
                     if b.get("is_error"):
                         s["tool_errors"] += 1
                     if GUARD_MARK in tool_result_text(b):
@@ -208,6 +214,10 @@ def main():
         "skills": agg(sessions + agents, "skills").most_common(a.top),
         "agent_types": agg(sessions, "agents").most_common(a.top),
         "routing": routing(sessions),
+        "tool_output": [(k, round(pct(v, sum(agg(sessions, "out_chars").values())), 1))
+                        for k, v in agg(sessions, "out_chars").most_common(6)],
+        "turns_over_200k_pct": round(pct(total(sessions, "turns_200k"), total(sessions, "turns")), 1),
+        "turns_over_400k_pct": round(pct(total(sessions, "turns_400k"), total(sessions, "turns")), 1),
     }
     if a.json:
         print(json.dumps(out, indent=1, default=str))
@@ -226,6 +236,8 @@ def main():
         ", ".join("%s:%d" % x for x in sa["models"])))
     for k in ("models_main", "tools", "skills", "agent_types"):
         print("%-11s %s" % (k, ", ".join("%s:%d" % x for x in out[k]) or "-"))
+    print("where tokens go: tool output by tool %s; turns with context over 200k: %.0f%%, over 400k: %.0f%%" % (
+        ", ".join("%s %.0f%%" % x for x in out["tool_output"]) or "-", out["turns_over_200k_pct"], out["turns_over_400k_pct"]))
     r = out["routing"]
     print("routing     eng-os skills named in %d sessions; named and loaded in the same session: %d of %d (%.0f%%)%s" % (
         r["sessions_named"], r["loaded"], r["named"], pct(r["loaded"], r["named"]),

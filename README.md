@@ -9,7 +9,7 @@ Set it up once on each engineer's machine, and from then on **every Claude Code 
    ```
    It downloads the latest release, asks for your name and work email if git does not already know them, asks once on a new machine for your company name and which optional packs to install (`all`, `none`, or a list from `frappe-erpnext`, `odoo`, `fintech-lending`), runs the self-tests, then installs and configures everything in your Claude Code: the global instructions, the core skills and the packs you chose, the rules, the safety guard and the automatic hooks. Claude Code in VS Code, the desktop app and the terminal share the same configuration, so one install covers all three. Details: [INSTALL.md](INSTALL.md).
 2. **Automatic from then on**:
-   - in every Claude Code chat: the desktop app's Code tab, the terminal CLI and the IDE extensions;
+   - in every Claude Code chat, wherever Claude Code runs on that machine: the terminal CLI, the Claude desktop app's Code tab, the VS Code extension (and VS Code-based editors such as Cursor that run the Claude Code extension), and the JetBrains plugin (PyCharm, IntelliJ IDEA, WebStorm, PhpStorm and the rest). All of them read the same `~/.claude` folder;
    - for every project, current or future, in git or not;
    - with nothing to call, remember or switch on.
 3. **Updates**: Claude says when a new release is out, at most once a week. `bash ~/.eng-os/install.sh` installs it, after running the tests.
@@ -439,6 +439,16 @@ Working habits that cut waste (global instructions section 8):
 - Prefer command-line tools over MCP connectors when they do the same job, take screenshots only as final proof, and lead replies with the result.
 
 **Less re-exploration**: a project `CLAUDE.md` (from `/eng-project-init`) and `docs/progress.md` mean the next session starts from what earlier sessions learned.
+
+**Automatic token savers (0.13.0)**, built after measuring where tokens actually go (96 sessions: Bash output was 78% of all tool output, 20% of file reads re-read an unchanged file, and 43% of turns ran with more than 400k tokens of context):
+- **Context-size note.** At 200k tokens of context, and again every further 200k, Claude is told the size and asked to finish the task and suggest a fresh session or `/compact` for new work. Every turn re-reads the whole conversation, so long sessions cost the most.
+- **Resume brief.** In a project with a filled-in `docs/progress.md`, a new session, or one just compacted, gets its goal, state, next steps, open decisions and latest log entry in a few lines. Starting fresh costs little.
+- **Re-read note.** Reading an unchanged file in full a second time in a session adds a one-line reminder that the copy is already in context. It never blocks: a refused read would cost another round trip at full context size.
+- **Large-output trim.** Output over about 30,000 characters from a Bash command that succeeded is cut to its first 60 and last 40 lines plus the error-looking lines in between. The full output is saved first to a private file (capped, deleted after a day) that the note names. Add `# eng-os:full` to a command to keep everything; switch it off with `ENG_OS_TRIM_OUTPUT=0`. Failing commands are not trimmed, because Claude Code's failure hook cannot replace output.
+- **Quiet output by habit.** The global instructions ask for quiet test and install flags, `tail`/`grep` on logs and builds, and a short script instead of dumping large JSON or logs.
+- **Measured.** `eng-os usage` reports which tools produce the output and how many turns run above 200k and 400k tokens, so the effect shows up in the numbers.
+
+These ideas come from a survey of RTK, token-savior, token-saver, claude-mem, context-mode and Serena ([research record](docs/research/2026-11-tool-survey.md)). None of those tools is installed, and the MCP policy says why.
 
 **The evidence behind these levers**, from the 30 days before install on the maintainer's machine:
 - Subagents used 40% of all input tokens, almost all on the most expensive model.
