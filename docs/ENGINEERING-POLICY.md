@@ -1,9 +1,9 @@
-# TCB engineering policy: working with Claude Code
+# Engineering policy: working with Claude Code
 
-For every TCB engineer, on every client and internal project. eng-os makes Claude follow these standards. This page is what **people** commit to, because a tool cannot enforce everything.
+For every engineer, on every client and internal project. eng-os makes Claude follow these standards. This page is what **people** commit to, because a tool cannot enforce everything. It is a template: each company adopts it as it is or adjusts it, and keeps its own copy where its engineers will read it.
 
 ## 1. Setup
-- Install eng-os ([INSTALL.md](../INSTALL.md)) before using Claude Code on any TCB work. Update when a release is announced, or when Claude tells you one is available, with `bin/eng-os update`: it switches to the latest release tag, runs the tests and shows the install preview before asking.
+- Install eng-os ([INSTALL.md](../INSTALL.md)) before using Claude Code on any company work. Update when a release is announced, or when Claude tells you one is available, with `bin/eng-os update`: it switches to the latest release tag, runs the tests and shows the install preview before asking.
 - Use Claude Code's default permission mode. Bypass-permissions mode needs the project lead's approval; the guard still asks before risky actions in it, but fewer prompts means fewer checks by you.
 - On an individual Claude plan, turn **Model Improvement** off at claude.ai/settings/data-privacy-controls before any client work, and check it again whenever Anthropic announces new terms. Never send `/feedback` from a session that contains client code.
 - Never edit the installed copies in `~/.claude`, and never disable or work around the guard. If something is wrong, open a pull request or tell the maintainer.

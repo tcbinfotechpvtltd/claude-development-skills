@@ -18,6 +18,13 @@ import sys
 import time
 
 ENGOS = os.environ.get("ENGOS_HOME") or os.path.expanduser("~/.claude/eng-os")
+SKILLS = os.environ.get("ENGOS_SKILLS") or os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "skills")
+
+
+def installed(skill):
+    """A company may leave out the optional packs; name only skills this machine has (all, if the folder is missing)."""
+    return not os.path.isdir(SKILLS) or os.path.isdir(os.path.join(SKILLS, skill.split(" ", 1)[0]))
 UPDATE_CHECK_DAYS = 7
 
 
@@ -157,7 +164,8 @@ def detect_project(cwd, skills=None, record=True):
         except Exception:
             pass
     notes = []
-    covered = [(n, s) for n, s in found if s]
+    covered = [(n, s) for n, s in found if s and installed(s)]
+    missing = [(n, s.split(" ", 1)[0]) for n, s in found if s and not installed(s)]
     uncovered = [n for n, s in found if not s]
     if covered:
         notes.append("this project looks like %s; the eng-os skill for it is %s." % (
@@ -166,12 +174,16 @@ def detect_project(cwd, skills=None, record=True):
             base = s.split(" ", 1)[0]
             if base not in skills:
                 skills.append(base)
+    if missing:
+        notes.append("this project uses %s; the eng-os pack for it (%s) is not installed on this machine, so the general "
+                     "skills apply. The user can add it with `eng-os install --packs=...`." % (
+                         " + ".join(n for n, _ in missing), ", ".join("`%s`" % p for _, p in missing)))
     if uncovered:
         notes.append("this project uses %s, which has no stack-specific eng-os skill: the general eng-os skills apply, "
                      "and its conventions belong in the project CLAUDE.md." % " + ".join(uncovered))
     brief = read_head(j("CLAUDE.md")) + read_head(j(".claude", "CLAUDE.md"))
     facts = "\n".join(line for line in brief.splitlines() if "<e.g." not in line).replace("fintech-lending", "")
-    if re.search(r"\b(loans?|lending|nbfc|lsp|disburs\w*|kyc|ledger)\b", facts, re.I):
+    if installed("fintech-lending") and re.search(r"\b(loans?|lending|nbfc|lsp|disburs\w*|kyc|ledger)\b", facts, re.I):
         notes.append("its CLAUDE.md describes lending or KYC work, which skill `fintech-lending` covers.")
         if "fintech-lending" not in skills:
             skills.append("fintech-lending")

@@ -177,3 +177,15 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | Install and verify | installed into a throwaway home: `verify` 116 checks, 0 fail, 0 warn; `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` lands in settings `env`; new templates installed |
 | Size | global CLAUDE.md 9,315 of 10,500 characters; always-loaded eng-os text ~3,250 tokens (was ~3,490) |
 | Not verified | the live skill-trigger rate: `eng-os eval --skills` runs about 72 one-turn Sonnet sessions and costs tokens, so it waits for the user's go-ahead; the approved MCP install commands were checked against each repo's docs but not run |
+
+## 18. Release 0.12.0: company set at install, optional packs (2026-11-09)
+| Check | Result |
+|---|---|
+| New company, no packs (throwaway home) | 10 core skills, 7 rules; CLAUDE.md header names the company; no "TCB" anywhere; `verify` 98 checks, 0 fail |
+| Add then drop a pack | `--packs=odoo` installs its skill and rule; `--packs=none` removes both |
+| Upgrade from 0.11.0 with no new answers | company read from the installed CLAUDE.md ("TCB Infotech"); all 3 packs kept; 13 skills, 9 rules; `verify` 117, 0 fail; CLAUDE.md identical to 0.11.0 except the work line and the national-ID line |
+| Real installer, end to end (bare copy, test tag) | unattended new company with one pack: installed, 104 checks, 0 fail; update run "already up to date"; with no company and no terminal it stops with a clear message and installs nothing |
+| Found by these runs and fixed | the guard treated a home folder inside a temp folder as scratch (two self-tests failed on such a machine, so the installer refused to install); two installs in the same second collided on the backup name and the second crashed before changing anything |
+| Independent review | A fresh Sonnet reviewer found 1 High, 5 Medium and 4 Low issues, all fixed after checking each:<br>• (High) install would delete a user's own skill folder that shared a pack's name; now only folders eng-os installed are replaced or removed<br>• an empty `--packs=` meant none; now an error<br>• company names are validated and all placeholders render in one pass<br>• a name with brackets was cut on upgrade<br>• the scratch rule's home and parent edge cases<br>• `ENG_OS_PACKS` alone failed on an existing install<br>• an edited pack rule is kept, not deleted<br>• a missing skills folder no longer disables routing<br>• four doc lines corrected |
+| Tests | `bin/eng-os test` 313/313 (17 new: rendering, packs in the plan, parsing, name checks, user folders kept, router and session filtering, scratch edge cases) |
+| Git history | checked before inviting other companies: the current files hold no client names; older commits do (about 20 lines naming one client's product, a few naming two others), and every commit carries the maintainer's email |

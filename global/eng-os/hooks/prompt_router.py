@@ -44,6 +44,11 @@ PATTERNS = [(skill, re.compile(r"\b(?:%s)\b" % rx, re.I)) for skill, rx in ROUTE
 CORE = re.compile(r"^## Core rules[^\n]*\n(.*?)(?=^## |\Z)", re.S | re.M)
 
 
+def installed(skill):
+    """Skip optional packs this company left out. If the skills folder itself is missing, filter nothing."""
+    return not os.path.isdir(SKILLS) or os.path.isdir(os.path.join(SKILLS, skill))
+
+
 def core_rules(skill):
     """The skill's '## Core rules' section, or '' when it is missing or unreadable."""
     try:
@@ -81,7 +86,8 @@ def main():
     prompt = (data.get("prompt") or "").strip()
     if len(prompt) < 12 or prompt.startswith("/"):
         return 0
-    matched = [skill for skill, rx in PATTERNS if rx.search(prompt)]
+    # only skills this machine has: a company may leave out the optional packs (frappe-erpnext, odoo, fintech-lending)
+    matched = [skill for skill, rx in PATTERNS if rx.search(prompt) and installed(skill)]
     if not matched:
         return 0
     session = re.sub(r"[^A-Za-z0-9_-]", "", str(data.get("session_id") or "nosession"))[:80]

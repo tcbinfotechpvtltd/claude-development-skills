@@ -7,7 +7,8 @@
 # Works for a private repo (git uses your GitHub login; run `gh auth login` once if git asks) and a public one.
 # Installs the latest release into ~/.claude, so it applies to Claude Code in VS Code, the desktop app and the
 # terminal alike. Safe to re-run: on a machine that already has eng-os it updates to the latest release.
-# Optional: ENG_OS_NAME / ENG_OS_EMAIL (commit identity), ENG_OS_DIR (where the repo is kept), ENG_OS_REPO.
+# Optional: ENG_OS_NAME / ENG_OS_EMAIL (commit identity), ENG_OS_COMPANY and ENG_OS_PACKS (company name; optional
+# packs: all, none or a comma list), ENG_OS_DIR (where the repo is kept), ENG_OS_REPO.
 set -euo pipefail
 
 REPO_URL="${ENG_OS_REPO:-https://github.com/tcbinfotechpvtltd/claude-development-skills.git}"
@@ -60,9 +61,33 @@ if [ -n "${ENG_OS_NAME:-}" ] || [ -n "${ENG_OS_EMAIL:-}" ] || [ ! -f "$HOME/.cla
   IDENTITY=(--name="$NAME" --email="$EMAIL")
 fi
 
+# Company and optional packs: asked once on a new machine (an existing install keeps its own).
+COMPANY_ARGS=()
+if [ -n "${ENG_OS_COMPANY:-}" ] || [ -n "${ENG_OS_PACKS:-}" ] \
+   || { [ ! -f "$HOME/.claude/eng-os/company.json" ] && [ ! -f "$HOME/.claude/eng-os/manifest.json" ]; }; then
+  COMPANY="${ENG_OS_COMPANY:-}"
+  PACKS="${ENG_OS_PACKS:-}"
+  AVAILABLE="$("$PY" -c 'import json,sys; print(", ".join(json.load(open(sys.argv[1]))["packs"]))' "$DIR/global/packs.json" 2>/dev/null || true)"
+  if { [ -z "$COMPANY" ] || [ -z "$PACKS" ]; } && (: < /dev/tty) 2>/dev/null; then
+    if [ -z "$COMPANY" ]; then printf 'Your company name (it appears in the standards Claude follows): ' > /dev/tty; read -r COMPANY < /dev/tty; fi
+    if [ -z "$PACKS" ]; then
+      printf 'Optional packs (%s). Type all, none, or a comma-separated list: ' "$AVAILABLE" > /dev/tty
+      read -r PACKS < /dev/tty
+    fi
+  fi
+  if [ -f "$HOME/.claude/eng-os/company.json" ] || [ -f "$HOME/.claude/eng-os/manifest.json" ]; then
+    # an existing install keeps what it has; pass only what was set
+    [ -z "$COMPANY" ] || COMPANY_ARGS+=(--company="$COMPANY")
+    [ -z "$PACKS" ] || COMPANY_ARGS+=(--packs="$PACKS")
+  else
+    [ -n "$COMPANY" ] && [ -n "$PACKS" ] || die "your company and packs are needed: set ENG_OS_COMPANY and ENG_OS_PACKS (all, none, or a list from: $AVAILABLE)"
+    COMPANY_ARGS=(--company="$COMPANY" --packs="$PACKS")
+  fi
+fi
+
 say "Running the self-tests"
 "$PY" "$DIR/bin/eng-os" test >/dev/null || die "self-tests failed on $TAG, so nothing was installed (details: $PY $DIR/bin/eng-os test)"
-"$PY" "$DIR/bin/eng-os" install ${IDENTITY[@]+"${IDENTITY[@]}"}
+"$PY" "$DIR/bin/eng-os" install ${IDENTITY[@]+"${IDENTITY[@]}"} ${COMPANY_ARGS[@]+"${COMPANY_ARGS[@]}"}
 case "$DIR" in "$HOME"/*) SHOWN="~${DIR#"$HOME"}" ;; *) SHOWN="$DIR" ;; esac
 
 cat <<EOF

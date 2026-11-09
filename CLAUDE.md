@@ -1,6 +1,6 @@
 # eng-os (source of the global Claude Code engineering system)
 
-**What**: source of truth for `~/.claude/CLAUDE.md`, `~/.claude/skills/{eng-*,frappe-erpnext,fintech-lending}`, `~/.claude/rules/*`, `~/.claude/eng-os/` (hooks, CLI, tests) and the eng-os keys in `~/.claude/settings.json`.
+**What**: source of truth for `~/.claude/CLAUDE.md`, `~/.claude/skills/eng-*` plus the optional packs in `global/packs.json` (`frappe-erpnext`, `odoo`, `fintech-lending`), `~/.claude/rules/*`, `~/.claude/eng-os/` (hooks, CLI, tests) and the eng-os keys in `~/.claude/settings.json`.
 **Required skills**: eng-review before committing changes here.
 
 ## Rules for changing this repo

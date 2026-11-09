@@ -32,12 +32,12 @@ Goal: predictable delivery the client can see, with no surprises on scope, time,
 ## 3. Choose the delivery method
 | Work | Method | Practice |
 |---|---|---|
-| ERP implementation (ERPNext, Odoo) | the TCB ERP method in [erp-implementation.md](erp-implementation.md): discover, fit-to-standard, build, data migration, UAT and training, cutover, hypercare | each phase ends with a written sign-off |
+| ERP implementation (ERPNext, Odoo) | the phase-by-phase ERP method in [erp-implementation.md](erp-implementation.md): discover, fit-to-standard, build, data migration, UAT and training, cutover, hypercare | each phase ends with a written sign-off |
 | Fixed-scope build | staged plan (PRINCE2 7 ideas: manage by stages, manage by exception) | phases with exit criteria and sign-off; tolerances on time and cost; escalate as soon as a tolerance will be breached |
 | Evolving product (platform, app with a roadmap) | Scrum (2020 guide) | Product Goal; sprints of a month or less, each with a Sprint Goal; ordered backlog owned by the product owner; Definition of Done. A Sprint Goal is not a contract |
 | Support, AMC, bug and change streams | Kanban (guide v2025.5) | visualise the workflow, limit work in progress, act on items that are ageing; measure WIP, throughput, cycle time and work item age; forecast from throughput |
 
-**Definition of Done (TCB default; projects may tighten)**: acceptance criteria met; tests added and passing; diff reviewed (skill `eng-review`); security checklist for sensitive changes; deployed to UAT and smoke-tested; documents updated in the same PR (requirements, test cases and traceability, user manual, runbook, CHANGELOG, as skill `eng-docs` lists); a dated progress-log entry; the PR closes its issue and cites the requirement id. This list is the single definition: the PR template and the engineering policy point here.
+**Definition of Done (default; projects may tighten)**: acceptance criteria met; tests added and passing; diff reviewed (skill `eng-review`); security checklist for sensitive changes; deployed to UAT and smoke-tested; documents updated in the same PR (requirements, test cases and traceability, user manual, runbook, CHANGELOG, as skill `eng-docs` lists); a dated progress-log entry; the PR closes its issue and cites the requirement id. This list is the single definition: the PR template and the engineering policy point here.
 
 ## 4. Track: RAID log and status
 - `docs/raid.md`, reviewed weekly. One table each for Risks, Assumptions, Issues and Dependencies: id, description, owner, date raised, priority, status, next action. A failed assumption becomes a risk or an issue.

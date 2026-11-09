@@ -1,6 +1,6 @@
-# MCP servers, plugins and third-party skills: TCB approved list
+# MCP servers, plugins and third-party skills: the approved list
 
-Applies to every machine with eng-os. Changes to this list go through a pull request to eng-os, reviewed by the engineering lead (section 5).
+Applies to every machine with eng-os. Changes to this list go through a pull request to eng-os, reviewed by the engineering lead (section 5). It is the default list; a company may approve less, or add servers through the same review.
 
 ## 1. The rule
 - **Default: no MCP servers.** Claude Code's built-in tools, the desktop app's built-in browser and command-line tools (`gh`, `aws` with a read-only profile, `bench`, `odoo-bin`) cover most work. A command-line tool costs nothing until it is used. Every MCP server adds its tool definitions to every session and opens a new path for data to leave the machine.

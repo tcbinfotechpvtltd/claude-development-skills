@@ -252,6 +252,14 @@ def segments(cmd):
     return out
 
 
+def in_scratch(p):
+    """Under a temp folder. Never the home folder, anything in it or anything above it, even on a machine whose home
+    sits inside a temp folder; a temp folder that itself lives inside home (TMPDIR=~/.cache/tmp) still counts."""
+    if under(HOME, p):  # p is the home folder or one of its parents
+        return False
+    return any(under(p, t) and (not under(p, HOME) or under(t, HOME)) for t in scratch_roots())
+
+
 def scratch_roots():
     roots = ["/tmp", "/private/tmp", "/var/folders", "/private/var/folders"]
     tmp = os.environ.get("TMPDIR")
@@ -278,7 +286,7 @@ def check_rm(cmd, cwd, project):
                 return "target contains an unexpanded variable (%s)" % t
             if os.path.isdir(os.path.join(p, ".git")):
                 return "deletes an entire git repository (%s)" % t
-            if not (under(p, project) or under(p, cwd) or any(under(p, r) for r in scratch_roots())):
+            if not (under(p, project) or under(p, cwd) or in_scratch(p)):
                 return "recursive/forced delete outside the project and temp dirs (%s)" % t
     return None
 
@@ -424,7 +432,7 @@ def check_find(cmd, cwd, project):
             p = norm(r, cwd)
             if "$" in p:
                 return "the search root contains an unexpanded variable (%s)" % r
-            scratch = any(under(p, t) for t in scratch_roots())
+            scratch = in_scratch(p)
             if not scratch and (p in ("/", HOME, os.path.dirname(HOME)) or any(under(p, s) for s in SYSTEM_DIRS)):
                 return "deletes files under the filesystem root, a system directory or the home directory (%s)" % r
             if not (under(p, project) or under(p, cwd) or scratch):
