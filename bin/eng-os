@@ -627,7 +627,13 @@ def cmd_verify(args):
     if man:
         files = [f for f in files if tilde(f) in man["files"]]
     for f in files:
-        for s in re.split(r"(?<=[.!?])\s+|\n", open(f, errors="replace").read()):
+        try:
+            text = open(f, errors="replace").read()
+        except OSError:
+            # the global CLAUDE.md is missing (an install that stopped early); "global CLAUDE.md present" above
+            # already reports it as a FAIL, so skip it here and carry on instead of crashing
+            continue
+        for s in re.split(r"(?<=[.!?])\s+|\n", text):
             k = re.sub(r"[^a-z0-9 ]", "", s.lower()).strip()
             if len(k.split()) >= 9:
                 if k in seen and seen[k] != f:
@@ -970,6 +976,24 @@ def cmd_test(args):
     ss_cases.append(("context note: silent right after compaction", "context note" not in run_hook("prompt_router.py", {"prompt": "ok", "session_id": "cx4", "transcript_path": tr})))
     ss_cases.append(("output trim: small output untouched", run_hook("post_tool.py", {"tool_name": "Bash", "session_id": "pt1", "tool_response": {"stdout": "ok\n", "stderr": ""}}) == ""))
     ss_cases.append(("output trim: switch off with ENG_OS_TRIM_OUTPUT=0", run_hook("post_tool.py", {"tool_name": "Bash", "session_id": "pt1", "tool_response": {"stdout": big, "stderr": ""}}, {"ENG_OS_TRIM_OUTPUT": "0"}) == ""))
+    # verify on a home without the installed CLAUDE.md (for example after an install that stopped early): it reports
+    # failed checks and carries on, with no traceback
+    def verify_in(home):
+        env = dict(os.environ, HOME=home)
+        return subprocess.run([py, os.path.join(src, "bin", "eng-os"), "verify"], capture_output=True, text=True, timeout=60, env=env)
+
+    bare_home = os.path.join(tmp, "home-empty")
+    os.makedirs(bare_home)
+    r = verify_in(bare_home)
+    ss_cases.append(("verify: empty home, no traceback and exit 1", "Traceback" not in r.stderr and r.returncode == 1))
+    ss_cases.append(("verify: empty home, missing CLAUDE.md is a FAIL and the run finishes", "FAIL global CLAUDE.md present" in r.stdout and re.search(r"^verify: \d+ checks, [1-9]\d* fail", r.stdout, re.M) is not None))
+    half_home = os.path.join(tmp, "home-half")
+    os.makedirs(os.path.join(half_home, ".claude", "eng-os"))
+    with open(os.path.join(half_home, ".claude", "eng-os", "manifest.json"), "w") as fh:
+        json.dump({"version": "0", "repo": src, "files": {"~/.claude/CLAUDE.md": "0" * 64}}, fh)
+    r = verify_in(half_home)
+    ss_cases.append(("verify: manifest lists a CLAUDE.md that is gone, no traceback", "Traceback" not in r.stderr and r.returncode == 1
+                     and "FAIL global CLAUDE.md present" in r.stdout and "WARN installed files match reviewed install: drift in ~/.claude/CLAUDE.md" in r.stdout))
     ev = subprocess.run([py, os.path.join(src, "bin", "eng-os-eval.py"), "--self-test"], capture_output=True, text=True, timeout=60)
     ss_cases.append(("eval: transcript and stream parsers (%s)" % (ev.stdout.strip().splitlines() or ["no output"])[0], ev.returncode == 0))
     for name, ok in ss_cases:
