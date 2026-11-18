@@ -106,3 +106,42 @@ Rejected:
 - **Denying reads**: each refusal costs an extra round trip at full context size.
 - **Model-based memory and indexing**: privacy, quota use and stale indexes.
 - **Running model-written code outside the guard**.
+
+## Refresh (2026-11-18)
+The user asked for every repo above to be checked against its latest release, and for token savings to be looked for in all of them. The latest releases came from `gh api`. Each changed repo was shallow-cloned at its new tag and read by one research agent (Sonnet) that ran none of its code. The claims that change eng-os were spot-checked in the clones.
+
+| Repo | Read → latest | What changed that matters | What eng-os did |
+|---|---|---|---|
+| obra/superpowers | v7.0.2 → v7.0.2 | no release, no commits | nothing needed |
+| affaan-m/ECC | v2.2.3 → v2.2.3 | no release; main has an unreleased, opt-in "context gate" hook that checkpoints and restarts at 90% context | nothing needed (the context-size note measures the same thing) |
+| mattpocock/skills | v1.3.2 → v1.3.2 | no release | nothing needed |
+| Graphify-Labs/graphify | v0.9.104 → v0.9.112 | needs Python 3.11+; sign-up prompts (`GRAPHIFY_NO_CTA`); `graphify <platform> install` writes CLAUDE.md or AGENTS.md; `GRAPHIFY_BACKEND=none` and `--code-only` unchanged; no new benchmark | pilot pin, install and never-run list updated |
+| github/github-mcp-server | v2.1.0 → v2.2.0 | headers and toolsets unchanged; new non-default `copilot_automations` toolset with `create_`, `update_`, `delete_` and `run_automation` | toolset left out of the install; the guard already asks for those tools (cases added) |
+| upstash/context7 | 4.5.1 → 4.7.3 | same URL and key; "research preview" renamed experimental tools, off unless `?experimental=1` or the dashboard turns them on; also sends a session ID and server version; API logs kept 30 days; the free tier is per account | data-out row and install notes corrected |
+| microsoft/playwright-mcp | v0.0.84 → v0.0.85 | a thin wrapper; same flags; new flags apply only with `--extension`; bundles a Playwright 1.66 alpha | pin bumped; the bundled build is noted as not audited |
+| oraios/serena | v2.1.0 → v2.1.0 | no release | nothing needed |
+| ChromeDevTools/chrome-devtools-mcp | v1.12.0 → v1.13.0 | same flags; new default `set_logpoints` runs page code; off-by-default network-mock tools can make the server itself fetch URLs | pin bumped; network mocks never added; `--no-javascript-evaluation` noted |
+| awslabs/mcp | 2026.10.20261030201955 → 2026.11.20261117195521 | all 7 approved servers have new versions; billing adds read-only tools and needs Python 3.11; the docs server's `recommend` now accepts only AWS documentation URLs; **the IAM server has no `--readonly` flag** (its argument parser rejects it, at the old version too), so the old install command could not start | 7 pins bumped; `--readonly` removed (read-only is the default); section 5 now asks for flags checked in the code |
+| modelcontextprotocol/servers | v2.3.0 → v2.5.0 | 14 security advisories fixed (git settings running programs, filesystem symlink races, fetch SSRF); every server can serve Streamable HTTP; `docs/skill-authoring.md` unchanged | still not approved; reason extended |
+| rtk-ai/rtk | v1.2.0 → v1.2.0 | only 1.3.0 release candidates | nothing needed |
+| Mibayy/token-savior | v4.24.0 → v4.24.0 | no release | nothing needed |
+| AMKhaan/token-saver | v1.1.0 → v1.1.0 | no commits since July | nothing needed |
+| thedotmack/claude-mem | v15.13.0 → v16.0.0 | a UI release; still sends tool input and output to Claude Haiku by default, telemetry still on; retention and secret-redaction settings exist but are off by default | still not approved; reason made precise |
+| mksglu/context-mode | v2.1.7 → v2.2.1 | agent support and fixes; still runs model-written code with the user's environment, keeps a plain index, Elastic-2.0 | nothing needed |
+
+Token-saving pass, measured on 49 local sessions from 2026-11-12 to 2026-11-18 (`eng-os usage`):
+- Turns above 200k tokens of context fell from 76% to 69%, and above 400k from 43% to 32%. The work mix differed, so this is not a controlled comparison.
+- Bash is 56% of tool output and Read 35%; MCP output is about 2%.
+- A new session starts at a median of 92.7k tokens, of which eng-os is about 3.5k. The rest is the harness, plugins and connectors.
+
+Adopted (0.14.0):
+- **No skill routing on prompts Claude Code writes itself** (a background agent's notification, side-session and CI events). In this refresh session, subagent reports routed five unrelated skills, about 5,000 characters that every later turn re-read.
+
+Not adopted:
+- **Trimming MCP output**, context-mode's main idea: MCP is about 2% of tool output here.
+- **ECC's context gate**: unreleased, and the context-size note already covers it.
+- **claude-mem's 40% clear trigger and continuation template**: no measured benefit, and the resume brief covers restarts.
+- **Chrome DevTools `--slim`** (3 tools): it drops the tracing tools eng-os approves the server for.
+- **A stricter re-read rule**: the usage report's 34% repeated reads counts range reads and reads after edits, so it overstates the waste. The re-read note already covers unchanged full re-reads.
+
+The largest cost left is outside eng-os: the plugins and connectors that load into every session. [MCP-POLICY.md](../MCP-POLICY.md) section 6 already says to remove unused ones.

@@ -200,3 +200,16 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | Hook speed | output trim about 86 ms per Bash call with `/usr/bin/python3`, nearly all Python start-up |
 | Independent review | 5 important points and 6 suggestions, fixed after checking each: subagent reads no longer trigger the re-read note; the context note is silent right after compaction and its record resets then; saved outputs are capped at 5 MB each and 50 MB in all; `# eng-os:full` keeps a command's output; no leftover files on errors; unique saved names; errors kept before warnings; atomic state writes. One point became a documented limit: failing commands cannot be trimmed |
 | Not verified | the savings in real sessions; compare `eng-os usage` (tool output, turns above 200k and 400k) after a week of use |
+
+## 20. Release 0.14.0: refresh of the 16 agent-tooling repos (2026-11-18)
+| Check | Result |
+|---|---|
+| Latest releases (`gh api`) | 9 changed (Graphify, GitHub MCP, Context7, Playwright MCP, Chrome DevTools MCP, awslabs/mcp, MCP reference servers, claude-mem, context-mode); 7 unchanged (superpowers, ECC, mattpocock/skills, Serena, RTK stable, token-savior, token-saver) |
+| New pins exist | npm: `@playwright/mcp@0.0.85`, `chrome-devtools-mcp@1.13.0`, `@upstash/context7-mcp@4.7.3`; PyPI: the 7 AWS servers at their new versions and `graphifyy==0.9.112`, all HTTP 200 |
+| Flags confirmed in code | each install-command flag found in that release's docs or option definitions; the IAM server's `main()` defines only `--allow-write` and `--no-confirmation`, and a stdlib replica of its parser exits 2 on `--readonly` ("unrecognized arguments") |
+| Router fix seen live | this session's transcript shows background-agent notifications arriving as prompts that start with `<task-notification>`, and the router adding rules for five unrelated skills from them |
+| Tests | `bin/eng-os test` 345/345 on `/usr/bin/python3` and Homebrew Python (12 new: 7 guard cases for GitHub automation tools and the IAM `--allow-write` install, 5 router self-tests) |
+| Install and verify | throwaway home, `--packs=all`: `verify` 121 checks, 0 fail, 0 warn; `test --installed` 345/345; installed CLAUDE.md 9,654 characters |
+| Usage one week after 0.13.0 | 49 sessions, 2026-11-12 to 2026-11-18: turns above 200k tokens 69% (was 76%), above 400k 32% (was 43%); not a controlled comparison |
+| Independent review | a fresh Sonnet code reviewer spot-checked the policy claims against the clones (all held) and found no blockers: 1 Medium and 4 Low points. Checked each and fixed three: the router's tag list is documented as closed on purpose; tests added for the CI-event tag and the system-notification prefix; the DevTools note says `--experimentalDevtools` bypasses `--no-javascript-evaluation`. `delete_automation` asking as `mcp-outward` is intended (the general delete rule fires first) |
+| Not verified | no MCP server was started (the policy forbids running unreviewed code here); the bundled Playwright 1.66 alpha and the AWS dependency lock files were not audited; the router fix's effect on token use is not yet measured |

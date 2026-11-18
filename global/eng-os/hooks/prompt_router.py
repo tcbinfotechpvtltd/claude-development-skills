@@ -21,6 +21,11 @@ CTX_FIRST = 200000
 CTX_STEP = 200000
 MAX_CORE_CHARS = 1200     # per skill; `eng-os verify` keeps each section at or under 1,000
 MAX_CONTEXT_CHARS = 4500  # well under Claude Code's 10,000-character hook output cap
+# Prompts Claude Code writes itself (a background agent finishing, a side-session or CI event) carry another agent's
+# words, not the user's request. Routing on them inserted rules for skills nobody asked for, which every later turn
+# then re-reads (seen 2026-11-18: five unrelated skills routed from subagent reports in one session). The list is
+# closed on purpose, so a user's own prompt is never skipped; add a tag when a new kind of system prompt appears.
+SYSTEM_PROMPT = re.compile(r"^(?:\[SYSTEM NOTIFICATION[^\]\n]*\]\s*)?<(?:task-notification|side-sessions-event|ci-monitor-event)\b")
 
 # Most specific first: domain and stack skills, then activity skills.
 ROUTES = [
@@ -149,7 +154,7 @@ def main():
         note = context_note(data, session, state_dir)
     except Exception:
         note = ""
-    text = routing(prompt, session, state_dir) if len(prompt) >= 12 else ""
+    text = routing(prompt, session, state_dir) if len(prompt) >= 12 and not SYSTEM_PROMPT.match(prompt) else ""
     out = "\n\n".join(t for t in (note, text) if t)
     if out:
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": out}}))

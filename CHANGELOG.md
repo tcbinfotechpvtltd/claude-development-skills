@@ -1,6 +1,25 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.14.0 — 2026-11-18
+Refresh of the 16 agent-tooling repos eng-os was built from, against their releases on 2026-11-18. Nine had new releases; seven had none. Each changed repo was read at its new tag without running its code. Details: `docs/research/2026-11-tool-survey.md`, "Refresh (2026-11-18)".
+- **Fixed: the AWS IAM install command could not start.** The IAM server has no `--readonly` flag (its README shows one, its code rejects it) and is read-only unless given `--allow-write`. The flag is removed. MCP policy section 5 now asks for each flag to be confirmed in the pinned version's code.
+- **Pins bumped** in `docs/MCP-POLICY.md`, each checked against that release's code and on npm or PyPI:
+  - Chrome DevTools MCP 1.13.0;
+  - Playwright MCP 0.0.85;
+  - the 7 AWS servers (documentation 1.2.6, IaC 1.0.27, CloudWatch 0.3.2, CloudTrail 0.1.2, Pricing 1.1.2, Billing and Cost Management 0.0.46, IAM 1.1.5);
+  - Graphify 0.9.112 (pilot; it now needs Python 3.11);
+  - GitHub MCP 2.2.0 and Context7 4.7.3 as the versions read (both are remote).
+- **Policy notes**:
+  - Chrome DevTools: never add `--categoryNetworkMocks`, which can make the server itself fetch URLs; `set_logpoints` runs page code like `evaluate_script`.
+  - GitHub: leave the new `copilot_automations` toolset out.
+  - Context7: the data-out row now lists the session ID and server version and the 30-day API log; "research preview" tools are now "experimental tools", off unless turned on; the free tier is per account.
+  - Graphify: never run `graphify <platform> install`; `GRAPHIFY_NO_CTA=1`.
+  - The reference servers' 14 security advisories in two releases, and claude-mem's defaults, are recorded with the not-approved reasons.
+- **Token saving**: the prompt router no longer routes skills from prompts Claude Code writes itself (background-agent notifications, side-session and CI events). In one session, subagent reports had routed five unrelated skills, about 5,000 characters that every later turn re-read. One week of `eng-os usage` after 0.13.0: turns above 200k tokens of context 76% → 69%, above 400k 43% → 32%.
+- **Guard**: no rule changed. New cases cover GitHub's automation write tools and the IAM `--allow-write` install.
+- `eng-testing/browser.md` and `docs/SOURCES.md` updated to the new versions.
+
 ## 0.13.0 — 2026-11-09
 Token savings built from measurement. In 96 local sessions:
 - Bash output was 78% of all tool output;

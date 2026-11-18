@@ -7,8 +7,8 @@ Before calling a UI change done, look at it the way a user would. This is Claude
 |---|---|---|
 | Built-in browser (Claude desktop app) | a browser pane inside the app, isolated from the user's Chrome | the default for local dev servers and UAT: start the dev server from `.claude/launch.json` with `preview_start`, then read the page, click, and check the console and network |
 | Claude in Chrome | the user's own Chrome, with their logins | only when the user asks for it, for example a signed-in third-party site |
-| Playwright MCP (`@playwright/mcp` 0.0.84) | Playwright driven through accessibility snapshots, not pixels; headed by default, `--headless` and `--isolated` available | terminal sessions without a built-in browser, and Firefox or WebKit checks |
-| Chrome DevTools MCP (1.12) | Chrome through DevTools: performance traces with insights, network analysis, console messages with source maps | performance investigations and hard front-end debugging |
+| Playwright MCP (`@playwright/mcp` 0.0.85) | Playwright driven through accessibility snapshots, not pixels; headed by default, `--headless` and `--isolated` available | terminal sessions without a built-in browser, and Firefox or WebKit checks |
+| Chrome DevTools MCP (1.13) | Chrome through DevTools: performance traces with insights, network analysis, console messages with source maps | performance investigations and hard front-end debugging |
 | iOS Simulator / Android emulator | mobile devices | Flutter apps; the desktop app has an iOS Simulator tool, and Android uses an emulator with `adb` |
 
 **Adding an MCP server changes global configuration**, so it needs the user's approval. Use the pinned install commands in the eng-os MCP policy (`docs/MCP-POLICY.md` in the eng-os repo). They keep the browser in a throwaway profile and switch off telemetry. The flags that matter:
@@ -20,6 +20,8 @@ Before calling a UI change done, look at it the way a user would. This is Claude
   - `--isolated --headless --no-usage-statistics --no-performance-crux --no-file-navigations`, plus the environment variables `CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS=1` and `CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS=1`.
   - Usage statistics are on by default, and its performance tools send page URLs to Google's CrUX service unless switched off.
   - `--allowed-url-pattern` (Chrome 149+) is enforced by Chrome itself, so prefer it to an origin list.
+  - `evaluate_script` and, since 1.13, `set_logpoints` run code in the page; `--no-javascript-evaluation` turns both off when a check does not need them, unless `--experimentalDevtools` is on, whose console still runs code.
+  - Leave its network-mock tools off (`--categoryNetworkMocks`): they can make the server itself fetch URLs.
 - **Never attach either one to a real browser profile**: no `--autoConnect`, `--browser-url`, `--ws-endpoint`, `--extension` or `--cdp-endpoint`, and never Playwright's `--caps=storage` or `--allow-unrestricted-file-access`.
 
 ## Procedure
@@ -54,4 +56,4 @@ Before calling a UI change done, look at it the way a user would. This is Claude
 - Rendering varies with the OS, browser version, hardware and headless mode, so generate and compare baselines in the same environment, normally the CI container.
 - Review baseline changes in the PR like code.
 
-Sources (checked 2026-11-09): github.com/microsoft/playwright-mcp (v0.0.84 README and config schema); github.com/ChromeDevTools/chrome-devtools-mcp (v1.12.0 docs/configuration.md); playwright.dev/docs/test-snapshots; github.com/dequelabs/axe-core-npm; github.com/GoogleChrome/lighthouse-ci.
+Sources (checked 2026-11-18): github.com/microsoft/playwright-mcp (v0.0.85 README and config schema); github.com/ChromeDevTools/chrome-devtools-mcp (v1.13.0 docs/configuration.md); playwright.dev/docs/test-snapshots; github.com/dequelabs/axe-core-npm; github.com/GoogleChrome/lighthouse-ci.
