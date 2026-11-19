@@ -1,6 +1,10 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.14.1 — 2026-11-19
+- **Fixed: `eng-os verify` crashed when `~/.claude/CLAUDE.md` was missing**, for example after an install that stopped early. The duplicate-sentence check opened the file without checking it existed, so verify died with a traceback instead of reporting. It now skips the missing file; "global CLAUDE.md present" already reports it as a failure, and verify finishes with its summary line.
+- Self-tests added for a home with no `~/.claude` at all, and for a manifest that lists a CLAUDE.md that is gone (348 tests in all).
+
 ## 0.14.0 — 2026-11-18
 Refresh of the 16 agent-tooling repos eng-os was built from, against their releases on 2026-11-18. Nine had new releases; seven had none. Each changed repo was read at its new tag without running its code. Details: `docs/research/2026-11-tool-survey.md`, "Refresh (2026-11-18)".
 - **Fixed: the AWS IAM install command could not start.** The IAM server has no `--readonly` flag (its README shows one, its code rejects it) and is read-only unless given `--allow-write`. The flag is removed. MCP policy section 5 now asks for each flag to be confirmed in the pinned version's code.
