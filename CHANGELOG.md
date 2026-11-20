@@ -1,6 +1,14 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.15.1 — 2026-11-20
+Ready for the repo to go public. No skill, rule, hook or guard change.
+- **`LICENSE`**: MIT, copyright TCB Infotech Pvt Ltd.
+- **`SECURITY.md`**: report vulnerabilities privately through GitHub's private vulnerability reporting; only the latest release is supported.
+- **`INSTALL.md`**: no GitHub login needed. Another company can install from its own fork, private or public.
+- **`docs/COMPANY-ROLLOUT.md`**: records the decision to publish this repo with its history, and what that exposes. Lists the steps to run right after the switch: a ruleset on `main` (pull requests only, no force push or deletion), a ruleset that stops release tags being moved or deleted, and secret scanning, push protection, Dependabot alerts and private vulnerability reporting.
+- Checked before publishing: gitleaks 8.30.1 found no secrets in any of the 50 commits. No version holds an IP address, credential or customer data. Two client project folder names remain in the 0.7.0 history.
+
 ## 0.15.0 — 2026-11-20
 Ideas from `tcb-developer/work-summary-skills` (MIT, two Markdown skills for daily work logs), rewritten in eng-os's words; the skills are not installed. Reasoning: `docs/research/2026-11-tool-survey.md`, "Addendum: tcb-developer/work-summary-skills".
 - **Daily or end-of-day work summary** in skill `eng-delivery`, beside the weekly status: a copy-ready, plain-English "Task N:" summary for a manager, the team or a timesheet, built only from the day's progress entries, commits and merged PRs. Unfinished work is a note, never a task; unrecorded work is listed, not added; the user sends it. One new core rule says the same.

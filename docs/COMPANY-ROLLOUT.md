@@ -19,7 +19,7 @@ There are three ways to put eng-os on every machine, from easiest to strongest. 
 - **A Team plan is a leadership decision.** It would bring commercial terms (Anthropic does not train on code or prompts; 30-day retention), an admin console, SSO, spend controls and server-managed settings. That makes option 3 possible. It needs at least 2 seats.
 
 ## 1. Per-developer install (works today, tested)
-Each employee clones this private repo and runs the installer ([INSTALL.md](../INSTALL.md)).
+Each employee clones this repo and runs the installer ([INSTALL.md](../INSTALL.md)).
 - **What it covers**: everything — global instructions with each person's own commit identity, all skills, the path-scoped rules, the guard and session hooks, backups and one-command undo.
 - **Weakness**: each person must install and keep it updated, and nothing forces them to. Two things soften that:
   - the per-repo installed-check, which `/eng-project-init` adds to each project's `.claude/settings.json`: a session in that repo on a machine without eng-os is told at once;
@@ -64,15 +64,34 @@ To update, when Claude says a release is out:
 bash ~/.eng-os/install.sh
 ```
 
-## Private or public repo
-**Keep it private, and give each employee read access.** The command works either way, because `git clone` uses each person's GitHub login.
+## Public repo (decided 2026-11-20)
+The repo is public under the MIT licence ([LICENSE](../LICENSE)), so employees and other companies install with no GitHub login. The maintainer chose to publish this repo with its history rather than a fresh copy, and accepted that:
+- the history keeps earlier internal versions, including two client project folder names in the 0.7.0 verification report (removed in 0.7.1);
+- the maintainer's email is on every commit;
+- the company policy and the guard's exact rules are readable by anyone. The guard is one layer; Claude Code's permission prompts and the approval gates still apply.
 
-Making it public would expose:
-- the full git history, including earlier internal versions;
-- the maintainer's email on every commit;
-- the company's internal policy and the exact rules of its safety guard.
+Checked before publishing: gitleaks 8.30.1 over all 50 commits found no secrets, and no version holds an IP address, a credential or customer data. New commits stay free of client and project names, because the history cannot be cleaned without rewriting it.
 
-If you ever publish it, publish a fresh copy without history (a new repo with one initial commit), add a LICENSE, and review the docs for anything internal first.
+Right after the switch, the maintainer turns on what a free account allows only for public repos (`OWNER/REPO` is this repo):
+1. A ruleset on `main`: changes only through a pull request, no force pushes, no deletion. No approval count, because a sole maintainer cannot approve their own pull request.
+```bash
+gh api -X POST repos/OWNER/REPO/rulesets --input - <<'JSON'
+{"name": "main", "target": "branch", "enforcement": "active",
+ "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+ "rules": [{"type": "deletion"}, {"type": "non_fast_forward"},
+           {"type": "pull_request", "parameters": {"required_approving_review_count": 0, "dismiss_stale_reviews_on_push": false,
+            "require_code_owner_review": false, "require_last_push_approval": false, "required_review_thread_resolution": false}}]}
+JSON
+```
+2. A ruleset on release tags: a published `v*` tag can be created but never moved or deleted, so installers always get the release that was reviewed.
+```bash
+gh api -X POST repos/OWNER/REPO/rulesets --input - <<'JSON'
+{"name": "release tags", "target": "tag", "enforcement": "active",
+ "conditions": {"ref_name": {"include": ["refs/tags/v*"], "exclude": []}},
+ "rules": [{"type": "deletion"}, {"type": "update"}, {"type": "non_fast_forward"}]}
+JSON
+```
+3. In **Settings → Security**: secret scanning with push protection, Dependabot alerts, and private vulnerability reporting (the route [SECURITY.md](../SECURITY.md) gives reporters).
 
 ## Optional: a machine-level lock (not built)
 On individual plans the strongest control is a root-owned `managed-settings.json` on each machine, written once with `sudo`. It could:
@@ -85,7 +104,7 @@ User settings cannot override it, but anyone with admin rights on their own lapt
 ## Recommendation
 1. **Now**:
    - everyone installs a tagged release with option 1 and keeps it current with `eng-os update`. Model Improvement stays off on every account, the policy is shared, and every project repo gets the installed-check (`/eng-project-init`);
-   - protect `main` of this repo with a ruleset (PR, one approval from the maintainer, no force pushes), because whatever is merged runs on every machine;
+   - protect `main` and the release tags with the rulesets in "Public repo", because whatever is merged runs on every machine;
    - tag every release, so updates are deliberate.
 2. **Next**:
    - build the plugin (option 2) so skills and hooks update themselves;
