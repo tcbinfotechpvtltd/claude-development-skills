@@ -6,10 +6,11 @@
   eng-os-eval.py --transcript FILE --suite S    score an existing session transcript
   eng-os-eval.py --run [--suite S] [--model M] [--claude BIN] [--budget USD]
                                                 run suite prompts with `claude -p` in the sandbox and score them
-  eng-os-eval.py --skills [--skill NAME] [--model M] [--budget USD]
+  eng-os-eval.py --skills [--skill NAME] [--runs N] [--model M] [--budget USD]
                                                 skill-trigger test: each case in tests/skill_cases.json runs in a fresh
                                                 one-turn `claude -p` session in an empty folder; reports how often each
-                                                skill is loaded (positives) and wrongly loaded (negatives). Costs tokens.
+                                                skill is loaded (positives) and how often any eng-os skill is wrongly
+                                                loaded (negatives). --runs repeats each case. Costs tokens.
   eng-os-eval.py --self-test                    unit tests for the transcript and stream parsers (zero tokens)
 
 Checks are read from tests/scenarios.json. Transcripts are local JSONL files; their format is internal
@@ -90,7 +91,7 @@ def skills_loop(args, cases, names, work, rows):
     for name in names:
         hits = wrong = errors = 0
         runs = [(p, True) for p in cases[name].get("positive", [])] + [(p, False) for p in cases[name].get("negative", [])]
-        for prompt, positive in runs:
+        for prompt, positive in [r for r in runs for _ in range(max(1, args.runs))]:
             # Read-only and side-effect free: only the tools a first move needs, no MCP servers
             # (flags as in modelcontextprotocol/servers scripts/skill-eval.mjs).
             cmd = [args.claude, "-p", prompt, "--output-format", "stream-json", "--verbose", "--max-turns", "1",
@@ -113,14 +114,16 @@ def skills_loop(args, cases, names, work, rows):
                 rc = 2
                 print("  ERROR %s: %s" % (name, error))
                 continue
-            loaded = name in called
+            # a negative fails if ANY eng-os skill loads, not just this one: a neighbour firing on it is a false trigger too
+            loaded = name in called if positive else bool(set(called) & set(cases))
             if positive:
                 hits += loaded
             else:
                 wrong += loaded
-            print("  %s %-16s %s %s" % ("ok  " if loaded == positive else "MISS", name, "+" if positive else "-",
+            print("  %s %-16s %s %s" % ("ok  " if loaded == positive else ("MISS" if positive else "FALSE"), name, "+" if positive else "-",
                                         prompt[:70] + (" -> " + ", ".join(called) if called else "")))
-        rows.append((name, hits, len(cases[name].get("positive", [])), wrong, len(cases[name].get("negative", [])), errors))
+        n = max(1, args.runs)
+        rows.append((name, hits, n * len(cases[name].get("positive", [])), wrong, n * len(cases[name].get("negative", [])), errors))
     print("\nskill              loaded on positives   wrongly loaded on negatives")
     for name, h, n, w, m, e in rows:
         print("%-18s %2d/%-2d %15s %d/%d%s" % (name, h, n, "", w, m, ("  (%d errors)" % e) if e else ""))
@@ -307,6 +310,8 @@ def main():
     ap.add_argument("--run", action="store_true")
     ap.add_argument("--skills", action="store_true")
     ap.add_argument("--skill")
+    ap.add_argument("--runs", type=int, default=1, help="--skills: run each case this many times; one run of a case is a "
+                    "noisy sample, so judge a description change on 3 to 5 runs")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--model", help="default: haiku for --run, sonnet for --skills")
     ap.add_argument("--claude", default=os.environ.get("CLAUDE_CODE_EXECPATH") or shutil.which("claude") or "claude")

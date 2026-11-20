@@ -18,19 +18,78 @@ On individual Claude plans no one can install software on someone else's machine
 
 **New here? Install it with [INSTALL.md](INSTALL.md)** (about 5 minutes), and read the [engineering policy](docs/ENGINEERING-POLICY.md). Rolling it out to everyone: [docs/COMPANY-ROLLOUT.md](docs/COMPANY-ROLLOUT.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
-Contents: [What's inside](#whats-inside) · [What you get in each area](#what-you-get-in-each-area) (custom projects, ERPNext, Odoo, coding, testing, GitHub, DevOps, SDLC, project management, documentation, security, tokens) · [Why it is good](#why-it-is-good) · [Limits](#limits-honest) · [Technical reference](#technical-reference)
+Contents: [What's inside](#whats-inside) · [What eng-os learned from other projects](#what-eng-os-learned-from-other-projects) · [What you get in each area](#what-you-get-in-each-area) (custom projects, ERPNext, Odoo, coding, testing, GitHub, DevOps, SDLC, project management, documentation, security, tokens) · [Why it is good](#why-it-is-good) · [Limits](#limits-honest) · [Technical reference](#technical-reference)
 
 ## At a glance
 | | |
 |---|---|
-| Version | 0.11.0 |
+| Version | 0.16.0 |
 | Works with | Claude Code desktop app and CLI. Verified on macOS with 2.1.317; Linux and WSL should work but have not been tested |
 | Applies to | every Claude Code chat and every project on the machine (desktop app, terminal, IDE), automatically: nobody calls a skill |
 | Setup | one command per employee, once; the same command updates it after a weekly reminder |
-| Cost per session | about 3.3k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
-| Quality checks | 296 automated tests for the safety and session hooks, a 116-point health check, a skill-trigger test (`eng-os eval --skills`), and a scored test in a real Claude session |
-| Standards | 149 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
+| Cost per session | about 3.4k tokens always loaded (instructions + skill list). Everything else loads only when a task needs it |
+| Quality checks | 404 automated tests for the safety and session hooks, a health check of about 160 points, a skill-trigger test (`eng-os eval --skills`), and a scored test in a real Claude session |
+| Standards | 164 external standards, frameworks and tool versions, each confirmed on its official site and dated ([docs/SOURCES.md](docs/SOURCES.md)) |
 | Undo | one command restores your previous Claude setup exactly |
+
+## What eng-os learned from other projects
+eng-os studies well-known open-source projects for Claude Code and takes their best ideas, rewritten in its own words. It never installs those projects or runs their code: each one is downloaded to a scratch folder and read like a document. The latest check, on 20 November 2026, read 25 projects and listed 439 ideas. Each idea is in the full table in [docs/research/2026-11-tool-survey.md](docs/research/2026-11-tool-survey.md#gap-audit-2026-11-20).
+
+**What happened to the 439 ideas**
+
+| Result | Ideas | What it means |
+|---|---|---|
+| Already in eng-os | 156 | eng-os already did this, in the file the table names |
+| Added in version 0.16.0 | 110 | now built in; several projects shared the same idea, so this is about 60 separate changes |
+| Kept out, as decided earlier | 49 | rejected for a reason eng-os had already recorded, which still holds |
+| Not adopted | 124 | not in eng-os, and judged not worth the extra text, risk or cost (the reason is written down) |
+
+**The 25 projects**
+
+| Project | What it is | Ideas found | Added |
+|---|---|---|---|
+| obra/superpowers | workflow skills: planning, step-by-step building, test-first | 24 | 10 |
+| affaan-m/ECC | a very large pack of skills, agents and hooks | 20 | 4 |
+| mattpocock/skills | engineering and writing skills | 25 | 3 |
+| Graphify-Labs/graphify | a map of a codebase's structure | 15 | 2 |
+| github/github-mcp-server | GitHub's official tool server for Claude | 14 | 4 |
+| upstash/context7 | up-to-date library documentation | 15 | 2 |
+| microsoft/playwright-mcp | browser control for testing | 12 | 1 |
+| oraios/serena | code navigation through language servers | 16 | 3 |
+| ChromeDevTools/chrome-devtools-mcp | Chrome DevTools for performance and debugging | 12 | 4 |
+| awslabs/mcp | Amazon Web Services tool servers | 17 | 4 |
+| modelcontextprotocol/servers | the reference tool servers and a skill-writing guide | 25 | 13 |
+| rtk-ai/rtk | shortens command output to save tokens | 18 | 4 |
+| Mibayy/token-savior | token-saving hooks and a code index | 18 | 1 |
+| AMKhaan/token-saver | trims large outputs | 13 | 0 |
+| thedotmack/claude-mem | memory across sessions | 14 | 4 |
+| mksglu/context-mode | stores large outputs outside the chat | 17 | 1 |
+| tcb-developer/work-summary-skills | daily work summaries | 25 | 0 |
+| elementalsouls/Claude-BugHunter | bug-bounty hunting (only its defensive lessons were taken) | 12 | 6 |
+| trailofbits/skills | security audit skills from a security firm | 22 | 8 |
+| trailofbits/claude-code-config | that firm's own Claude Code settings | 20 | 6 |
+| anthropics/claude-code-security-review | Anthropic's automatic security review of pull requests | 18 | 7 |
+| anthropics/claude-plugins-official | Anthropic's official plugins (security reminders, code review) | 17 | 5 |
+| getsentry/skills | the Sentry team's development skills | 16 | 4 |
+| github/spec-kit | GitHub's toolkit for writing specifications first | 16 | 3 |
+| cloudflare/security-audit-skill | Cloudflare's multi-step security audit | 18 | 11 |
+
+**What changed for you in 0.16.0**
+- Claude asks first before skipping a project's commit checks (for example `git commit --no-verify`). Last week's sessions had 18 such commits.
+- Claude asks first before changing files that run at every login, such as `~/.zshrc`, `~/.bashrc` and `~/Library/LaunchAgents`. Attackers often hide things there.
+- A command wrapped inside another (`bash -c "…"`) gets the same safety checks as any other command.
+- When Claude writes risky code, it gets a one-line reminder of the safe way to do it. Examples: building SQL from text, switching off HTTPS certificate checks, or skipping a permission check. The reminder never blocks the work.
+- Security findings must be proven before they are reported, and a second, independent check tries to disprove each serious one. Anything unproven is labelled "needs validation" instead of being given a severity.
+- `eng-os verify` now checks every installed skill, including other people's, for hidden text and for commands that run as soon as the skill loads.
+- `eng-os usage --guard` replays your own past sessions and shows how often each safety rule would have asked you. This shows the cost of a rule before it changes.
+- Safer, up-to-date settings for the browser and GitHub tools. For example, login headers are hidden in browser logs and experimental tools are switched off.
+
+**Why some ideas were kept out**
+- **They would take over the chat.** Whole packs add dozens or hundreds of skills that compete with eng-os, and many update themselves without review.
+- **They send your work away.** Some send your code, changes or conversations to an outside AI service on every turn.
+- **They cost more than they save.** Rewriting or refusing Claude's commands makes it retry, and every retry re-reads the whole conversation.
+- **They are attack tools.** Bug-bounty hunting tools for other people's systems are out of scope; only their lessons for checking your own code were kept.
+- **One line does the job.** Heavy machinery, such as a full audit ledger, was reduced to the one rule that matters.
 
 ## What's inside
 
@@ -89,6 +148,8 @@ These load automatically when Claude touches matching files, even if no skill wa
 A hook checks every Claude tool call in about 50 ms and costs no tokens:
 - **Refuses** catastrophic actions, such as wiping a home or system folder, dumping the keychain, or commits with a Claude co-author trailer.
 - **Asks you first** before force-pushes, pushes to `main`/`prod`/`uat`, `reset --hard`, deploys, `DROP`/`TRUNCATE`, state-changing SSH, printing `.env` files or secret environment variables, bulk deletes with `find`, `DELETE`/`PUT`/`PATCH` calls to remote APIs, destructive SQL and any SQL write through database tools, sending email or messages, ad-platform changes that spend money, adding MCP servers or plugins, MCP tools that change code, repositories, cloud resources or data, and browser tools that run code on your machine or upload local files.
+- **Also asks** before commits or pushes that skip the repository's git hooks (`--no-verify`, `core.hooksPath`, `HUSKY=0`), edits to shell start-up files and LaunchAgents, and MCP installs with sensitive-data, unrestricted-path or experimental flags. A command handed to a shell as a string (`bash -c "…"`, `eval`) is checked like any other.
+- **Notes, never blocks**: a one-line note when code being written contains a risky pattern for its file type (a shell string, `eval`, unsafe deserialisation, TLS checks off, SQL built from strings, HTML from strings, a permission bypass such as `allow_guest=True` or `sudo()`, untrusted event text in a workflow). Each pattern is noted once per file per session; `ENG_OS_CODE_NOTE=0` turns it off.
 - **Stays silent** for everything else.
 
 The prompts appear even in bypass-permissions mode (verified). Details are in [section 3](#3-the-guard-deterministic-safety-layer).
@@ -516,10 +577,10 @@ Material conflicts are followed at the higher level and reported in one line. Th
 Across 700+ transcripts, the 24 previously installed generic skills were invoked by description **once**. Description matching alone is unreliable, so the global CLAUDE.md carries a 9-line trigger table, and project CLAUDE.md files name their required skills. Path-scoped rules handle the invariants that must apply without the model deciding to load anything.
 
 ## 3. The guard (deterministic safety layer)
-Fail-open (a crash never blocks work; errors are logged to `~/.claude/eng-os/state/guard-errors.log`), Python 3.9-compatible, stdlib only, ~50 ms per call. 259 guard cases in `tests/guard_cases.json` plus 37 session, router, install and eval-parser cases.
+Fail-open (a crash never blocks work; errors are logged to `~/.claude/eng-os/state/guard-errors.log`), Python 3.9-compatible, stdlib only, ~50 ms per call. 307 guard cases in `tests/guard_cases.json` plus 97 session, router, install, verify and eval-parser cases.
 
 - **Deny** (the user can still run these by hand): wiping `/`, home or system dirs; `mkfs`/`dd` to disks; fork bombs; reading Claude's OAuth credentials or dumping the keychain; git commits carrying a `Co-Authored-By: Claude` trailer (your rule).
-- **Ask** (approval prompt): force-push, direct push to protected branches (`main master prod production live uat release*`), `reset --hard`, `clean -f`, discarding changes, deleting branches; `gh pr merge`/repo delete/releases/secrets; DROP/TRUNCATE, UPDATE/DELETE without WHERE, writes to non-local databases; `bench drop-site/reinstall/restore`; docker volume deletion; terraform/kubectl/helm/aws/gcloud changes and deploys; package publishing; `sudo`; world-writable chmod; `curl | sh`; crontab/launchctl/authorized_keys changes; any state-changing SSH command (deploys, restarts, git pull, migrations, SQL, redirects, remote scripts) and reading remote secrets files; scp/rsync uploads and `rsync --delete`; recursive deletes outside the project/temp dirs, of whole repos, `.git`, or unexpanded variables; printing `.env`/keys/credentials files; writing content that looks like a real credential (except into `.env`); editing live global Claude config; SSH config. MCP: sending email/messages, calendar invites, sharing files, deletes in external services, Apollo sends and purchases, ad-platform changes (Meta, Google and similar) that set campaigns live or change budgets/bids; destructive or unscoped SQL through database MCP tools. Also: Grep printing the lines of secrets files (by path or glob); interpreters (`python3`, `node`...) reading them; printing environment variables (`printenv`, bare `env`, `export -p`, `echo $API_KEY`); `find -delete` or `-exec rm` that is unfiltered, outside the project or aimed at `.git`; `curl`/`wget`/`httpie` `DELETE`, `PUT` or `PATCH` to a non-local host. Since 0.11.0: `claude mcp add` and plugin installs (noting unpinned packages and write or real-browser-profile flags) and writes to `.mcp.json` or `~/.claude.json`; MCP tools that write to code, repositories, cloud resources or data (GitHub, AWS, Serena, filesystem, git and similar, including camelCase and verb-last names); any SQL write through database MCP tools; browser tools that run code on the machine or upload local files.
+- **Ask** (approval prompt): force-push, direct push to protected branches (`main master prod production live uat release*`), `reset --hard`, `clean -f`, discarding changes, deleting branches; `gh pr merge`/repo delete/releases/secrets; DROP/TRUNCATE, UPDATE/DELETE without WHERE, writes to non-local databases; `bench drop-site/reinstall/restore`; docker volume deletion; terraform/kubectl/helm/aws/gcloud changes and deploys; package publishing; `sudo`; world-writable chmod; `curl | sh`; crontab/launchctl/authorized_keys changes; any state-changing SSH command (deploys, restarts, git pull, migrations, SQL, redirects, remote scripts) and reading remote secrets files; scp/rsync uploads and `rsync --delete`; recursive deletes outside the project/temp dirs, of whole repos, `.git`, or unexpanded variables; printing `.env`/keys/credentials files; writing content that looks like a real credential (except into `.env`); editing live global Claude config; SSH config. MCP: sending email/messages, calendar invites, sharing files, deletes in external services, Apollo sends and purchases, ad-platform changes (Meta, Google and similar) that set campaigns live or change budgets/bids; destructive or unscoped SQL through database MCP tools. Also: Grep printing the lines of secrets files (by path or glob); interpreters (`python3`, `node`...) reading them; printing environment variables (`printenv`, bare `env`, `export -p`, `echo $API_KEY`); `find -delete` or `-exec rm` that is unfiltered, outside the project or aimed at `.git`; `curl`/`wget`/`httpie` `DELETE`, `PUT` or `PATCH` to a non-local host. Since 0.11.0: `claude mcp add` and plugin installs (noting unpinned packages and write or real-browser-profile flags) and writes to `.mcp.json` or `~/.claude.json`; MCP tools that write to code, repositories, cloud resources or data (GitHub, AWS, Serena, filesystem, git and similar, including camelCase and verb-last names); any SQL write through database MCP tools; browser tools that run code on the machine or upload local files. Also: `git commit/push --no-verify` and other hook bypasses; writes to `~/.zshrc`, `~/.bashrc`, `~/.profile` and `~/Library/LaunchAgents/`; reading the GitHub CLI token file or gcloud default credentials.
 - Everything else passes silently.
 
 Tune it in `global/eng-os/config.json` (protected branches, `disabled_rules`), then re-install.
@@ -554,10 +615,11 @@ Recommended on the maintainer's machine, not applied (check yours with `eng-os u
 ## 6. Evaluation and continuous improvement
 | Command | Cost | What it checks |
 |---|---|---|
-| `eng-os verify` | 0 tokens | install drift, settings wiring, matcher coverage, hooks compile on both Pythons, guard error log, CLAUDE.md/skill/rule budgets, path scoping, duplicated sentences, standards in `docs/SOURCES.md` re-checked within 120 days |
-| `eng-os test [--installed]` | 0 tokens | 259 guard cases + 37 session, router, install and eval-parser cases in a throwaway sandbox |
+| `eng-os verify` | 0 tokens | install drift, settings wiring, matcher coverage, hooks compile on both Pythons, guard error log, CLAUDE.md/skill/rule budgets, path scoping, duplicated sentences, standards in `docs/SOURCES.md` re-checked within 120 days, skill frontmatter safe for strict YAML parsers, no hidden or text-direction characters, and a warning for anyone else's skill that declares its own hooks or runs a command when it loads |
+| `eng-os test [--installed]` | 0 tokens | 307 guard cases + 97 session, router, install, verify and eval-parser cases in a throwaway sandbox |
 | `eng-os usage --since D` | 0 tokens | efficiency metrics from local transcripts, plus how often a skill the hooks named was then loaded |
-| `eng-os eval --skills [--skill S]` | about 72 one-turn sessions (Sonnet, budget-capped) | skill-trigger rate: 5 should-load and 1 should-not case per skill (`tests/skill_cases.json`), read-only tools only |
+| `eng-os usage --guard --since D` | 0 tokens | replays the shell commands actually run through the current guard rules: how often each rule would ask or deny (counts only, never the commands) |
+| `eng-os eval --skills [--skill S]` | about 72 one-turn sessions (Sonnet, budget-capped) | skill-trigger rate: 5 should-load and 1 should-not case per skill (`tests/skill_cases.json`), read-only tools only; a should-not case fails if any eng-os skill loads; `--runs N` repeats each case |
 | `eng-os eval --prompt fresh-session` / `--transcript F` | one session | instruction loading, skill listing, nested CLAUDE.md, path rules, skill adherence, guard deny/ask in a real session |
 | `eng-os eval --run` | small (Haiku, budget-capped) | headless guard and context scenarios (needs a logged-in CLI) |
 

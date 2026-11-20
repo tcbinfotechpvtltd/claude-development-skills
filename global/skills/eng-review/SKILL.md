@@ -10,6 +10,7 @@ description: Reviews work before it leaves your hands — self-review checklist,
 - Strip debug prints, commented-out code, stray files and secrets before a commit.
 - Changes to money, auth, KYC, schemas or production get an independent reviewer subagent; check each of its findings against the code before acting.
 - Review comments are claims: verify them, push back with evidence, and skip performative agreement.
+- Report a finding only once its path is reachable and its impact concrete; an unconfirmed one goes in as "needs validation", with no severity.
 - State the status as implemented, tested or verified, with the commands that were run and what was not verified.
 - One logical change per commit, with a message that explains why.
 
@@ -29,6 +30,9 @@ Read the full diff (`git diff` / `git diff --staged`), not your memory of it, pl
 Use for security-sensitive, money-moving, schema-changing or large changes, and before any production handoff:
 - `code-reviewer` subagent for general quality; `security-auditor` for security; `test-engineer` to find untested paths. If one is not installed, use a general-purpose subagent and brief it as that reviewer.
 - Brief them with: the goal, the diff or file list, the risk areas, and what you already verified. Ask for findings with file:line, severity and a concrete fix. Do not hand them your conclusions to confirm.
+- Ask for every finding with its severity and filter in a later pass. Never tell a reviewer what not to flag or that the change is safe: a reviewer told what to expect finds that.
+- Hand over the diff from a recorded base (`git diff <base>...HEAD`, never `HEAD~1`), without generated or lock files. A reviewer reviews; it does not edit code or start further subagents.
+- Judge a diff by risk, not size: a "small refactor" that touches auth, money or a permission check is high risk. For deleted security code, `git blame` why it was there; count the callers of a changed function.
 - Treat their findings as claims: verify each one against the code before fixing or dismissing it.
 - Large or risky changes get the review in two parts, each in its own fresh context: one against the coding standards (section 1), one against the spec and its acceptance criteria.
 
@@ -59,6 +63,17 @@ Use for security-sensitive, money-moving, schema-changing or large changes, and 
 3. Re-review the fixed areas and their neighbours with fresh context.
 4. Repeat until a pass produces no new Critical/High findings. Report the number of passes and the remaining open items.
 
+A whole-repo audit lists every top-level folder as reviewed or set aside, with the reason, so the report says what it did not cover. Nothing is left undone by calling it pre-existing or out of scope without saying so.
+
+### Before a finding goes in the report
+- **Boundary and result**: keep it only if someone with less trust can cross a real boundary to a concrete result (another tenant's record, money moved, code run). A missing best practice with no such path is a hardening note.
+- **Proof**: who controls the input, is the path reachable, what is the real impact, and one negative case. An IDOR shows another user's data in the response, not just a 200. An SSRF shows the server calling an address you control. A 400 from input validation does not prove a missing auth check: resend a well-formed body.
+- **Independent check** for Critical and High: a fresh subagent briefed to refute the finding, given the finding alone and not your reasoning. If it raises the severity, a second fresh one checks that.
+- **Not confirmed**: report it as *needs validation*, naming the missing fact and how the owner can check it, with no severity. Never write "could potentially".
+- **Evidence**: reproduce it from a fresh session; give the exact request or steps; mask your own tokens and other people's personal data.
+- **Scope**: a diff review reports what the change introduces. Risky old code on a touched path is listed separately.
+- A rule that is broken mechanically (a banned call, formatting, a missing header) gets a linter, hook or CI check rather than another review comment; judgement calls go in the standards.
+
 ## Severity rubric
 | Severity | Meaning | Examples |
 |---|---|---|
@@ -66,6 +81,8 @@ Use for security-sensitive, money-moving, schema-changing or large changes, and 
 | High | Serious under realistic conditions | missing webhook signature check, privilege escalation by staff, race condition on balance, no backup before destructive migration |
 | Medium | Defence-in-depth gap or correctness issue with workaround | missing rate limit, verbose errors, missing index on hot query, unhandled vendor timeout |
 | Low | Hygiene | naming, minor duplication, missing docs |
+
+High fully defeats a control; Medium weakens one. If you cannot name the concrete damage, go one level lower.
 
 ## 4. Report format
 ```

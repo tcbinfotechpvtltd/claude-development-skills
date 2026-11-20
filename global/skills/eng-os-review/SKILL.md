@@ -16,13 +16,14 @@ $E status
 $E verify                      # drift, wiring, budgets, duplication
 $E test --installed            # guard + session hook unit tests
 $E usage --since <last_audit>  # tokens, cache, subagents, repeat reads, guard blocks, skills used
+$E usage --guard --since <last_audit>  # how often each guard rule would ask on the commands actually run
 ```
 Compare with the previous rows in `<repo>/docs/metrics.md` (repo path: `$E status`). Look for:
 - Baseline context at turn 1 rising (new plugins, MCP servers, skills, longer CLAUDE.md).
 - Subagent share of input tokens, repeated reads, tool errors, compactions.
 - Skills never invoked (description or trigger table wrong, or skill not needed), or invoked when irrelevant.
 - Stacks this machine works on that have no stack-specific skill: `~/.claude/eng-os/state/stacks-seen.json` (entries with `"skill": null`). A stack that keeps appearing across developers is a candidate for a new skill.
-- `guard-errors.log` entries and guard decisions in transcripts: false positives (annoying asks) and misses (risky commands that ran without a gate).
+- `guard-errors.log` entries and guard decisions in transcripts: false positives (annoying asks) and misses (risky commands that ran without a gate). Before changing a guard rule, compare `usage --guard` before and after the change.
 
 ## 2. Check for drift in the platform
 - `claude --version` / desktop version vs the version recorded in `docs/metrics.md`.
@@ -43,7 +44,16 @@ Compare with the previous rows in `<repo>/docs/metrics.md` (repo path: `$E statu
    - **It argued its way around the rule**: add that argument and the answer to the skill's red-flags table, then run the scenario again.
 4. Record the results in `docs/metrics.md`.
 
+**Trigger eval** (`$E eval --skills`): one run of a case is a noisy sample, so judge a description change on `--runs 3` or more, and treat a case whose result changes between runs as a signal, not a pass. A case the always-loaded rules already answer measures nothing; write cases as the user's first message ("how do I…"), without file or function names.
+
 ## 5. Propose
+**Writing or changing a skill or rule** (checks the verify step cannot make):
+- The description says when to use the skill, never how it works: a model given a summary of the steps follows the summary and skips the body.
+- Pick the form of the fix from the failure seen. A rule the model talks its way around gets a plain prohibition and a red-flags row with its excuse. Output in the wrong shape gets a short template. Something the model forgets gets a required slot in the template or checklist.
+- Say what to do rather than what not to do, leave out "unless" escape clauses, and end each step on something that can be checked.
+- Delete sentences the model already obeys without them (the pressure test shows which); every always-loaded line costs every session.
+- Keep the frontmatter valid for strict YAML: quote a value containing `: ` or ` #`.
+
 - Write findings: what is working (with numbers), what is not, proposed changes with expected effect on tokens, safety and adherence.
 - Make the changes in the repo on a branch (`git -C <repo> switch -c review-YYYY-MM`), update `CHANGELOG.md` and bump `VERSION`, run `bin/eng-os test` and `bin/eng-os install --dry-run`.
 - Never weaken a security gate, approval requirement or test rule to reduce friction without the user explicitly agreeing to that specific trade-off.

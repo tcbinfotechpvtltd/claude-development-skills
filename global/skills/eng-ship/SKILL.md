@@ -68,7 +68,7 @@ After deploy: smoke test the critical paths, watch error rates, then record the 
 Automated, encrypted, off-site, retention defined, and a restore test on a schedule (an untested backup is not a backup). Document RPO/RTO per system.
 
 ## Incidents
-Stabilise first (rollback, feature flag off, scale), then diagnose. Preserve evidence (logs, DB snapshots) before cleanup. Regulated clients have reporting clocks (CERT-In, RBI, DPDP Board): check [standards.md](../eng-security/standards.md) and tell the user at once.
+Stabilise first (rollback, feature flag off, scale), then diagnose. After a compromised package, extension or token: look for persistence first (new hooks in `.claude/settings.json`, `.vscode/tasks.json`, shell start-up files, LaunchAgents, cron, CI workflows, SSH keys), remove it, and only then rotate credentials, or the new ones leak too. Preserve evidence (logs, DB snapshots) before cleanup. Regulated clients have reporting clocks (CERT-In, RBI, DPDP Board): check [standards.md](../eng-security/standards.md) and tell the user at once.
 Write a blameless postmortem (timeline, contributing causes, actions that fix the system, not the person) for: user-visible downtime or degradation, any data loss, a rollback or other manual intervention, slow resolution, or an incident monitoring failed to catch.
 
 Sources (checked 2026-11-04): sre.google (SLO chapter, postmortem culture, error budget policy); dora.dev/guides/dora-metrics; 12factor.net.

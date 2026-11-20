@@ -36,6 +36,9 @@ Full procedures, per version: skill `odoo`.
 - Access for every new model: `ir.model.access.csv` plus record rules up to 19, `ir.access` in 20, with multi-company rules; `groups=` on sensitive fields.
 
 ## Flutter / mobile
+- Deep links and app links are untrusted input: validate the target and parameters, and never let one open an authenticated action without a check.
+- WebView bridges (`JavascriptChannel`, `addJavaScriptHandler`) expose app functions to page script: only for pages you control, with origin checks.
+- On logout or account switch, clear tokens, caches and local databases, so the next user sees nothing of the last.
 - No secrets or vendor API keys in the app bundle; the backend proxies privileged calls.
 - Tokens in `flutter_secure_storage` (Keychain/Keystore), never SharedPreferences.
 - TLS only; consider certificate pinning for lending/KYC flows; reject cleartext (`usesCleartextTraffic=false`).
@@ -51,3 +54,13 @@ Full procedures, per version: skill `odoo`.
 - Backups encrypted and off-site; restore tested; logs kept at least 180 days within India for Indian clients (CERT-In) and clocks synced to NIC/NPL NTP servers.
 - Baseline: CIS Benchmark Level 1 for the OS and each service (Ubuntu 24.04 v2.0.0, NGINX v3.1.0, Docker v1.9.0, MySQL 8.4 v1.1.0, MariaDB 10.11 v1.0.0); AWS accounts: CIS AWS Foundations v7.1.0. Apply with care on live servers: some items break apps, so test on UAT first.
 - After compromise: rotate every credential, rebuild from a known-good state rather than trusting cleanup, review cron, authorized_keys, systemd units and Server Scripts for persistence.
+
+## Where bugs hide in any stack
+- **Tenant isolation**: a `company` or `tenant` column is not isolation by itself; every query and every derived copy (search index, cache, export, report, log, backup, attachment URL) must filter by it. Soft-deleted and revoked records stay hidden, migrations give new rows the right owner, and restoring a backup re-applies access.
+- **Object access (BOLA/IDOR)**: any id in a URL, body or file name, including sequential loan or invoice numbers, nested ids (`/loans/1/documents/2`) and export or download links. Mass assignment: the server picks which fields a request may set; `owner`, `status`, `amount`, `role` never come from the client.
+- **Steps and state**: a step enforced only in the UI (OTP, KYC, sanction, approval) can be skipped by calling the next endpoint; replays and two parallel requests on a balance, coupon or limit (row lock or unique key); partial failure halfway through a flow; queue or webhook messages that arrive twice or out of order, and an acknowledgement sent before the commit.
+- **SSRF** (any feature that fetches a URL: webhooks, imports, previews, PDF renderers): allow-list destinations; resolve the name once and connect to that address (DNS rebinding); re-check every redirect; block private, link-local (169.254/16, cloud metadata), carrier-grade (100.64/10) and IPv4-mapped IPv6 addresses; cap the response size and time.
+- **Paths and arguments**: resolve the real path and check it stays under the allowed folder after symlinks; a value passed to a command must not start with `-` (end options with `--`).
+- **Secrets that fail open**: `os.environ.get("SECRET", "dev-secret")`, `|| 'changeme'` and similar defaults let production run with a known key; fail at start-up instead.
+- **Secrets inside objects**: a credential field on a class with generated `repr`, `to_dict`, `asdict` or `model_dump` leaks when the object is logged, serialised or sent to error tracking; exclude the field (`repr=False`, `exclude=`, `SecretStr`) and never log whole request, settings or user objects.
+- **Account changes**: MFA enrolment and removal, step-up checks bound to the action, password reset and recovery, account linking, API-key scope, and a new session id after login.

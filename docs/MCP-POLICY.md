@@ -19,11 +19,11 @@ Applies to every machine with eng-os. Changes to this list go through a pull req
 | Server (pinned) | Use it for | What leaves the machine | Customer-data projects |
 |---|---|---|---|
 | Chrome DevTools MCP 1.13.0 | performance traces, network and console debugging on localhost and UAT | nothing extra, once usage statistics, CrUX lookups and update checks are off | yes, on test data |
-| Playwright MCP 0.0.85 | browser checks in terminal sessions; Firefox and WebKit | nothing extra (no telemetry found in the repo; the Playwright build it bundles was not audited) | yes, on test data |
+| Playwright MCP 0.0.86 | browser checks in terminal sessions; Firefox and WebKit | nothing extra (no telemetry found in the repo; the Playwright build it bundles, 1.66.0-alpha-2026-11-18, was not audited) | yes, on test data |
 | AWS documentation 1.2.6 | current AWS documentation | the search terms | yes |
 | AWS IaC 1.0.27, CloudWatch 0.3.2, CloudTrail 0.1.2, Pricing 1.1.2, Billing and Cost Management 0.0.46, IAM 1.1.5 (read-only by default) | reading infrastructure, logs, costs and IAM with a read-only profile | calls to your AWS account only | yes, but logs can hold personal data: read only what the task needs |
 | GitHub MCP 2.2.0 (remote, read-only) | structured reads, code-scanning and Dependabot alerts that `gh` makes awkward | repository data you could already read | yes (code repos only) |
-| Context7 4.7.3 (remote) | Next.js 16 and Flutter library docs | queries, library names, editor and server versions, a session ID and IP; queries are kept for benchmarking and API logs for 30 days | **no**, unless a vendor-risk sign-off exists |
+| Context7 4.7.3 (remote) | Next.js 16 and Flutter library docs | queries, library names, editor and server versions, a session ID and IP, the transport, the plugin name when used through one, and whether experimental tools are on; queries are kept for benchmarking and API logs for 30 days | **no**, unless a vendor-risk sign-off exists |
 
 ### Install commands
 Run them in a terminal. Remove one with `claude mcp remove <name>`.
@@ -31,9 +31,10 @@ Run them in a terminal. Remove one with `claude mcp remove <name>`.
 **Chrome DevTools MCP.**
 - Never attach it to a real profile: no `--autoConnect`, `--browser-url`, `--ws-endpoint`, or a `--user-data-dir` of your own Chrome.
 - On Chrome 149 or newer, add `--allowed-url-pattern "http://localhost:*/*"` to enforce an allowlist.
-- Never add `--categoryNetworkMocks` (new in 1.13), whose upstream mode makes the server itself fetch URLs it is given, or `--experimentalDevtools`, whose DevTools console runs code even with JavaScript evaluation off.
+- Never add `--categoryNetworkMocks` (new in 1.13), whose upstream mode makes the server itself fetch URLs it is given, or `--experimentalDevtools`, whose DevTools console runs code even with JavaScript evaluation off. Never add `--allowUnrestrictedPaths` (the server's file tools reach the whole disk instead of the temp folder) or `--categoryExtensions` (installs unpacked extensions). The guard asks before an install with any of these.
+- `--redact-network-headers` masks authorization and cookie headers in network output, so a signed-in UAT check does not put tokens in the transcript. `CHROME_DEVTOOLS_MCP_NO_CONFIG_DISCOVERY=1` stops it from reading a config file (`~/.config/cd4a/config.json`) that could set options the command line does not show.
 ```bash
-claude mcp add chrome-devtools --scope user -e CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS=1 -e CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS=1 -- npx -y chrome-devtools-mcp@1.13.0 --isolated --headless --no-usage-statistics --no-performance-crux --no-file-navigations --screenshot-format=jpeg --screenshot-max-width=1280
+claude mcp add chrome-devtools --scope user -e CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS=1 -e CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS=1 -e CHROME_DEVTOOLS_MCP_NO_CONFIG_DISCOVERY=1 -- npx -y chrome-devtools-mcp@1.13.0 --isolated --headless --redact-network-headers --no-usage-statistics --no-performance-crux --no-file-navigations --screenshot-format=jpeg --screenshot-max-width=1280
 ```
 
 **Playwright MCP.** Its own README says it is not a security boundary.
@@ -41,7 +42,7 @@ claude mcp add chrome-devtools --scope user -e CHROME_DEVTOOLS_MCP_NO_USAGE_STAT
 - Upload only synthetic fixture files.
 - Add `.playwright-mcp/` to the project's `.gitignore`.
 ```bash
-claude mcp add playwright --scope user -- npx -y @playwright/mcp@0.0.85 --isolated --headless --block-service-workers --no-webmcp --image-responses omit --redact-url-params "access_token,code,token" --output-dir .playwright-mcp
+claude mcp add playwright --scope user -- npx -y @playwright/mcp@0.0.86 --isolated --headless --block-service-workers --no-webmcp --image-responses omit --redact-url-params "access_token,code,token" --output-dir .playwright-mcp
 ```
 
 **AWS.**
@@ -72,9 +73,11 @@ claude mcp add --transport http --scope user github https://api.githubcopilot.co
 unset GH_MCP_TOKEN
 ```
 
+- `X-MCP-Lockdown` is a best-effort filter on content from people without push access, not an access boundary: untrusted issue and PR text can still reach the chat. Never add `X-MCP-Insiders`, `X-MCP-Features` or the `/insiders` URL, which turn on experimental tools; the guard asks before an install with any of them.
+
 **Context7.** Add it per project (`--scope local`), only in Next.js or Flutter projects without customer data.
 - The free tier allows 1,000 calls a month per account.
-- Leave its experimental tools off (called "research preview" before 4.7.1): never add `?experimental=1` to the URL, and keep "All experimental tools" off in its dashboard.
+- Leave its experimental tools off (called "research preview" before 4.7.1): never add `?experimental=1` to the URL, and keep "All experimental tools" off in its dashboard. Since 4.7.3 these include source-code tools (`grep-code`, `glob-code`, `read-code`, `find-symbol`) that read library repositories.
 ```bash
 read -rs CONTEXT7_API_KEY
 claude mcp add --transport http --scope local context7 https://mcp.context7.com/mcp -H "Authorization: Bearer $CONTEXT7_API_KEY"
@@ -86,10 +89,10 @@ unset CONTEXT7_API_KEY
   - Licence is GPL-3.0, so never copy its text into eng-os.
   - Install: `uv tool install -p 3.13 serena-agent==2.1.0`.
   - Run per project, in planning mode (no edit tools), with telemetry off: `claude mcp add serena --scope local -e SERENA_USAGE_REPORTING=false -- serena start-mcp-server --context claude-code --mode planning --project "$(pwd)"`.
-  - In `~/.serena/serena_config.yml` set `web_dashboard: false`, `trusted_project_path_patterns: []`, and `excluded_tools: [execute_shell_command, create_text_file, write_memory, delete_memory, rename_memory, edit_memory, onboarding]`.
+  - In `~/.serena/serena_config.yml` set `web_dashboard: false`, `trusted_project_path_patterns: []`, and `excluded_tools: [execute_shell_command, create_text_file, write_memory, delete_memory, rename_memory, edit_memory, onboarding, replace_content, replace_in_files, replace_lines, delete_lines, insert_at_line, replace_symbol_body, insert_after_symbol, insert_before_symbol, rename_symbol]`. Planning mode in 2.1.0 still exposed some edit tools (fixed on main after the release), so they are listed by name. Keep the trusted-project list empty: a trusted project's own Serena settings can start commands. Never use its `ext-full` or `ext-readonly` modes.
   - Add `.serena/` to `.gitignore`.
-- **Graphify 0.9.112.** A structural map of a large codebase.
-  - Install: `uv tool install -p 3.11 graphifyy==0.9.112` (two y's; look-alike packages exist). It needs Python 3.11 or newer since 0.9.111.
+- **Graphify 0.9.113.** A structural map of a large codebase.
+  - Install: `uv tool install -p 3.13 graphifyy==0.9.113` (two y's; look-alike packages exist). It needs Python 3.11.5 or newer since 0.9.113, which pins soupsieve 4.1.1 to clear two advisories; on Python 3.11.0 to 3.11.4 the same command resolves to 0.9.112.
   - Set `GRAPHIFY_BACKEND=none` (and `GRAPHIFY_NO_CTA=1` to silence its sign-up prompts), then run `graphify extract . --code-only`.
   - Add `graphify-out/` to `.gitignore`.
   - Never run `graphify install` or `graphify <platform> install` (they write CLAUDE.md or AGENTS.md), `graphify hook install`, `ingest` or anything Cloud, and never use it on a repo that holds customer data.
@@ -98,7 +101,8 @@ unset CONTEXT7_API_KEY
 - **RTK, the `rtk-oss` edition (Apache-2.0), on test-heavy repos only.** It rewrites shell commands to compact their output. Pilot it for two weeks and compare real usage (`eng-os usage`), not its own savings counter.
   - Keep its telemetry off.
   - Leave out commands whose exact output matters (`git diff`, `git log`, `curl`).
-  - Set its recovery store to failures only, because it keeps raw command output on disk.
+  - Set its recovery store to failures only (`[retriever] mode = "failures"`, or `"disabled"`), because the default `sqlite` store keeps raw command output on disk, unredacted, for 30 days.
+  - Never write `[classifier]`, `[upstream]` or `[task]` blocks in its config: they post command output to a model endpoint.
   - Never install the `rtk` edition: it bundles BUSL-licensed code.
 
 eng-os already does the safe part of this itself: a hook trims very large Bash output and saves the full copy, and the global instructions ask for quiet flags and filtered output.
@@ -107,13 +111,13 @@ eng-os already does the safe part of this itself: a hook trims very large Bash o
 - **The MCP reference servers** (filesystem, git, fetch, memory, sequential thinking, time, everything). Claude Code's built-in tools already do their jobs, and the memory server stores what it's told in a plain file. Their v2.4.0 and v2.5.0 releases alone fixed 14 security advisories, among them git repository settings that ran programs, symlink races in filesystem and SSRF in fetch.
 - **Archived servers** (`modelcontextprotocol/servers-archived` and similar), which get no security fixes.
 - **Any write-enabled or command-running mode:**
-  - AWS servers with `--allow-write`, `--allow-writes`, `--allow_write_query`, `ALLOW_WRITE=true` or `--no-confirmation`;
-  - `aws-api-mcp-server`, which runs any AWS CLI command and allows writes by default;
+  - AWS servers with `--allow-write`, `--allow-writes`, `--allow_write_query`, `ALLOW_WRITE=true` (or a prefixed form such as `SITEWISE_MCP_ALLOW_WRITES=true`), `--allow-sensitive-data-access` or `--no-confirmation`;
+  - `aws-api-mcp-server`, which runs any AWS CLI command, allows writes by default and has telemetry on by default (`AWS_API_MCP_TELEMETRY`);
   - GitHub MCP without `X-MCP-Readonly`;
   - Serena's edit and shell tools.
 - **Browsers attached to a real profile**: Chrome DevTools with `--autoConnect`, `--browser-url` or `--ws-endpoint`, and Playwright with `--extension` or `--cdp-endpoint`.
 - **Token and memory add-ons that send or store session content**:
-  - **claude-mem** sends every tool's input and output to a model to summarise (Claude Haiku by default), keeps it forever in a plain database (retention and secret-redaction settings exist, both off by default), and has telemetry on by default.
+  - **claude-mem** sends every tool's input and output to a model to summarise (Claude Haiku by default), keeps it forever in a plain database (retention and secret-redaction settings exist, both off by default), and has telemetry on by default (`DO_NOT_TRACK=1` turns it off). Its setup installs a Bun runtime at session start. `CLAUDE_MEM_OBSERVER_ENABLED=false` (16.0.1) stops the model calls but not the capture.
   - **context-mode** runs code the model writes, with your full environment. It stores command output in a plain local index, is Elastic-2.0 licensed, and adds about 2k tokens to every session.
   - **token-savior** needs Python 3.11+ and builds its own code index and memory; its measured gain is small and self-reported.
   - **token-saver** is a one-day project whose output handling is unproven.
@@ -137,6 +141,12 @@ Open a PR to eng-os that adds a row to section 2 or 3, answering each point:
 ## 6. Third-party plugins and skills
 - Install only what this list approves, and turn off auto-update for any third-party plugin marketplace. A plugin that updates itself can change what Claude is told in every session without review.
 - Record the source URL, pinned version or commit, licence and reviewer in the approval PR.
+- Before approving a skill or plugin, read every file in it, not only SKILL.md. Look for:
+  - hidden text (zero-width or text-direction characters), and symlinks that point outside its folder;
+  - hooks in its frontmatter or `hooks.json`, lines that run a shell command when the skill loads (`!` followed by a command in backticks), and scripts it tells Claude to run;
+  - installers that fetch a runtime or code at session start;
+  - a description that triggers far more widely than the body needs ("use for every request"), which takes the chat over from eng-os.
+- `eng-os verify` warns about the first three in any skill under `~/.claude/skills`.
 - Remove plugins and connectors you don't use. Each one's skills and tools load into every session. On the maintainer's machine a new session starts at about 87,000 tokens, of which eng-os is about 3,500.
 
-Sources (read 2026-11-09, refreshed 2026-11-18): github.com/ChromeDevTools/chrome-devtools-mcp (v1.13.0); github.com/microsoft/playwright-mcp (v0.0.85); github.com/awslabs/mcp (calendar release 2026.11.20261117195521); github.com/github/github-mcp-server (v2.2.0); github.com/upstash/context7 (@upstash/context7-mcp 4.7.3); github.com/oraios/serena (v2.1.0); github.com/Graphify-Labs/graphify (v0.9.112); github.com/modelcontextprotocol/servers (v2.5.0); github.com/affaan-m/ECC (docs/MCP-CONNECTOR-POLICY.md). Full notes: [research/2026-11-tool-survey.md](research/2026-11-tool-survey.md).
+Sources (read 2026-11-09, refreshed 2026-11-18, gap audit 2026-11-20): github.com/ChromeDevTools/chrome-devtools-mcp (v1.13.0); github.com/microsoft/playwright-mcp (v0.0.86); github.com/awslabs/mcp (calendar release 2026.11.20261117195521); github.com/github/github-mcp-server (v2.2.0); github.com/upstash/context7 (@upstash/context7-mcp 4.7.3); github.com/oraios/serena (v2.1.0); github.com/Graphify-Labs/graphify (v0.9.113); github.com/rtk-ai/rtk (v1.2.1); github.com/thedotmack/claude-mem (v16.0.1); github.com/modelcontextprotocol/servers (v2.5.0); github.com/affaan-m/ECC (docs/MCP-CONNECTOR-POLICY.md). Full notes: [research/2026-11-tool-survey.md](research/2026-11-tool-survey.md).

@@ -5,6 +5,7 @@ Reads ~/.claude/projects/**/*.jsonl (local transcripts, never sent anywhere).
 Python 3.9 compatible, stdlib only.
 
   eng-os-usage.py [--since YYYY-MM-DD] [--project SUBSTR] [--json] [--top N]
+  eng-os-usage.py --guard [--since YYYY-MM-DD]   replay past shell commands through today's guard rules
 """
 import argparse
 import collections
@@ -148,6 +149,56 @@ def analyze_file(path, since):
     return s
 
 
+def guard_replay(paths, since):
+    """How often each guard rule would ask or deny on the shell commands actually run in past sessions. A rule that
+    asks on many routine commands costs approvals and attention; a change to a rule can be judged against real use
+    before it ships. Approximate: files, branches and config may have changed since. Prints counts only, never the
+    commands (they can hold secrets), and sends nothing anywhere."""
+    import importlib.util
+    cands = [os.path.join(REPO, "global", "eng-os", "hooks", "guard.py"), os.path.join(REPO, "hooks", "guard.py")]
+    path = next((c for c in cands if os.path.isfile(c)), None)
+    if not path:
+        print("guard.py not found next to this script", file=sys.stderr)
+        return 1
+    spec = importlib.util.spec_from_file_location("engos_guard_replay", path)
+    g = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(g)
+    cfg = g.load_config()
+    hits, total, files = collections.Counter(), 0, 0
+    for p in paths:
+        seen = False
+        for rec in iter_records(p):
+            msg = rec.get("message")
+            if rec.get("type") != "assistant" or not isinstance(msg, dict) or (since and (rec.get("timestamp") or "")[:10] < since):
+                continue
+            for b in msg.get("content") or []:
+                if not (isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") == "Bash"):
+                    continue
+                cmd = (b.get("input") or {}).get("command")
+                if not isinstance(cmd, str) or not cmd:
+                    continue
+                cwd = rec.get("cwd") or os.path.expanduser("~")
+                total, seen = total + 1, True
+                try:
+                    v = g.check_bash(cmd, cwd, os.path.normpath(cwd), cfg)
+                except Exception:
+                    hits["error (guard raised)"] += 1
+                    continue
+                if v:
+                    rid = re.match(r"[a-z0-9-]+", v[1])  # the rule id only: never echo command text
+                    hits["%s %s" % (v[0], rid.group(0) if rid else "other")] += 1
+        files += seen
+    print("guard replay (%s): %d shell commands from %d transcripts%s" % (os.path.relpath(path, REPO), total, files,
+                                                                          " since " + since if since else ""))
+    if not total:
+        return 0
+    print("%-34s %7s %8s" % ("decision rule", "count", "of cmds"))
+    for k, n in hits.most_common():
+        print("%-34s %7d %7.2f%%" % (k, n, 100.0 * n / total))
+    print("allowed with no prompt: %.1f%%" % (100.0 * (total - sum(hits.values())) / total))
+    return 0
+
+
 def pct(a, b):
     return (100.0 * a / b) if b else 0.0
 
@@ -158,6 +209,7 @@ def main():
     ap.add_argument("--project", help="substring of the transcript project dir")
     ap.add_argument("--top", type=int, default=12)
     ap.add_argument("--json", action="store_true", help="machine-readable output")
+    ap.add_argument("--guard", action="store_true", help="replay past shell commands through the current guard rules")
     a = ap.parse_args()
 
     mains, subs = [], []
@@ -167,6 +219,8 @@ def main():
         mains += glob.glob(os.path.join(proj, "*.jsonl"))
         subs += glob.glob(os.path.join(proj, "*", "subagents", "*.jsonl"))
 
+    if a.guard:
+        return guard_replay(mains + subs, a.since)
     sessions = [x for x in (analyze_file(p, a.since) for p in mains) if x and x["requests"]]
     agents = [x for x in (analyze_file(p, a.since) for p in subs) if x and x["requests"]]
     if not sessions:
