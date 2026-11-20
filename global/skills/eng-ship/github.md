@@ -12,7 +12,8 @@ Changing repository settings, rulesets or secrets is a security-boundary change:
   - Optional: linear history, signed commits.
   - Keep the bypass list empty or minimal. Rulesets stack (the most restrictive rule wins) and can also protect tags.
 - **CODEOWNERS** in `.github/CODEOWNERS` (the root or `docs/` also work; the first found wins). Owners need write access, and the last matching pattern wins. Always own `.github/workflows/` and deploy or infra files.
-- **Dependabot**: turn on alerts and security updates. Add `.github/dependabot.yml` (`version: 2`, one `updates:` entry per ecosystem, including `github-actions`).
+- **Dependabot**: turn on alerts and security updates. Add `.github/dependabot.yml` (`version: 2`, one `updates:` entry per ecosystem, including `github-actions`), with a `cooldown:` of a few days so a release is not adopted on the day it appears. Add the `dependency-review` action to PR checks.
+- **Public repos**: a pre-commit check against a local, uncommitted list of client names, hostnames and IPs, failing closed, so none reach a commit, issue or PR.
 - **Secret scanning and push protection**: free and on by default for public repos. Private repos need GitHub Secret Protection, a paid add-on for Team or Enterprise plans. Without it, run gitleaks in pre-commit and CI.
 - **Templates**: PR template, `release.yml` and CHANGELOG from `~/.claude/eng-os/templates/release/` (see [releases.md](releases.md)).
 
@@ -23,7 +24,10 @@ Short, clearly named branch → commits with descriptive messages → pull reque
 - **Pin every third-party action to a full-length commit SHA** taken from the action's own repository, not a fork; let Dependabot propose updates. Tags can be moved. In March 2026, attackers published a malicious Trivy release and force-pushed 76 of 77 `aquasecurity/trivy-action` tags to credential-stealing code (GHSA-69fq-xp46-6x23, CVE-2026-33634). If a pipeline ran a compromised action, rotate every secret it could reach.
 - **Least-privilege token**: `permissions: contents: read` at the top of every workflow; grant more per job only where needed.
 - **No long-lived cloud keys**: use OIDC federation (for example AWS IAM roles), with the trust condition limited to this repo, branch or environment.
-- **Untrusted input** (PR titles, branch names, issue bodies) never goes inline in `run:` through `${{ }}`; pass it through `env:` and quote it.
+- **Untrusted input** (PR titles and bodies, branch names (`github.head_ref`), issue and comment bodies, commit messages, review text) never goes inline in `run:` through `${{ }}`; pass it through `env:` and quote it. `actionlint` and `zizmor` catch most of these in CI.
+- **Checkout and install**: `actions/checkout` with `persist-credentials: false`; `npm ci --ignore-scripts` unless a package needs its install script; no cache restore in jobs that hold publish rights, OIDC or deploy secrets (a poisoned cache runs in them), and no dependency install or build inside the publish job: it publishes what an earlier job built.
+- **Outside contributors**: require approval before workflows run for every first-time and outside contributor, not only first-time ones.
+- **A model in CI** (a review or coding agent): give it a read-only tool list; keep its API key out of reach of the tools it runs (no `ps`, `env` or shell access to the runner's environment); treat its output as untrusted input to later steps.
 - **Avoid `pull_request_target` and `workflow_run`** unless privileged context is required, and never check out untrusted PR code in them.
 - **Production deploys** run in a protected environment with required reviewers (rule `ci-deploy`).
 - **Self-hosted runners** are high risk; never use them on public repos.

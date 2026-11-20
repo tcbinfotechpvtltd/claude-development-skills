@@ -34,7 +34,7 @@ The minimum per change and the full map of test types (what each catches, when, 
 ## Bug fix protocol (prove it)
 1. Reproduce: get the exact error, input and environment. Build a fast, repeatable pass/fail check first (the smallest failing test, a script or a curl call); every later step depends on it. Redact secrets and personal data from any output you show.
 2. Fix the root cause, not the symptom.
-3. The test now passes; the full relevant suite still passes.
+3. The test now passes; the full relevant suite still passes. Prove the test guards the fix: undo the fix (stash it or comment it out), watch the test fail for the expected reason, then restore the fix. A test written after the fix that never failed proves nothing.
 4. Ask: where else could the same defect exist? Grep for the pattern and fix or report siblings.
 
 ## Root-cause debugging
@@ -56,7 +56,7 @@ The minimum per change and the full map of test types (what each catches, when, 
 | "The test is flaky, skip it" | Flaky means nondeterminism nobody has found yet. Quarantine it only with a tracking note and tell the user, then find the cause. |
 
 ## Flaky tests
-Quarantine only with a tracking note; find the nondeterminism (time, order, shared state, async waits, network). Replace sleeps with explicit waits on conditions.
+Quarantine only with a tracking note; find the nondeterminism (time, order, shared state, async waits, network). Replace sleeps with explicit waits on conditions. Automatic retries (pytest-rerunfailures, `retries:` in Playwright or Jest) are not a fix: they hide the failure, so add them only with a tracking note and a date to remove them.
 
 ## Reporting
 State which suites ran, the counts (passed/failed/skipped), and paste the failure output for anything red. "Tests pass" without a run is not acceptable.

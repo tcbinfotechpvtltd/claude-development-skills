@@ -24,7 +24,7 @@ Every external standard that eng-os skills and rules cite, with the edition in u
 | Architecture Decision Records (Nygard, MADR, Y-statement) | MADR 4.0.0 | templates page updated 2026-11-02 | eng-design | https://adr.github.io/adr-templates/ | 2026-11-04 |
 | The Twelve-Factor App | live site | last updated 2017 | eng-design, eng-ship | https://12factor.net/ | 2026-11-04 |
 | AWS Well-Architected Framework | 6 pillars | not shown | eng-design | https://docs.aws.amazon.com/wellarchitected/latest/framework/the-pillars-of-the-framework.html | 2026-11-04 |
-| obra/superpowers (agent workflow skills, MIT) | v7.0.2 | 2026-11-03 | eng-design/implementation-plans.md; red-flags tables in eng-review, eng-testing, eng-ship; review feedback in eng-review; subagent model choice in CLAUDE.md section 8; pressure tests in eng-os-review. Ideas adapted in our own words; not installed. | https://github.com/obra/superpowers | 2026-11-18 |
+| obra/superpowers (agent workflow skills, MIT) | v7.0.2 | 2026-11-03 | eng-design/implementation-plans.md (dispatch rules, round cap); eng-os-review (skill writing); eng-testing (red-green proof); red-flags tables in eng-review, eng-testing, eng-ship; review feedback in eng-review; subagent model choice in CLAUDE.md section 8; pressure tests in eng-os-review. Ideas adapted in our own words; not installed. | https://github.com/obra/superpowers | 2026-11-20 |
 
 ## Testing
 | Standard | Edition in use | Published | Used in | URL | Checked |
@@ -171,8 +171,8 @@ Primary RBI pages were read for the Digital Lending Directions; DPDP Rules conte
 ## Browser testing and more test tools
 | Standard | Edition in use | Published | Used in | URL | Checked |
 |---|---|---|---|---|---|
-| Playwright MCP server | 0.0.85 | 2026-11-09 | eng-testing/browser.md | https://github.com/microsoft/playwright-mcp | 2026-11-18 |
-| Chrome DevTools MCP server | 1.13.0 | 2026-11-11 | browser.md | https://github.com/ChromeDevTools/chrome-devtools-mcp | 2026-11-18 |
+| Playwright MCP server | 0.0.86 | 2026-11-18 | eng-testing/browser.md | https://github.com/microsoft/playwright-mcp | 2026-11-20 |
+| Chrome DevTools MCP server | 1.13.0 | 2026-11-11 | browser.md | https://github.com/ChromeDevTools/chrome-devtools-mcp | 2026-11-20 |
 | Playwright visual comparisons (`toHaveScreenshot`) | live docs | not shown | browser.md, test-types.md | https://playwright.dev/docs/test-snapshots | 2026-11-04 |
 | axe-core / @axe-core/playwright | 4.14.0 / 4.14.0 | 2026-10-05 / 2026-10-15 | browser.md, tooling.md | https://github.com/dequelabs/axe-core-npm | 2026-11-04 |
 | Lighthouse / Lighthouse CI | 13.6.0 / 0.16.0 | 2026-10-27 / 2026-11-02 | browser.md, tooling.md | https://github.com/GoogleChrome/lighthouse-ci | 2026-11-04 |
@@ -214,20 +214,28 @@ Primary RBI pages were read for the Digital Lending Directions; DPDP Rules conte
 | Claude Code env vars (`CLAUDE_CODE_SUBAGENT_MODEL`) and subagents (CLAUDE.md loading) | live docs | not shown | global settings, CLAUDE.md section 8 | https://code.claude.com/docs/en/env-vars.md | 2026-11-09 |
 | Claude Code hooks (SessionStart matchers incl. `compact`; 10,000-character output cap) | live docs | not shown | session_start.py | https://code.claude.com/docs/en/hooks.md | 2026-11-09 |
 | Claude Code MCP (scopes; `${VAR}` expansion in `.mcp.json`) | live docs | not shown | docs/MCP-POLICY.md | https://code.claude.com/docs/en/mcp.md | 2026-11-09 |
-| affaan-m/ECC (MCP connector policy, skill-run tracking, token settings) | v2.2.3 | 2026-10-01 | docs/MCP-POLICY.md, research record | https://github.com/affaan-m/ECC | 2026-11-18 |
-| mattpocock/skills (invocation split, spec and ticket shapes, debugging loop, test seams) | v1.3.2 | 2026-10-29 | eng-design, eng-testing, eng-review, templates | https://github.com/mattpocock/skills | 2026-11-18 |
-| Graphify-Labs/graphify | v0.9.112 | 2026-11-17 | docs/MCP-POLICY.md (pilot) | https://github.com/Graphify-Labs/graphify | 2026-11-18 |
-| github/github-mcp-server (read-only, lockdown, toolsets, write-tool names) | v2.2.0 | 2026-11-16 | docs/MCP-POLICY.md, guard | https://github.com/github/github-mcp-server | 2026-11-18 |
-| upstash/context7 (data-out record, trigger rule) | @upstash/context7-mcp 4.7.3 | 2026-11-17 | docs/MCP-POLICY.md | https://github.com/upstash/context7 | 2026-11-18 |
-| microsoft/playwright-mcp | v0.0.85 | 2026-11-09 | eng-testing/browser.md, docs/MCP-POLICY.md | https://github.com/microsoft/playwright-mcp | 2026-11-18 |
-| oraios/serena (GPL-3.0; ideas only) | v2.1.0 | 2026-10-19 | docs/MCP-POLICY.md (pilot) | https://github.com/oraios/serena | 2026-11-18 |
-| ChromeDevTools/chrome-devtools-mcp | v1.13.0 | 2026-11-11 | eng-testing/browser.md, docs/MCP-POLICY.md | https://github.com/ChromeDevTools/chrome-devtools-mcp | 2026-11-18 |
-| awslabs/mcp (read-only servers, write flags, IAM-first) | calendar release 2026.11.20261117195521 | 2026-11-17 | docs/MCP-POLICY.md, guard | https://github.com/awslabs/mcp | 2026-11-18 |
-| modelcontextprotocol/servers (skill-authoring findings, skill-trigger eval method, server hardening) | v2.5.0 | 2026-11-18 | tests/skill_cases.json, eng-os eval --skills, docs/MCP-POLICY.md | https://github.com/modelcontextprotocol/servers | 2026-11-18 |
-| rtk-ai/rtk (output filtering, recovery pointer, failure-only test output) | v1.2.0 | 2026-11-08 | post_tool.py, CLAUDE.md section 8, docs/MCP-POLICY.md | https://github.com/rtk-ai/rtk | 2026-11-18 |
-| Mibayy/token-savior (transcript audit, read limits, quiet flags) | v4.24.0 | 2026-10-15 | eng-os usage, CLAUDE.md section 8, docs/MCP-POLICY.md | https://github.com/Mibayy/token-savior | 2026-11-18 |
-| AMKhaan/token-saver (head/tail truncation keeping error lines, re-read ledger) | v1.1.0 | 2026-07-21 | post_tool.py, guard re-read note | https://github.com/AMKhaan/token-saver | 2026-11-18 |
-| thedotmack/claude-mem (capped resume context, progressive disclosure) | v16.0.0 | 2026-11-18 | session_start.py resume brief, docs/MCP-POLICY.md | https://github.com/thedotmack/claude-mem | 2026-11-18 |
-| mksglu/context-mode (never cut without keeping the full copy, measured bench) | v2.2.1 | 2026-11-17 | post_tool.py, docs/MCP-POLICY.md | https://github.com/mksglu/context-mode | 2026-11-18 |
+| affaan-m/ECC (MCP connector policy, skill-run tracking, token settings) | v2.2.3 | 2026-10-01 | docs/MCP-POLICY.md, research record | https://github.com/affaan-m/ECC | 2026-11-20 |
+| mattpocock/skills (invocation split, spec and ticket shapes, debugging loop, test seams) | v1.3.2 | 2026-10-29 | eng-design, eng-testing, eng-review, templates | https://github.com/mattpocock/skills | 2026-11-20 |
+| Graphify-Labs/graphify | v0.9.113 | 2026-11-19 | docs/MCP-POLICY.md (pilot) | https://github.com/Graphify-Labs/graphify | 2026-11-20 |
+| github/github-mcp-server (read-only, lockdown, toolsets, write-tool names) | v2.2.0 | 2026-11-16 | docs/MCP-POLICY.md, guard | https://github.com/github/github-mcp-server | 2026-11-20 |
+| upstash/context7 (data-out record, trigger rule) | @upstash/context7-mcp 4.7.3 | 2026-11-17 | docs/MCP-POLICY.md | https://github.com/upstash/context7 | 2026-11-20 |
+| microsoft/playwright-mcp | v0.0.86 | 2026-11-18 | eng-testing/browser.md, docs/MCP-POLICY.md | https://github.com/microsoft/playwright-mcp | 2026-11-20 |
+| oraios/serena (GPL-3.0; ideas only) | v2.1.0 | 2026-10-19 | docs/MCP-POLICY.md (pilot) | https://github.com/oraios/serena | 2026-11-20 |
+| ChromeDevTools/chrome-devtools-mcp | v1.13.0 | 2026-11-11 | eng-testing/browser.md, docs/MCP-POLICY.md | https://github.com/ChromeDevTools/chrome-devtools-mcp | 2026-11-20 |
+| awslabs/mcp (read-only servers, write flags, IAM-first) | calendar release 2026.11.20261117195521 | 2026-11-17 | docs/MCP-POLICY.md, guard | https://github.com/awslabs/mcp | 2026-11-20 |
+| modelcontextprotocol/servers (skill-authoring findings, skill-trigger eval method, server hardening) | v2.5.0 | 2026-11-18 | tests/skill_cases.json, eng-os eval --skills, docs/MCP-POLICY.md | https://github.com/modelcontextprotocol/servers | 2026-11-20 |
+| rtk-ai/rtk (output filtering, recovery pointer, failure-only test output, colour-code stripping) | v1.2.1 | 2026-11-19 | post_tool.py, CLAUDE.md section 8, docs/MCP-POLICY.md | https://github.com/rtk-ai/rtk | 2026-11-20 |
+| Mibayy/token-savior (transcript audit, read limits, quiet flags) | v4.24.0 | 2026-10-15 | eng-os usage, CLAUDE.md section 8, docs/MCP-POLICY.md | https://github.com/Mibayy/token-savior | 2026-11-20 |
+| AMKhaan/token-saver (head/tail truncation keeping error lines, re-read ledger) | v1.1.0 | 2026-07-21 | post_tool.py, guard re-read note | https://github.com/AMKhaan/token-saver | 2026-11-20 |
+| thedotmack/claude-mem (capped resume context, progressive disclosure, failed attempts in handoffs) | v16.0.1 | 2026-11-19 | session_start.py resume brief, docs/MCP-POLICY.md | https://github.com/thedotmack/claude-mem | 2026-11-20 |
+| mksglu/context-mode (never cut without keeping the full copy, measured bench) | v2.2.1 | 2026-11-17 | post_tool.py, docs/MCP-POLICY.md | https://github.com/mksglu/context-mode | 2026-11-20 |
 | tcb-developer/work-summary-skills (two-reader log entries, plain-English end-of-day summary) | commit 586cc12, no releases | 2026-11-20 | eng-delivery (daily work summary), templates/docs/progress entry, prompt_router.py | https://github.com/tcb-developer/work-summary-skills | 2026-11-20 |
+| elementalsouls/Claude-BugHunter (finding proof, where bugs hide, evidence hygiene, identifier denylist; defensive ideas only) | v2.1 (main 5b7e76e) | 2026-06-05 | eng-review, eng-security/stacks.md, eng-ship/github.md | https://github.com/elementalsouls/Claude-BugHunter | 2026-11-20 |
+| trailofbits/skills (differential review, fail-open secrets, zero-item checks, Actions hardening; CC-BY-SA, ideas only) | main 149d7b2, no releases | 2026-11-12 | eng-review, eng-security/stacks.md, eng-testing/tooling.md, eng-ship/github.md, eng-os verify | https://github.com/trailofbits/skills | 2026-11-20 |
+| trailofbits/claude-code-config (credential paths, release-age delay, shell start-up files; no licence, ideas only) | main 2109be9, no releases | 2026-08-24 | guard, eng-security, eng-ship/github.md, docs/COMPANY-ROLLOUT.md | https://github.com/trailofbits/claude-code-config | 2026-11-20 |
+| anthropics/claude-code-security-review (verify each finding, diff scope, Claude in CI) | main 0c6a49f, no releases | 2026-02-11 | eng-review, eng-ship/github.md | https://github.com/anthropics/claude-code-security-review | 2026-11-20 |
+| anthropics/claude-plugins-official and anthropics/claude-code examples (risky-code reminders, managed settings, refuting verifiers) | main d7d3279; claude-code 16043fc | 2026-11-20 | guard code note, eng-review, docs/COMPANY-ROLLOUT.md | https://github.com/anthropics/claude-plugins-official | 2026-11-20 |
+| getsentry/skills (third-party skill scan, secret serialisation, commit-message hygiene) | main a582c51, no releases | 2026-11-14 | eng-os verify, docs/MCP-POLICY.md, eng-security/stacks.md, eng-ship/releases.md | https://github.com/getsentry/skills | 2026-11-20 |
+| github/spec-kit (spec ambiguity pass, converge check, assumptions) | v1.4.3 (main 61d3abb) | 2026-11-19 | eng-design, implementation-plans.md, spec template | https://github.com/github/spec-kit | 2026-11-20 |
+| cloudflare/security-audit-skill (needs-validation findings, boundary gate, refuting verifier, data-isolation checklist) | main c1c8a8c, no releases | 2026-09-14 | eng-review, eng-security | https://github.com/cloudflare/security-audit-skill | 2026-11-20 |
 | Claude Code hooks: PreToolUse `additionalContext`, PostToolUse `updatedToolOutput` and `tool_response`, UserPromptSubmit `transcript_path`; Read limits (25,000 tokens per call, 256 KB) | live docs | not shown | guard.py, post_tool.py, prompt_router.py | https://code.claude.com/docs/en/hooks | 2026-11-09 |

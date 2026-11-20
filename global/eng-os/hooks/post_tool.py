@@ -3,7 +3,8 @@
 
 Why: every line a command prints stays in context and is re-read on every later turn of the session. Output over
 TRIM_AT characters is cut to its first and last lines plus the error-looking lines in between. The full output is
-saved first to a private file that the note names, so nothing is lost (grep or tail it). Small output passes untouched.
+saved first to a private file that the note names, so nothing is lost (grep or tail it). Colour codes and redrawn
+progress-bar lines are dropped from trimmed output only. Small output passes untouched.
 Switch off with ENG_OS_TRIM_OUTPUT=0. Fail-open: any problem leaves the output as it was. Python 3.9, stdlib only.
 """
 import json
@@ -21,6 +22,20 @@ HEAD, TAIL, MIDDLE = 60, 40, 30  # lines kept from the start, the end, and error
 LINE_MAX = 400           # characters kept per line (minified files, base64)
 IMPORTANT = re.compile(r"(?i)\b(?:error|exception|traceback|fatal|failed|failure|panic|denied|assert\w*)\b|^\s*E\s{2,}")
 WARNING = re.compile(r"(?i)\bwarn(?:ing)?\b")
+ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)")  # colour codes, cursor moves, titles
+
+
+def last_redraw(text):
+    """Progress bars redraw a line with \\r; keep only each line's last state (linear, unlike a regex over long lines)."""
+    if "\r" not in text:
+        return text
+    out = []
+    for line in text.split("\n"):
+        if "\r" in line:
+            core = line.rstrip("\r")
+            line = core.rsplit("\r", 1)[-1] + line[len(core):]
+        out.append(line)
+    return "\n".join(out)
 
 
 def trim(text, saved, label):
@@ -61,7 +76,8 @@ def main():
     updated = dict(resp)
     changed = False
     for k, v in streams.items():
-        new = trim(v, saved, k)
+        # colour codes and redrawn progress lines carry nothing worth tokens; the saved copy keeps them
+        new = trim(last_redraw(ANSI.sub("", v)), saved, k) if len(v) > TRIM_AT else v
         if new != v:
             updated[k] = new
             changed = True

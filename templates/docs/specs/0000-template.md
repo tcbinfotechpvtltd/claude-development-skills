@@ -25,6 +25,9 @@ What this does not do, so nobody builds it by accident.
 ## 7. Open questions
 Only the questions that would change the design, each with a recommended answer. Mark business facts **TO CONFIRM** until the client confirms them.
 
+**Assumptions** (decided without asking, so the reader can overrule them):
+- 
+
 ## 8. Tasks
 The implementation plan (skill `eng-design`, `implementation-plans.md`):
 - thin vertical slices, each small enough for one fresh session and each leaving the system working;

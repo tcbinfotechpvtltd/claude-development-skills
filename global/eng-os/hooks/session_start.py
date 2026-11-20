@@ -255,7 +255,8 @@ def resume_brief(cwd):
 
 
 def route_file(data, prefix="route-"):
-    """A per-session state file: route- (skills routed once), reads- (re-read note), ctx- (context-size note)."""
+    """A per-session state file: route- (skills routed once), reads- (re-read note), ctx- (context-size note),
+    code-notes- (risky-code note)."""
     session = re.sub(r"[^A-Za-z0-9_-]", "", str(data.get("session_id") or "nosession"))[:80]
     return os.path.join(ENGOS, "state", "%s%s.json" % (prefix, session))
 
@@ -269,7 +270,7 @@ def main():
     if source in ("compact", "clear"):
         # The context that held earlier core rules is gone: let the router insert them again, and restate the
         # project's own skills. Everything else stays silent (CLAUDE.md is reloaded by the harness).
-        for f in (route_file(data), route_file(data, "reads-"), route_file(data, "ctx-")):
+        for f in (route_file(data), route_file(data, "reads-"), route_file(data, "ctx-"), route_file(data, "code-notes-")):
             try:
                 os.remove(f)  # the earlier reads and the old context size are gone too
             except OSError:
@@ -336,7 +337,7 @@ def main():
         cutoff = time.time() - 3 * 86400
         for f in os.listdir(state):
             p = os.path.join(state, f)
-            if f.startswith(("ctx-", "route-", "reads-")) and os.path.getmtime(p) < cutoff:
+            if f.startswith(("ctx-", "route-", "reads-", "code-notes-")) and os.path.getmtime(p) < cutoff:
                 try:
                     os.remove(p)
                 except OSError:

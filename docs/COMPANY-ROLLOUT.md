@@ -41,6 +41,12 @@ Package the skills and hooks as a plugin in this repo. Each employee adds the ma
 - add deny rules and `attribution`;
 - optionally set `permissions.disableBypassPermissionsMode` and `allowManagedHooksOnly`.
 
+Other managed keys worth considering (names as they appear in Anthropic's `examples/settings/settings-strict.json` in the claude-code repo, read 2026-11-20; confirm each in the current settings docs before relying on it):
+- `strictKnownMarketplaces` and `allowManagedMcpServersOnly` (with `allowedMcpServers`), so only the marketplaces and MCP servers the company approved can be added. This is also the place to keep project `.mcp.json` servers from auto-enabling: a user-level `enableAllProjectMcpServers: false` is already the default, and a project's own settings file outranks it.
+- `allowManagedPermissionRulesOnly`, so a repo cannot widen permissions with its own allow rules.
+- `sandbox.network.allowedDomains` with `allowManagedDomainsOnly`, if sandboxed shell commands are used.
+- `cleanupPeriodDays`, a deliberate retention for local transcripts: they hold client code and data, and `eng-os usage` reads only the period you keep.
+
 **How it behaves**:
 - It applies to the whole organisation and refreshes hourly.
 - Hooks pushed this way show each user an approval dialog.

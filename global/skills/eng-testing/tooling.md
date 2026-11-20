@@ -13,6 +13,8 @@ Use what the repo already has; introduce a framework only when there is none, an
 | Flutter | `flutter test` (unit and widget); golden tests with `matchesGoldenFile`, `--update-goldens` | `integration_test` (ships with the SDK); `patrol` when native dialogs must be driven | test on a real device for camera, KYC and payment flows |
 
 ## Cross-cutting checks
+- **Quiet output**: failures only, so the passing lines do not fill the context: `pytest -q --tb=short`, `phpunit --no-progress` (PHPUnit 10+), `jest --silent` or `vitest run --reporter=dot`, `flutter test --reporter=failures-only` where the installed Flutter offers it (else `compact`), and `bench run-tests` piped through `tail -n 60`.
+- **Checks that inspect nothing must fail**: a lint, scan or test script that finds zero files, zero tests or zero rows to check exits non-zero, and has a known-bad sample it must catch, so a wrong path or glob cannot turn it silently green.
 - **Accessibility**: WCAG 2.2 level AA is the current W3C Recommendation (9 new success criteria since 2.1; WCAG 3.0 is still a draft). Run an automated checker in end-to-end tests, then check keyboard-only use and a screen reader on key flows.
 - **Web performance**: the Core Web Vitals at the 75th percentile are LCP ≤ 2.5 s, INP ≤ 200 ms and CLS ≤ 0.1. Check them on the pages that matter (landing, apply, dashboard).
 - **Load**: Grafana k6 2.x scripts. Baseline first, then target load and a spike; set thresholds on p95 latency and error rate. Run against UAT; production load tests need the user's approval.

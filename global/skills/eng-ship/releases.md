@@ -14,6 +14,7 @@ A repo's existing convention wins (for example date tags such as `release-YYYY-M
 - The spec itself defines `feat` (new feature, maps to MINOR) and `fix` (bug fix, maps to PATCH). Common extra types (commitlint conventional config): `build chore ci docs style refactor perf test revert`.
 - Breaking change: `!` right before the colon and/or a `BREAKING CHANGE: <what and how to migrate>` footer (uppercase). Maps to MAJOR.
 - Use it in repos we own or that already use it; follow the existing style in client repos. One logical change per commit.
+- Commit messages carry no customer or client names, personal data, email addresses or pasted ticket text: they outlive the ticket and can become public.
 
 ## Branches and pull requests
 - Short-lived branches: about two days at most, including review wait. One branch in flight per developer (or developer plus agents). Merge trunk into the branch freely; merge the branch to trunk once when done, then delete it. Never merge into someone else's branch.

@@ -23,6 +23,7 @@ Capture, in a few lines each:
 - **Constraints**: regulation (RBI, DPDP, GST), existing stack, budget, team skills, deadlines, client hosting.
 - **Acceptance criteria**: observable checks that prove it works.
 - **Open questions**: anything that would change the design. Ask the user only those that materially change it, and only once the decisions they depend on are settled: numbered, each with your recommended answer. Look facts up yourself; answer the rest from code, docs or sensible defaults, and record them as assumptions.
+- **Before the spec is done**, read it once for ambiguity: an adjective with no number ("fast", "secure", "large"), a placeholder or TODO, two requirements that conflict, one thing called by two names, and a field whose limits the data model and the tasks state differently.
 
 ## 2. Understand the existing system
 Read the current architecture, conventions, data model and integration points before proposing anything new. Reuse what exists; extend the framework's native mechanisms (Frappe doctypes and hooks, Odoo ORM, Next.js routing, CI3 MVC) before building custom plumbing.

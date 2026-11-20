@@ -38,6 +38,7 @@ SECRET_PATH = re.compile(
     r"""|[\w.-]+\.(?:pem|key|p12|pfx|keystore|jks|ppk)"""
     r"""|\.aws/credentials|\.netrc|\.pgpass|\.git-credentials|\.npmrc|\.pypirc"""
     r"""|\.docker/config\.json|\.kube/config|credentials\.json|service[-_]?account[\w.-]*\.json"""
+    r"""|\.config/gh/hosts\.ya?ml|application_default_credentials\.json"""
     r"""|[\w.-]*_secrets(?:/|\b)|secrets\.(?:json|ya?ml|env|txt|toml)"""
     r""")(?=$|[\s'";|&)<>])""",
     re.I,
@@ -91,6 +92,11 @@ GLOBAL_CONFIG_FILES = re.compile(
 SHELL_WRITE = re.compile(r"(?:(?<![0-9&])>>?(?!&|\s*/dev/null)|\btee\b|\bsed\s+-i|\bperl\s+-pi|\bcp\b|\bmv\b|\brm\b|\bln\b|\btruncate\b|\bchmod\b)")
 
 # (rule id, decision, regex, reason) evaluated against the full Bash command
+# shell start-up files and LaunchAgents: whatever is written there runs at every login or shell start
+STARTUP_FILE = (r"(?:~|\$HOME|\$\{HOME\}|/Users/[^/\s]+|/home/[^/\s]+)/(?:\.(?:zshrc|zshenv|zprofile|zlogin|bashrc|bash_profile|"
+                r"bash_login|profile)(?![\w.])|\.config/fish/config\.fish|Library/LaunchAgents/[^\s;|&\"']*)")
+# `git` plus its own options (`-c k=v`, `-C dir`, `--no-pager`), so the next word is the subcommand, not an argument
+GIT_SUB = r"""\bgit(?:\s+(?:-[cC]\s+(?:[^\s"']*"[^"]*"|[^\s"']*'[^']*'|\S+)|--[\w-]+(?:=\S+)?|-[a-zA-Z]))*\s+"""
 BASH_RULES = [
     ("fs-wipe", "deny", re.compile(r"\brm\s+(?:-[a-zA-Z]+\s+|--[a-z-]+\s+)*(?:--\s+)?[\"']?(?:/|~/?|\$HOME/?|\$\{HOME\}/?|/\*|~/\*|\$HOME/\*|/Users/?|/Users/[^/\s]+/?|/System\S*|/usr/?|/etc/?|/var/?)[\"']?(?:\s|$|;|&|\|)"),
      "would delete the filesystem root, a system directory or the home directory"),
@@ -106,6 +112,11 @@ BASH_RULES = [
     ("gh-irreversible", "ask", re.compile(r"\bgh\s+(?:pr\s+merge|repo\s+(?:delete|archive|rename|edit\b[^\n;|&]*--visibility)|release\s+(?:create|delete|upload|edit)|secret\s+(?:set|delete)|variable\s+(?:set|delete)|workflow\s+run|api\b[^\n;|&]*(?:-X|--method)\s*(?:DELETE|PUT|PATCH|POST))\b"),
      "merges, publishes, deletes or changes GitHub state"),
     ("sql-destructive", "ask", SQL_DESTRUCTIVE, "destructive SQL (DROP/TRUNCATE)"),
+    ("git-hook-bypass", "ask", re.compile(GIT_SUB + r"(?:commit|push|merge|rebase|am|cherry-pick|revert|pull)\b[^\n;|&]*\s--no-verify\b"
+                                          r"|" + GIT_SUB + r"commit\b[^\n;|&]*\s-[a-zA-Z]*n[a-zA-Z]*(?=\s|$)"
+                                          r"|\bgit\s+(?:[^\n;|&]*\s)?-c\s+core\.hooks[Pp]ath=\S*\s+(?:[^\n;|&]*\s)?(?:commit|push|merge|rebase|am|cherry-pick|revert|pull)\b"
+                                          r"|\bHUSKY=0\s+(?:\w+=\S*\s+)*git\b"),
+     "skips the repository's git hooks (pre-commit checks, secret scans); fix what the hook reports instead"),
     ("bench-destructive", "ask", re.compile(r"\bbench\b[^\n;|&]*\b(?:drop-site|reinstall|restore|remove-app|uninstall-app|new-site\b[^\n;|&]*--force|--force\b[^\n;|&]*new-site|trim-database|trim-tables|delete-site)\b"),
      "Frappe bench operation that drops or overwrites site data"),
     ("docker-destructive", "ask", re.compile(r"\bdocker(?:-compose)?\b[^\n;|&]*\b(?:system\s+prune|volume\s+(?:rm|prune)|image\s+prune\s+-a|down\b[^\n;|&]*(?:\s-v\b|--volumes))"),
@@ -118,7 +129,9 @@ BASH_RULES = [
     ("perm-open", "ask", re.compile(r"\bchmod\s+(?:-R\s+)?(?:0?777|a\+rwx|o\+w)\b"), "makes files world-writable"),
     ("pipe-to-shell", "ask", re.compile(r"\b(?:curl|wget)\b[^\n;]*\|\s*(?:sudo\s+)?(?:ba|z|da)?sh\b|\b(?:curl|wget)\b[^\n;]*\|\s*python"),
      "executes code downloaded from the internet"),
-    ("persistent-system", "ask", re.compile(r"\bcrontab\s+(?:-r|-\s|[^-\s]\S*\s*$)|\blaunchctl\s+(?:load|bootstrap|enable)\b|\bsystemctl\s+(?:enable|disable|mask)\b|>>?\s*~?[\w/.$]*\.ssh/authorized_keys"),
+    ("persistent-system", "ask", re.compile(r"\bcrontab\s+(?:-r|-\s|[^-\s]\S*\s*$)|\blaunchctl\s+(?:load|bootstrap|enable)\b|\bsystemctl\s+(?:enable|disable|mask)\b|>>?\s*~?[\w/.$]*\.ssh/authorized_keys"
+                                            r"|(?:>>?|\btee\s+(?:-\w+\s+)*)\s*[\"']?" + STARTUP_FILE +
+                                            r"|\b(?:sed\s+-i\S*|cp|mv|ln|install)\b[^\n;|&]*\s[\"']?" + STARTUP_FILE + r"[\"']?\s*(?:$|[;&|])"),
      "changes persistent system configuration or access"),
 ]
 
@@ -162,7 +175,7 @@ MCP_WRITE_ACTION = re.compile(
     r"^(?:create|update|delete|safe_delete|remove|push|merge|add|fork|star|unstar|assign|request|dismiss|mark|manage|"
     r"submit|resolve|unresolve|reprioritize|set|execute|exec|run|rerun|cancel|replace|insert|rename|edit|move|copy|"
     r"write|attach|detach|put|apply|deploy|upload|invoke|start|stop|reboot|terminate|grant|revoke|enable|disable|"
-    r"restore|drop|truncate|build_and_push|call_aws|git_(?:add|commit|reset|checkout|create_branch|merge|push))(?:_|$)"
+    r"restore|drop|truncate|hide|unhide|build_and_push|call_aws|git_(?:add|commit|reset|checkout|create_branch|merge|push))(?:_|$)"
     # ... an unambiguous one anywhere (`firestore_add_document`, `kubectl_apply`) ...
     r"|(?:^|_)(?:create|update|delete|remove|push|merge|insert|apply|deploy|put|add|write|upload|rerun|cancel|"
     r"terminate|drop|truncate|grant|revoke|attach|detach|fork|replace|rename)(?:_|$)"
@@ -177,8 +190,11 @@ MCP_CONFIG_IN_CMD = re.compile(r"(?:^|[\s/'\"=])\.(?:mcp|claude)\.json(?=$|[\s'\
 UNPINNED_PKG = re.compile(r"\b(?:npx|uvx|bunx|pnpm\s+dlx)\s+(?:--?[\w-]+\s+)*(?:@[\w.-]+/)?[\w.-]+(?:@(?:latest|next|[\^~*<>][^\s'\"]*))?(?=$|\s|['\"])")
 MCP_DANGER_FLAG = re.compile(
     r"--(?:autoConnect|auto-connect|browserUrl|browser-url|wsEndpoint|ws-endpoint|cdp-endpoint|extension|"
-    r"allow-unrestricted-file-access|allow-writes?|allow_write_query|no-confirmation)(?![\w-])|--caps[= ]\S*storage"
-    r"|\bALLOW_WRITE=true|\bREAD_OPERATIONS_ONLY=false|\bALLOW_SENSITIVE_DATA(?:_ACCESS)?=true", re.I)
+    r"allow-unrestricted-file-access|allow-writes?|allow_write_query|no-confirmation|allow-sensitive-data-access|"
+    r"allowUnrestrictedPaths|allow-unrestricted-paths|categoryNetworkMocks|category-network-mocks|categoryExtensions|"
+    r"category-extensions|experimentalDevtools|experimental-devtools|insiders)(?![\w-])|--caps[= ]\S*storage"
+    r"|\b(?:[A-Z]+_)*ALLOW_WRITES?=[\"']?true|\bREAD_OPERATIONS_ONLY=false|\bALLOW_SENSITIVE_DATA(?:_ACCESS)?=true"
+    r"|\bX-MCP-(?:Insiders|Features)\b|/mcp/insiders\b", re.I)
 MCP_SKIP = re.compile(r"^mcp__(?:ccd_|Claude_Browser__|claude-in-chrome__|computer-use__|visualize__|terminal__|scheduled-tasks__list|mcp-registry__)")
 
 
@@ -237,7 +253,11 @@ def under(path, root):
     return bool(root) and (path == root or path.startswith(root.rstrip("/") + "/"))
 
 
-def segments(cmd):
+SHELL_STRING = re.compile(r"""(?:^|[\s;&|(])(?:\S*/)?(?:bash|sh|zsh|dash)\s+(?:-[a-zA-Z]+\s+)*?-[a-zA-Z]*c[a-zA-Z]*\s+("(?:[^"\\]|\\.)*"|'[^']*')"""
+                          r"""|(?:^|[\s;&|(])eval\s+("(?:[^"\\]|\\.)*"|'[^']*')""")
+
+
+def segments(cmd, depth=0):
     """Split a shell command into simple-command argv lists (best effort)."""
     out = []
     for part in re.split(r"&&|\|\||;|\||\n", cmd):
@@ -249,6 +269,17 @@ def segments(cmd):
             argv = argv[1:]
         if argv:
             out.append(argv)
+            if depth < 3 and argv[0] == "eval" and len(argv) > 1:  # unquoted `eval rm -rf x`
+                out.extend(segments(" ".join(argv[1:]), depth + 1))
+    # a command handed to a shell as a quoted string (`bash -c "cd x && rm -rf y"`, `env A=1 sh -ec '...'`,
+    # `eval "..."`) is checked as commands too; read from the raw text, before the split above cuts the string apart
+    for m in SHELL_STRING.finditer(cmd) if depth < 3 else ():
+        quoted = m.group(1) or m.group(2)
+        try:
+            inner = shlex.split(quoted)[0]
+        except (ValueError, IndexError):
+            inner = quoted[1:-1]
+        out.extend(segments(inner, depth + 1))
     return out
 
 
@@ -468,7 +499,8 @@ def mcp_config_reason(cmd):
     if UNPINNED_PKG.search(cmd):
         why.append("the package is not pinned to an exact version")
     if MCP_DANGER_FLAG.search(cmd):
-        why.append("it enables writes or attaches to a real browser profile, which the policy does not approve")
+        why.append("it enables writes, sensitive-data access, unrestricted file paths or experimental tools, or attaches to "
+                   "a real browser profile, which the policy does not approve")
     return "; ".join(why)
 
 
@@ -565,6 +597,8 @@ def check_file_tool(tool, inp, cwd):
         return "ask", "global-config: %s is managed by eng-os; edit the eng-os repo and run `eng-os install`" % path.replace(HOME, "~")
     if re.search(r"/\.ssh/(?:authorized_keys|config)$", path):
         return "ask", "ssh-config: changes SSH access configuration"
+    if under(path, HOME) and re.search(r"^/(?:\.(?:zshrc|zshenv|zprofile|zlogin|bashrc|bash_profile|bash_login|profile)|\.config/fish/config\.fish|Library/LaunchAgents/.+)$", path[len(HOME):]):
+        return "ask", "shell-startup: %s runs at every login or shell start, a common place to plant persistence" % path.replace(HOME, "~")
     if tool == "Write":
         text = inp.get("content", "")
     elif tool == "Edit":
@@ -656,7 +690,81 @@ def main():
             note = ""
         if note:
             print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": note}}))
+    elif tool in ("Write", "Edit", "MultiEdit") and os.environ.get("ENG_OS_CODE_NOTE") != "0":
+        try:
+            note = code_note(tool, inp, cwd, data.get("session_id"))
+        except Exception as e:  # a note is optional; never block a write over it
+            log_error("code-note", e)
+            note = ""
+        if note:
+            print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": note}}))
     return 0
+
+
+# Risky code being written. A match only adds a one-line note (the write goes ahead); each pattern is noted once per
+# file per session. The note names the safe form; the rule behind it is in skill eng-security.
+PY, PHP, JS = (".py",), (".php",), (".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".vue")
+RISKY_CODE = [
+    ("shell string", PY + PHP + JS, re.compile(r"shell\s*=\s*True|\bshell\s*:\s*true|\bos\.(?:system|popen)\(|"
+     r"\b(?:shell_exec|passthru|proc_open)\(|\bexecSync\(|\bchild_process\b[^\n]*\bexec\b(?!File)"),
+     "pass an argument list; never put input into a shell string"),
+    ("eval of code", PY + PHP + JS, re.compile(r"(?<![\w.>$])(?:eval|exec)\(\s*(?![\"'])|\bnew\s+Function\("),
+     "never run strings built from input"),
+    ("unsafe deserialisation", PY + PHP, re.compile(r"\bpickle\.loads?\(|\bmarshal\.loads\(|\byaml\.load\((?![^)]*SafeLoader)|"
+     r"(?<![\w>])unserialize\("), "use JSON or yaml.safe_load; unserialize/pickle on input can run code"),
+    ("TLS verification off", PY + PHP + JS + (".dart",), re.compile(r"verify\s*=\s*False|rejectUnauthorized\s*:\s*false|"
+     r"NODE_TLS_REJECT_UNAUTHORIZED|CURLOPT_SSL_VERIFY(?:PEER|HOST)\s*,\s*(?:0|false)|badCertificateCallback"),
+     "keep certificate checks on; fix the trust store instead"),
+    ("SQL built from strings", PY + PHP + JS, re.compile(r"\b(?:execute|executemany|sql|query|raw)\(\s*f[\"']|"
+     r"\b(?:execute|sql|query|raw)\(\s*`[^`]*\$\{|"
+     r"\b(?:execute|sql|query)\(\s*[\"'][^\"']*\b(?:select|update|delete|insert)\b[^\"']*[\"']\s*(?:%|\.format\(|\+)|"
+     r"->query\(\s*\"[^\"]*\$\w|->query\([^;]*\.\s*\$_(?:GET|POST|REQUEST|COOKIE)", re.I),
+     "use bound parameters (%s placeholders, query bindings, the ORM)"),
+    ("HTML from strings", JS + PHP, re.compile(r"dangerouslySetInnerHTML|\.(?:inner|outer)HTML\s*=|\bdocument\.write\(|\bv-html="),
+     "render text, or sanitise the HTML with a vetted library"),
+    ("permission bypass", PY, re.compile(r"\ballow_guest\s*=\s*True|ignore_permissions\s*=\s*True|\.sudo\(\)"),
+     "check the caller's rights first and say in a comment why the bypass is safe"),
+    ("untrusted text in a workflow", (".yml", ".yaml"), re.compile(r"\$\{\{\s*github\.(?:event\.(?:issue|pull_request|comment|review|"
+     r"review_comment|head_commit|commits|discussion|pages)\b|head_ref\b)"), "pass it through env: and quote it; never inline it in run:"),
+]
+
+
+def code_note(tool, inp, cwd, session):
+    """One line when the text being written matches a risky-code pattern for its file type. Never blocks."""
+    path = norm(inp.get("file_path") or "", cwd)
+    ext = os.path.splitext(path)[1].lower()
+    if tool == "Write":
+        text = inp.get("content", "")
+    elif tool == "Edit":
+        text = inp.get("new_string", "")
+    else:
+        text = "\n".join(e.get("new_string", "") for e in inp.get("edits") or [] if isinstance(e, dict))
+    if ext in (".yml", ".yaml") and "/.github/workflows/" not in path:
+        return ""
+    hits = [(name, fix) for name, exts, rx, fix in RISKY_CODE if ext in exts and rx.search(text or "")]
+    if not hits:
+        return ""
+    sid = re.sub(r"[^A-Za-z0-9_-]", "", str(session or "nosession"))[:80]
+    f = os.path.join(STATE, "code-notes-%s.json" % sid)
+    try:
+        with open(f) as fh:
+            seen = json.load(fh)
+        if not isinstance(seen, dict):
+            seen = {}
+    except (OSError, ValueError):
+        seen = {}
+    done = set(seen.get(path) or [])
+    hits = [(n, fix) for n, fix in hits if n not in done]
+    if not hits:
+        return ""
+    seen[path] = sorted(done | {n for n, _ in hits})
+    os.makedirs(STATE, mode=0o700, exist_ok=True)
+    tmp = f + ".%d" % os.getpid()
+    with os.fdopen(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as fh:  # it lists file paths
+        json.dump(seen, fh)
+    os.replace(tmp, f)  # two parallel writes can lose one record: the worst case is a note shown twice
+    return "eng-os code note for %s: %s. If this is deliberate and the input is trusted, carry on." % (
+        os.path.basename(path), "; ".join("%s (%s)" % h for h in hits))
 
 
 def reread_note(inp, cwd, session):
