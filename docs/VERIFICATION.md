@@ -213,3 +213,16 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | Usage one week after 0.13.0 | 49 sessions, 2026-11-12 to 2026-11-18: turns above 200k tokens 69% (was 76%), above 400k 32% (was 43%); not a controlled comparison |
 | Independent review | a fresh Sonnet code reviewer spot-checked the policy claims against the clones (all held) and found no blockers: 1 Medium and 4 Low points. Checked each and fixed three: the router's tag list is documented as closed on purpose; tests added for the CI-event tag and the system-notification prefix; the DevTools note says `--experimentalDevtools` bypasses `--no-javascript-evaluation`. `delete_automation` asking as `mcp-outward` is intended (the general delete rule fires first) |
 | Not verified | no MCP server was started (the policy forbids running unreviewed code here); the bundled Playwright 1.66 alpha and the AWS dependency lock files were not audited; the router fix's effect on token use is not yet measured |
+
+## 21. Release 0.15.0: ideas from tcb-developer/work-summary-skills (2026-11-20)
+| Check | Result |
+|---|---|
+| Repo metadata (`gh api`) | public, MIT, personal user account "TCB DEVELOPER" (not the company organisation); created 2026-11-20, 2 commits, no releases or tags |
+| Read without running | shallow clone at `586cc12` in a scratch folder, hooks path disabled; all 9 files read (2 `SKILL.md`, 1 reference file, README, 3 examples, LICENSE, `.gitignore`); no code, hooks or scripts exist |
+| Gap confirmed before the change | the 0.14.1 router routed no skill for "give me today's work summary", "write my end of day summary", "draft the daily status update" and "summarise this week's work" |
+| Router after the change | 13 work-summary phrasings route `eng-delivery`; 9 feature or code prompts do not (daily sales report, status update webhook, work update field, work order status, daily update job, end-of-day cash summary screen, and others) |
+| Tests | `bin/eng-os test` 355/355 on `/usr/bin/python3` and Homebrew Python (7 new router self-tests: 4 route, 3 must not) |
+| Install and verify | throwaway home, `--packs=all`: `verify` 121 checks, 0 fail, 0 warn; `test --installed` 355/355; installed CLAUDE.md 9,667 characters; the installed router inserts `eng-delivery` core rules for a work-summary prompt |
+| Budgets | global CLAUDE.md source 9,603 characters (+16); `eng-delivery` description 356, core rules 767, body 9,295; `eng-docs` body 7,411 |
+| Independent review | a fresh Sonnet code reviewer found no High: 5 Medium and 7 Low. Checked each against the code. Fixed: router misses ("what did I work on today", "summarise today's work", "stand up update") and the new "work update" false positive; colliding self-test session ids; a **What** fallback for entries without **Summary**; commits limited to the user's own; client names only for readers on that project; `eng-docs` names the field; research claims sourced to `gh api` and the repo's own `git clean -x` caveat cited. Left: "daily status report endpoint" still routes, through the older bare `status report` pattern (one routing per session; noted in the router comment) |
+| Not verified | no behavioural eval run (`eng-os eval --skills` costs tokens; its eng-delivery cases are unchanged because each skill keeps exactly 5 positives); no live session has produced a work summary yet |

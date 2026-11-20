@@ -1,6 +1,15 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.15.0 — 2026-11-20
+Ideas from `tcb-developer/work-summary-skills` (MIT, two Markdown skills for daily work logs), rewritten in eng-os's words; the skills are not installed. Reasoning: `docs/research/2026-11-tool-survey.md`, "Addendum: tcb-developer/work-summary-skills".
+- **Daily or end-of-day work summary** in skill `eng-delivery`, beside the weekly status: a copy-ready, plain-English "Task N:" summary for a manager, the team or a timesheet, built only from the day's progress entries, commits and merged PRs. Unfinished work is a note, never a task; unrecorded work is listed, not added; the user sends it. One new core rule says the same.
+- **Progress-log entries get a `**Summary**` line** (`templates/docs/progress/0000-entry-template.md`): the outcome in one or two sentences a manager can read, so a day's summary is a `grep`; older entries fall back to **What**. `eng-docs` names the field. Existing projects can add the line to their copy of the template.
+- **Router**: "work summary", daily or weekly work or status updates, end-of-day and stand-up updates, "what did I work on today" and "summarise today's work" now route `eng-delivery`; before, they routed nothing. Features named like reports ("daily sales report", "status update webhook", "work update field") stay unrouted.
+- Global CLAUDE.md skill table: "work summaries" added to the `eng-delivery` row (+16 characters).
+- **Not adopted**: the uncommitted `WORK_SUMMARY/` log, per-task sections, `INDEX.md`, `CONTEXT.md` and the CLAUDE.md block. They duplicate `docs/progress/`, the resume brief and the project CLAUDE.md, and a local-only log works against the bus-factor goal.
+- **Guard**: no rule changed. 7 new router self-tests, 4 that route and 3 that must not (355 tests in all).
+
 ## 0.14.1 — 2026-11-19
 - **Fixed: `eng-os verify` crashed when `~/.claude/CLAUDE.md` was missing**, for example after an install that stopped early. The duplicate-sentence check opened the file without checking it existed, so verify died with a traceback instead of reporting. It now skips the missing file; "global CLAUDE.md present" already reports it as a failure, and verify finishes with its summary line.
 - Self-tests added for a home with no `~/.claude` at all, and for a manifest that lists a CLAUDE.md that is gone (348 tests in all).

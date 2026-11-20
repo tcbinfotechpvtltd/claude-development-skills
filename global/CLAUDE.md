@@ -53,7 +53,7 @@ The user never has to name a skill. At session start and on each request, eng-os
 | Frappe, ERPNext, HRMS apps, bench, doctypes | `frappe-erpnext` | <!-- pack:frappe-erpnext -->
 | Odoo modules, models, views, QWeb reports, odoo-bin, upgrades | `odoo` | <!-- pack:odoo -->
 | Custom apps: Next.js/React/Node, PHP CodeIgniter 3, Flutter, Python services | `custom-apps` |
-| Scoping, estimates, plans, status reports, risks, change requests, ERP implementation phases, UAT, go-live, client handoff | `eng-delivery` |
+| Scoping, estimates, plans, status reports, work summaries, risks, change requests, ERP implementation phases, UAT, go-live, client handoff | `eng-delivery` |
 | Loans, ledgers, money movement, KYC, NBFC/LSP, payment or bureau integrations | `fintech-lending` | <!-- pack:fintech-lending -->
 | Repo without a CLAUDE.md, or user asks to set one up | `eng-project-init` |
 | eng-os audit due, or improving these instructions (only the user starts it: `/eng-os-review`) | `eng-os-review` |

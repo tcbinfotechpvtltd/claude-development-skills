@@ -44,8 +44,15 @@ ROUTES = [
     ("eng-ship", r"deploy\w*|releases?|ci|cd|pipelines?|github actions|docker|servers?|vps|aws|nginx|migrations?|"
                  r"backups?|restore|monitoring|incidents?|outage|rollback|changelog|versioning|tag"),
     ("eng-docs", r"document\w*|docs|manuals?|user guide|requirements?|brd|srs|runbook|handover|test cases?"),
+    # A work summary needs a cue next to it (work, status, end of day, my, today's), so a "daily sales report" or
+    # "status update webhook" feature is not routed. Some feature names still match; the cost is one routing per session.
     ("eng-delivery", r"estimates?|estimation|timeline|project plan|scope|sprint|status report|change request|uat|"
-                     r"go-?live|cutover|hypercare|milestones?|implementation"),
+                     r"go-?live|cutover|hypercare|milestones?|implementation|work summar(y|ies)|"
+                     r"(daily|weekly) (work|status) (summary|update|report)s?|"
+                     r"(end[- ]of[- ](the[- ])?day|eod) (work |status )?(summary|update|report)s?|stand[- ]?up (update|notes)|"
+                     r"what (did|have) (i|we) (do|done|work(ed)? on) (today|yesterday|this week)|"
+                     r"what (i|we) (did|worked on|have done) (today|yesterday|this week)|"
+                     r"(my|today['’]?s) work update|summar\w* (of )?(my|today['’]?s|this week['’]?s) (day|work)"),
     ("eng-review", r"review|pull request|pr|commit|merge|code quality"),
     ("eng-project-init", r"onboard\w*|set ?up (this|the) (project|repo)|claude\.md"),
 ]
