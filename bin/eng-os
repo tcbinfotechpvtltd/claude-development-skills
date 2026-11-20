@@ -833,6 +833,13 @@ def cmd_test(args):
     ss_cases.append(("router: silent with the system-notification prefix", route("[SYSTEM NOTIFICATION - NOT USER INPUT]\n" + note, "s4") == ""))
     ss_cases.append(("router: the user's next prompt is still routed", "`odoo`" in route("the odoo invoice report is failing", "s4")))
     ss_cases.append(("router: implementation plan", "`eng-design`" in route("write an implementation plan for the export screen", "s4")))
+    ss_cases.append(("router: work summary", "`eng-delivery`" in route("give me today's work summary to share with my manager", "ws1")))
+    ss_cases.append(("router: end-of-day update", "`eng-delivery`" in route("write my end of day update", "ws2")))
+    ss_cases.append(("router: what did I work on today", "`eng-delivery`" in route("what did I work on today?", "ws3")))
+    ss_cases.append(("router: summary of today's work", "`eng-delivery`" in route("summarise today's work for the team", "ws4")))
+    ss_cases.append(("router: a daily report feature is not a work summary", "`eng-delivery`" not in route("build a daily sales report for the portal", "ws5")))
+    ss_cases.append(("router: a status update webhook is not a work summary", "`eng-delivery`" not in route("fix the loan status update webhook", "ws6")))
+    ss_cases.append(("router: a work update field is not a work summary", "`eng-delivery`" not in route("add a work update field to the timesheet", "ws7")))
     ss_cases.append(("router: no design skill for an explanation", "`eng-design`" not in route("can you break this down for me in simple words", "s5")))
     # core rules: inserted with the routing note, once per session, within the size cap
     out = route("the payment webhook test is failing", "s6")

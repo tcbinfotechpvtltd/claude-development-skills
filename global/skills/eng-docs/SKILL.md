@@ -27,7 +27,7 @@ Docs as code: Markdown in the repo, changed in the same pull request as the code
 | `docs/test-plan.md` (plan, test cases, traceability, completion report) | with the requirements | test cases with every change; a completion report every release |
 | `docs/user-manual/` (per role, Diátaxis) | first full draft before UAT | every user-visible change, plus "What's new" each release |
 | `docs/runbook.md` | before the first deploy | whenever deploy, backup, jobs, monitoring or access change |
-| `docs/progress.md` (current status) and `docs/progress/` (the log: one file per entry, `YYYY-MM-DD-short-title.md`, so parallel PRs never conflict) | project start | a new log entry every working session and milestone |
+| `docs/progress.md` (current status) and `docs/progress/` (the log: one file per entry, `YYYY-MM-DD-short-title.md`, so parallel PRs never conflict; each entry's **Summary** line states the outcome for non-engineers) | project start | a new log entry every working session and milestone |
 | `docs/decisions.md` (client decisions) and `docs/project-brief.md` | project start | each decision the client confirms |
 | `CHANGELOG.md` and release notes | first release | every merged user-visible change (skill `eng-ship`, releases) |
 | `docs/raid.md` (client projects) | project start | weekly (skill `eng-delivery`) |

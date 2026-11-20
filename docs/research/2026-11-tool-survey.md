@@ -145,3 +145,32 @@ Not adopted:
 - **A stricter re-read rule**: the usage report's 34% repeated reads counts range reads and reads after edits, so it overstates the waste. The re-read note already covers unchanged full re-reads.
 
 The largest cost left is outside eng-os: the plugins and connectors that load into every session. [MCP-POLICY.md](../MCP-POLICY.md) section 6 already says to remove unused ones.
+
+## Addendum: tcb-developer/work-summary-skills (2026-11-20)
+The user asked for this repo to be analysed and anything clearly worth having brought into eng-os. Metadata came from `gh api`; the repo was shallow-cloned at commit `586cc12` and every file read. It holds no code, hooks or scripts, so nothing could run.
+
+| Repo (version read) | Licence | What it is | Verdict for TCB |
+|---|---|---|---|
+| tcb-developer/work-summary-skills (`586cc12`, 2026-11-20; no releases or tags) | MIT | 2 Markdown skills: `work-summary` keeps a per-task daily log in an uncommitted `WORK_SUMMARY/` folder (day files, a one-line `INDEX.md`, a `CONTEXT.md` project map, a block added to the project CLAUDE.md); `end-of-day-summary` turns a day file into a copy-ready "Task N:" summary in plain English | two ideas adapted in 0.15.0; not installed |
+
+Who owns it (per `gh api`; the shallow clone cannot show history): a public repo on a personal GitHub user account named "TCB DEVELOPER" (created 2024-11-19, 4 public repos), not the company organisation. Created on 2026-11-20 with 2 commits, no stars or forks.
+
+Risk check:
+- **Data leaving the machine**: none from the repo itself. It has no code, telemetry or network calls; the summary is printed in chat and the user pastes it.
+- **What the log holds**: each task's request, files, decisions and a plain-English summary, listed in `.git/info/exclude` (`skills/work-summary/SKILL.md`, section 1). Our reading, not a claim of the repo: a request copied from a prompt can carry client names, customer details or secrets into a file no review sees. The repo itself warns that `git clean -x` deletes the folder and suggests pinning it outside the repository (`README.md`, "Where the files go").
+- **Control of the chat**: the `work-summary` description says "Use PROACTIVELY" at session start and on every code-touching task. Installed beside eng-os it would compete with `eng-docs` on every task, which is the same reason whole packs were rejected above.
+
+Adopted (0.15.0), in eng-os's words:
+- **A plain-English summary line in each progress-log entry** (`templates/docs/progress/0000-entry-template.md`, `**Summary**`): the repo's two-readers idea (technical detail for the next engineer, an outcome a manager can read), kept to one or two sentences so the entry stays short. A day's summary is then a `grep`, not a re-read.
+- **A daily or end-of-day work summary** in skill `eng-delivery` beside the weekly status: built only from the day's progress entries, commits and merged PRs; one task per deliverable; work in progress as a note, never a task; same-day reverts left out; the project's own terms with no paths, hashes, commands or engineering acronyms; plain punctuation for pasting; the user sends it. Its core rule says the same in one line.
+- **Routing**: before this, prompts such as "give me today's work summary" or "write my end of day update" routed no skill. The router now sends work summaries, daily or weekly work or status updates, end-of-day and stand-up updates, "what did I work on today" and "summarise today's work" to `eng-delivery`. "Daily sales report", "status update webhook" and "work update field" stay unrouted, so features named like reports are not mistaken for status work.
+
+Not adopted:
+- **The `WORK_SUMMARY/` log itself**: a second, uncommitted history beside `docs/progress/`. eng-os keeps history in the repo so the project survives people leaving; a local-only log defeats that, and `git clean -x` loses it.
+- **A section per task, opened when the task arrives**: a write on every message and many sections per session. eng-os logs per working session and milestone, with one session per task.
+- **`INDEX.md`**: `docs/progress/` files are already named `YYYY-MM-DD-short-title.md`, so a sorted listing is the index, and the resume brief reads the newest entry.
+- **`CONTEXT.md`**: the project CLAUDE.md already holds commands, the code map and gotchas (global CLAUDE.md section 7), loaded at no extra read.
+- **Appending a block to the project CLAUDE.md**: `eng-project-init` owns that file, and every line there is paid in every session.
+- **Fixed markers for timesheet extraction**: nothing reads them yet. Worth revisiting if an ERPNext timesheet import is built.
+- **Checking whether code changed since the recorded commit before trusting line numbers**: eng-os entries cite PRs and commits, not line ranges.
+- **The session-end audit and backfill**: the Definition of Done in `eng-delivery` already requires the progress entry.

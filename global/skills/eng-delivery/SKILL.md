@@ -1,6 +1,6 @@
 ---
 name: eng-delivery
-description: Runs client delivery — scope, estimates in ranges, plans (Scrum, Kanban or ERP phases), Definition of Done, RAID log, status reports, change requests, UAT, go-live and handoff. Use when estimating or planning a project; when reporting status; when scope changes; or when preparing UAT, go-live or handover.
+description: Runs client delivery — scope, estimates in ranges, plans (Scrum, Kanban or ERP phases), Definition of Done, RAID log, status reports, daily work summaries, change requests, UAT, go-live and handoff. Use when estimating or planning a project; when reporting status or summarising a day's work; when scope changes; or when preparing UAT, go-live or handover.
 ---
 
 # Delivery and project management
@@ -13,6 +13,7 @@ Goal: predictable delivery the client can see, with no surprises on scope, time,
 - On fixed scope, every change request is logged and approved in writing by the client before work starts.
 - Dates, prices and commitments come from the user; anything sent to a client is the user's action.
 - `docs/raid.md` stays current, and bad news is reported the day it is known, with options.
+- A work summary is built only from the recorded progress log, commits and PRs, in plain English the reader uses, and never claims unfinished or unrecorded work as done.
 - Work counts as done only against this skill's Definition of Done.
 
 ## 1. Scope and agreement (before any build)
@@ -51,6 +52,12 @@ Decisions needed: …
 Risks/issues changed: …
 Schedule / scope / budget vs baseline: …
 ```
+- **Daily or end-of-day work summary** (for a manager, the team or a timesheet):
+  - Sources: that day's entries in `docs/progress/` (their **Summary** lines, or **What** in older entries that have none) and the user's own commits and merged PRs from that day (`git log --author`; teammates' work is not theirs to report). Read the Summary lines with `grep`, not whole files. Never rebuild the day from memory or by exploring the code; work found in neither is listed after the block as not recorded, not added.
+  - Format, printed in a code block so it can be copied as is: a `Work summary - DD Month YYYY - <project>` header, then `Task 1: <outcome-led title>` and two to four numbered short sentences per task. Several projects get one block each.
+  - One task per deliverable. Same-day iterations fold into it, and a change added and reverted on the same day is left out. Work still in progress or blocked goes in a one-line note after the block, with the blocker, never as a task.
+  - Lead with what the user or the business now gets. Use the project's own names for screens, documents, roles and fields; leave out paths, code names, hashes, versions, commands, error codes and engineering acronyms the reader would not use. No filler such as "successfully" or "seamlessly".
+  - Plain punctuation (no em dashes or smart quotes), so it pastes cleanly into chat, email or a timesheet. It carries no credentials or customer personal data, names a client only for readers who already work on that client's project, and the user is the one who sends it.
 - Use the PMBOK 8 performance domains as a quick health check: governance, scope, schedule, finance, stakeholders, resources, risk.
 - Bad news travels the day it is known, with options and a recommendation. Engineering continuity lives in `docs/progress.md` (global instructions).
 
