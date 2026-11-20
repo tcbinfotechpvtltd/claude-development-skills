@@ -593,3 +593,6 @@ bin/eng-os backups              # list backups (~/.claude/eng-os/backups/)
 - **Copy-install with manifest, not symlinks**: edits in the repo never go live unreviewed, and drift is detectable.
 - **Standards are cited and dated (0.2.0)**: 0.1 wrote most engineering practice from model knowledge without sources. Every standard is now confirmed on its official site, recorded in `docs/SOURCES.md`, cited in the skill that uses it, and re-checked at each review. Long standard-specific detail lives in skill reference files (`standards.md`, `releases.md`), so the always-loaded cost stays the same.
 - **Bypass mode kept**: it is your deliberate choice, and the guard plus deny rules supply the gates. `permissions.disableBypassPermissionsMode` is available if you ever want to forbid it.
+
+## Licence and security reports
+MIT, copyright TCB Infotech Pvt Ltd ([LICENSE](LICENSE)). Report a vulnerability privately as [SECURITY.md](SECURITY.md) describes, never in a public issue.

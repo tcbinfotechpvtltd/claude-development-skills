@@ -226,3 +226,12 @@ Simulated in a throwaway HOME containing a personal `CLAUDE.md`, a personal skil
 | Budgets | global CLAUDE.md source 9,603 characters (+16); `eng-delivery` description 356, core rules 767, body 9,295; `eng-docs` body 7,411 |
 | Independent review | a fresh Sonnet code reviewer found no High: 5 Medium and 7 Low. Checked each against the code. Fixed: router misses ("what did I work on today", "summarise today's work", "stand up update") and the new "work update" false positive; colliding self-test session ids; a **What** fallback for entries without **Summary**; commits limited to the user's own; client names only for readers on that project; `eng-docs` names the field; research claims sourced to `gh api` and the repo's own `git clean -x` caveat cited. Left: "daily status report endpoint" still routes, through the older bare `status report` pattern (one routing per session; noted in the router comment) |
 | Not verified | no behavioural eval run (`eng-os eval --skills` costs tokens; its eng-delivery cases are unchanged because each skill keeps exactly 5 positives); no live session has produced a work summary yet |
+
+## 22. Release 0.15.1: ready to go public (2026-11-20)
+| Check | Result |
+|---|---|
+| Secret scan, full history | gitleaks 8.30.1 (`gitleaks git --redact`) over all 50 commits: 0 findings. A pattern search for AWS, GitHub, OpenAI and Slack tokens and private keys also found none |
+| Client and project names | current files: none. History: `kiit-dms` and `intrakore_…` in the 0.7.0 verification report (commit `0b62104`), removed in 0.7.1 (`89c256e`). The maintainer chose to publish with the history |
+| Other personal or internal data | no IPv4 address in any version except a version string; no email address in files except placeholders; one commit author email, the maintainer's |
+| GitHub settings | the account is a user account on the free plan: rulesets return HTTP 403 ("make this repository public to enable this feature"), so the `main` and tag rulesets in `docs/COMPANY-ROLLOUT.md` are applied after the switch. Their JSON parses; the API calls themselves are not verified yet |
+| Tests and install | `bin/eng-os test` 355/355; throwaway home with `--packs=all`: `verify` 121 checks, 0 fail, 0 warn; `test --installed` 355/355 |
