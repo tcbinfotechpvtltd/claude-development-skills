@@ -62,6 +62,16 @@ def iter_records(path):
                 continue
 
 
+SAVED_OUTPUT = re.compile(r"Full output saved to: (/[^\s'\"`<>]+)")
+PART_READ = re.compile(r"\b(?:grep|rg|tail|head|sed|awk|wc)\b")
+WHOLE_READ = re.compile(r"\b(?:cat|less|more|bat)\b")
+
+
+def names_path(cmd, path):
+    """True when the command names exactly this path (not a longer path that starts with it)."""
+    return re.search(re.escape(path) + r"(?![\w./-])", cmd) is not None
+
+
 def tool_result_text(block):
     c = block.get("content")
     if isinstance(c, str):
@@ -81,6 +91,7 @@ def analyze_file(path, since):
         "compactions": 0, "guard_blocks": 0, "tool_errors": 0,
         "named": set(), "loaded": set(),
         "uses": {}, "out_chars": collections.Counter(), "turns": 0, "turns_200k": 0, "turns_400k": 0,
+        "saved": set(), "saved_outputs": 0, "saved_read_whole": 0, "saved_read_part": 0, "agents_no_model": 0,
     }
     seen = set()
     for o in iter_records(path):
@@ -124,7 +135,7 @@ def analyze_file(path, since):
                 if not isinstance(b, dict) or b.get("type") != "tool_use":
                     continue
                 name = b.get("name", "?")
-                inp = b.get("input") or {}
+                inp = b.get("input") if isinstance(b.get("input"), dict) else {}
                 s["tools"][name] += 1
                 s["uses"][b.get("id")] = name if not name.startswith("mcp__") else "mcp:" + name.split("__")[1][:20]
                 if name == "Skill":
@@ -133,12 +144,31 @@ def analyze_file(path, since):
                         s["loaded"].add(inp["skill"])
                 elif name in ("Agent", "Task"):
                     s["agents"][inp.get("subagent_type", "general-purpose")] += 1
+                    # built-in Explore and Plan ignore CLAUDE_CODE_SUBAGENT_MODEL and run on the session's model
+                    s["agents_no_model"] += inp.get("subagent_type") in ("Explore", "Plan") and not inp.get("model")
                 elif name == "Read" and inp.get("file_path"):
                     s["reads"][inp["file_path"]] += 1
+                if name == "Read" and inp.get("file_path") in s["saved"]:
+                    if inp.get("offset") or inp.get("limit"):
+                        s["saved_read_part"] += 1
+                    else:
+                        s["saved_read_whole"] += 1
+                elif name == "Bash" and isinstance(inp.get("command"), str):
+                    cmd = inp["command"]
+                    if any(names_path(cmd, p) for p in s["saved"]):
+                        if PART_READ.search(cmd):
+                            s["saved_read_part"] += 1
+                        elif WHOLE_READ.search(cmd):
+                            s["saved_read_whole"] += 1
         elif o.get("type") == "user" and isinstance(msg.get("content"), list):
             for b in msg["content"]:
                 if isinstance(b, dict) and b.get("type") == "tool_result":
-                    s["out_chars"][s["uses"].get(b.get("tool_use_id"), "?")] += len(tool_result_text(b))
+                    text = tool_result_text(b)
+                    s["out_chars"][s["uses"].get(b.get("tool_use_id"), "?")] += len(text)
+                    # Claude Code keeps a long output in a file and shows a preview; count how it is read back
+                    for saved in (SAVED_OUTPUT.findall(text) if "<persisted-output>" in text else []):
+                        s["saved"].add(saved)
+                        s["saved_outputs"] += 1
                     if b.get("is_error"):
                         s["tool_errors"] += 1
                     if GUARD_MARK in tool_result_text(b):
@@ -255,6 +285,9 @@ def main():
             "reads": sum(agg(sessions, "tools")[t] for t in ("Read",)),
             "tool_errors": total(sessions, "tool_errors"),
             "guard_blocks": total(sessions, "guard_blocks"),
+            "saved_outputs": total(sessions, "saved_outputs"),
+            "saved_read_whole": total(sessions, "saved_read_whole"),
+            "saved_read_part": total(sessions, "saved_read_part"),
         },
         "subagents": {
             "runs": len(agents),
@@ -262,6 +295,7 @@ def main():
             "output_tokens": total(agents, "output") if agents else 0,
             "share_of_all_input_pct": round(pct(billed_in(agents), billed_in(agents) + billed_in(sessions)), 1) if agents else 0,
             "models": agg(agents, "models").most_common(5),
+            "explore_plan_without_model": total(sessions, "agents_no_model"),
         },
         "models_main": agg(sessions, "models").most_common(6),
         "tools": agg(sessions, "tools").most_common(a.top),
@@ -285,9 +319,11 @@ def main():
         m["baseline_context_median"], m["baseline_context_p90"], m["max_context_median"]))
     print("      compactions=%d  Read calls=%d  repeated reads=%d (%.0f%%)  tool errors=%d  guard blocks=%d" % (
         m["compactions"], m["reads"], m["repeat_reads"], pct(m["repeat_reads"], m["reads"]), m["tool_errors"], m["guard_blocks"]))
-    print("SUBAGENTS runs=%d input=%.1fM output=%.2fM (%.1f%% of all input)  models=%s" % (
+    print("      long outputs Claude Code saved to a file=%d; read back whole=%d, by range or grep/tail=%d" % (
+        m["saved_outputs"], m["saved_read_whole"], m["saved_read_part"]))
+    print("SUBAGENTS runs=%d input=%.1fM output=%.2fM (%.1f%% of all input)  models=%s  Explore/Plan without a model=%d" % (
         sa["runs"], sa["input_tokens_total"] / 1e6, sa["output_tokens"] / 1e6, sa["share_of_all_input_pct"],
-        ", ".join("%s:%d" % x for x in sa["models"])))
+        ", ".join("%s:%d" % x for x in sa["models"]), sa["explore_plan_without_model"]))
     for k in ("models_main", "tools", "skills", "agent_types"):
         print("%-11s %s" % (k, ", ".join("%s:%d" % x for x in out[k]) or "-"))
     print("where tokens go: tool output by tool %s; turns with context over 200k: %.0f%%, over 400k: %.0f%%" % (

@@ -758,3 +758,155 @@ The user asked for a complete gap audit of eng-os against every repo it had lear
 | "Obvious things" sweep: debug gates, seed credentials, open redirects (ATTACK-CLASSES.md) | in | eng-security §2 |
 | Installing the skill | rejected | its description triggers on any security question and would collide with eng-security (whole-pack reasoning) |
 
+
+## Token-efficiency sources (2026-11-21)
+The user asked for three token-efficiency sources to be analysed in depth and every good missing idea added in one release (0.17.0), and added three more during the work. Six sources, 91 tips.
+
+**Method.** Repo metadata and releases came from `gh api`; each repo was shallow-cloned into its own empty scratch folder and read without running any of its code, installers or hooks. Articles were read by a web-fetch agent (Sonnet). Every tip that depends on Claude Code behaviour was checked in the official docs by a `claude-code-guide` agent (Sonnet): `prompt-caching`, `costs`, `commands`, `checkpointing`, `model-config`, `env-vars`, `tools-reference`, `fast-mode`, `statusline`, `sub-agents`, `scheduled-tasks`, `common-workflows`, `how-claude-code-works` on code.claude.com, plus the API prompt-caching page for prices. "In" claims were checked in the eng-os files.
+
+**Sources.**
+- drona23/claude-token-efficient: main 0d30a6d (2026-06-15), no releases, MIT, about 6,200 stars. A short CLAUDE.md of terse-output rules, profiles, and its own benchmark.
+- Anthropic, "Maximizing the value of your Claude Code sessions" (2026-08-14). One section is an image the fetch could not read.
+- Medium article (URL slug "10-tip-to-stop-burning-your-tokens-in-claude-code"): **not read.** Medium answered HTTP 403 to the automated fetch; no archive, mirror or paywall workaround was tried.
+- Added by the user: awesomo913/Claude-Token-Saver (v5.0.0, 2026-09-30, MIT; a local function-level code search); mydataschool "How to save tokens" (2026-04-20); DeployHQ "Free GitHub repos for Claude Code" (counts checked 2026-11-03; seven repos, of which RTK was already surveyed).
+
+**Facts from the docs that changed what was adopted.**
+- A model switch always starts a new cache (each model has its own); `opusplan` switches at every plan-mode toggle. An effort change keeps the cache on Fable 5.1 and later, Opus 5.5, Sonnet 5.5 and Haiku 5.5 with an API key or subscription, and resets it on older models and on Bedrock, Vertex and gateways.
+- Fast mode has its own cache in both directions: the article's "turning it off is free" is wrong.
+- `/model` and `/effort` save the choice as the default; `s` in the picker applies it to this session only. The top-level `effortLevel` key is older and does not apply to Opus 5.5 (the README said to use it; corrected).
+- `MAX_THINKING_TOKENS=0` cannot turn thinking off on Opus 5.5, Sonnet 5.5, Haiku 5.5 or Fable, so the article's thinking-off tip does not apply to current models.
+- `/rewind` returns to a prefix that is already cached; compaction invalidates the conversation layer. `/compact [focus]` and a "Compact instructions" part of CLAUDE.md steer what a summary keeps.
+- Bash output over about 30,000 characters is kept in a session file, and Claude gets the path and a 2,000-character preview. `BASH_MAX_OUTPUT_LENGTH` is the read-back window (default 30,000), not the inline ceiling; `bashOutputMaxChars` sizes both.
+- Cache lifetime: an hour for the main conversation on a subscription, five minutes on an API key or cloud provider. `CLAUDE_CODE_PROMPT_CACHE_TTL`, `promptCacheTtl` (v2.1.242+) and `ENABLE_PROMPT_CACHING_1H` raise it; a one-hour write costs 2x base input against 1.25x, and a read 0.1x.
+- `/autocompact <tokens>` exists (at least 100K, saved to user settings); the article's v2.1.221 minimum is not in the docs.
+- `CLAUDE_CODE_SUBAGENT_MODEL` does not change the built-in Explore and Plan subagents, which use the session's model unless a model is passed when they are spawned.
+- Not documented, so not adopted: that re-mentioning a file with `@` attaches another copy; whether a PostToolUse hook receives the full output or the preview.
+
+**Findings on this machine.**
+- **eng-os's output trim no longer fires.** Its save folder (`~/.claude/eng-os/state/out`) was never created since 0.13.0, while transcripts modified in the last 14 days hold 66 outputs that Claude Code itself saved to a file (versions 2.1.295 to 2.1.325). The hook works when handed full output (self-tests and a manual run), so on current versions it appears to receive only the preview. It stays as the fallback for older versions; README and the hook's docstring now say so.
+- **Saved outputs were often read back whole.** Of 26 read-backs of those files, 14 read the whole file (up to 25,000 tokens each), 4 a range, 7 used grep or tail and 1 another command. Global CLAUDE.md section 8 now says grep, tail or read a range of them, and `eng-os usage` counts both kinds.
+- **Explore ran on the session's model.** In 7 days of transcripts, 17 Explore runs passed no model, so each ran on the main model (mostly Opus). Section 8 now says so, and `eng-os usage` counts Explore and Plan runs without a model.
+- Output tokens are 0.5% of main-session tokens (6.18M output against 1,285M input since 2026-11-14), so tools that only shorten Claude's replies cannot move the bill much; drona23's own benchmark agrees (output -1% to -18% with its minimal file).
+
+| Source | Tips | In | Added | Rejected | Not adopted |
+|---|---|---|---|---|---|
+| drona23/claude-token-efficient | 25 | 16 | 1 | 1 | 7 |
+| Anthropic article | 25 | 7 | 14 | 1 | 3 |
+| Medium (habib23me) | 0 (HTTP 403) | – | – | – | – |
+| awesomo913/Claude-Token-Saver | 14 | 6 | 0 | 3 | 5 |
+| mydataschool | 11 | 7 | 0 | 1 | 3 |
+| DeployHQ repo list | 16 | 7 | 1 | 3 | 5 |
+| **Total** | **91** | **43** | **16** | **9** | **23** |
+
+The 16 added rows are about nine changes: names checked before asserting (section 3, section 4, eng-security), the saved-output rule, the Explore and Plan correction, the compact instructions, six session habits in the policy, the quiet-command note in the project template, README corrections, the cache-lifetime note for API-key organisations, and two `eng-os usage` counters.
+
+### drona23/claude-token-efficient (main 0d30a6d; MIT)
+| Tip (repo file) | Status | eng-os file, or the reason |
+|---|---|---|
+| No flattering openers or closing filler (CLAUDE.md) | in | global CLAUDE.md §8 "Replies lead with the result … No filler" |
+| Thorough reasoning, concise output (CLAUDE.md) | in | global CLAUDE.md §8 |
+| Read before writing; no re-read unless changed (CLAUDE.md) | in | global CLAUDE.md §3, §8; guard re-read note |
+| Skip files over 100 KB unless needed (CLAUDE.md) | not adopted | §8 names lockfiles, minified and generated files; the Read tool already caps a call at 25,000 tokens; a size cut would skip real source |
+| No emojis, em dashes or smart quotes (CLAUDE.md, RULES.md) | not adopted | style, not tokens |
+| Never guess APIs, versions, flags, SHAs or package names (CLAUDE.md, CLAUDE.agents.md) | **added** | global CLAUDE.md §3 and §4, eng-security supply chain |
+| Compressed profile: 8–10-word sentences (CLAUDE.compressed.md) | not adopted | its own notes say it drops the fabrication guards; output is 0.5% of tokens here; deliverables need plain English |
+| Code first, explanation only if not obvious (CLAUDE.coding.md) | in | global CLAUDE.md §8 |
+| Simplest fix; no speculative features or one-use abstractions (CLAUDE.coding.md) | in | global CLAUDE.md §3 |
+| No error handling for impossible cases (CLAUDE.coding.md) | not adopted | conflicts with §3 explicit error handling for money and personal data |
+| Review: the bug, the fix, stop (CLAUDE.coding.md) | in | eng-review diff-scoped findings |
+| Read the code before guessing at a bug; say when unsure (CLAUDE.coding.md) | in | global CLAUDE.md §3; eng-testing |
+| Parseable output only; `UNKNOWN` instead of a guess (CLAUDE.agents.md) | not adopted | for unattended pipelines; subagent briefs already ask for a tight report (§8) |
+| At most 3 parallel subagents (CLAUDE.agents.md) | not adopted | no measured need; subagents are 5–10% of input since 0.13.0 |
+| Tool-call budget, one complete write, test once, fix once (profiles v5, v6, v8) | not adopted | tuned to three benchmark tasks (one rule is WebSocket-specific); conflicts with small verifiable steps; §3's two-attempt rule already stops loops |
+| Never polish passing code (profiles) | in | global CLAUDE.md §3 |
+| Read every input, tests first (profiles) | in | global CLAUDE.md §3 |
+| PreCompact hook: `git add -A` and `git commit --no-verify` (.claude/settings.json) | rejected | **risky**: commits every file (secrets, dumps) on whatever branch is out, main included, and skips the repo's hooks; guard `git-hook-bypass` asks |
+| CLAUDE.md layers: global, project, folder (README) | in | global CLAUDE.md §7; eng-project-init |
+| Write rules for failures you actually hit (README) | in | eng-os-review §1; built from `eng-os usage` |
+| Instruction files cost input every turn (README) | in | repo CLAUDE.md budgets; `verify` |
+| Drop rules for behaviour the model already shows (benchmark/SEMANTIC.md) | in | eng-os-review "Delete sentences the model already obeys" |
+| CLAUDE.md is cheaper than pasting rules each session (README) | in | README layer table (cached always-on layer) |
+| Measure real output tokens over N runs, not words (benchmark/SUMMARY.md) | in | `eng-os usage`; `eval --runs N` |
+| User instructions override the file (CLAUDE.benchmark.md) | in | global CLAUDE.md §1 |
+
+### Anthropic, "Maximizing the value of your Claude Code sessions" (2026-08-14)
+| Tip | Status | eng-os file, or the reason |
+|---|---|---|
+| `/clear` between tasks | in | global CLAUDE.md §8; context note |
+| Set model and effort before starting | **added** | ENGINEERING-POLICY §7 (docs: effort keeps the cache on 5.5 models) |
+| Check `/model` and `/effort` at the start; they carry over | **added** | ENGINEERING-POLICY §7 (`s` for this session only) |
+| `MAX_THINKING_TOKENS=0` for routine work | not adopted | **outdated**: current models cannot turn thinking off; `/effort` is the lever (README §4) |
+| `/rewind` rather than `/compact` to drop turns | **added** | ENGINEERING-POLICY §7 |
+| `@`-mention files, once | **added** (attach part) | ENGINEERING-POLICY §7; the "second copy" claim is not documented |
+| Name the exact file | **added** | ENGINEERING-POLICY §7 |
+| Quiet flags; put quiet commands in CLAUDE.md | **added** | §8 had the flags; the project template now asks for the quiet form |
+| Long output goes to a file with a preview; `BASH_MAX_OUTPUT_LENGTH` | **added** | global CLAUDE.md §8 (grep or tail it), `eng-os usage`, README corrected; the env var is the read-back window, not the threshold |
+| A hook that rewrites noisy commands | rejected | rewriting changes what runs (0.13.0); **risky**: the docs' `… \| tail -n 100` form hides the test's exit status without `pipefail` |
+| `/context` in a fresh session | **added** | README "Outside eng-os"; ENGINEERING-POLICY §7 |
+| Lean CLAUDE.md; workflows in skills | in | eng-os architecture; budgets |
+| Switch off unused MCP servers | in | README §4 recommendations; now "at the start", since toggling resets the cache |
+| `/compact` before a break | **added** | ENGINEERING-POLICY §7 |
+| `ENABLE_PROMPT_CACHING_1H=1` on an API key | not adopted as a default | doubles the write price; an organisation's decision: docs/COMPANY-ROLLOUT.md |
+| Tell compaction what to keep; "Compact instructions" | **added** | global CLAUDE.md §8; ENGINEERING-POLICY §7 |
+| `/rename` before `/clear` | **added** | ENGINEERING-POLICY §7 |
+| `/autocompact 200k` on 1M-context models | not adopted as a default | personal and plan-dependent; saved to user settings; the version claim is not in the docs; the context note already speaks at 200k |
+| Short, focused sessions | in | global CLAUDE.md §8 |
+| Run `/loop` in its own session | **added** | ENGINEERING-POLICY §7 |
+| Subagents keep noisy output out | in | global CLAUDE.md §8 |
+| A cheaper model for repeated subagents | in | §8 and `CLAUDE_CODE_SUBAGENT_MODEL`; the Explore and Plan exception added |
+| Match the model to the difficulty | in | §8; README §4 |
+| Switch models only at the start or after `/clear` | **added** | ENGINEERING-POLICY §7 (with `opusplan`) |
+| Fast mode on at the start | **added** | ENGINEERING-POLICY §7; **wrong** in part: turning it off also re-reads uncached |
+
+### awesomo913/Claude-Token-Saver (v5.0.0; MIT)
+| Tip (repo file) | Status | eng-os file, or the reason |
+|---|---|---|
+| Search code in plain words; hand Claude only the function (search.py, README) | rejected | code-index tools not approved (token-savior, Serena); §8 grep-then-range is the instruction form; its own docstring-search mean saving is negative (-12% to -28%) |
+| Snippets of a small file cost more than the file (README) | not adopted | §8 already reads ranges only when needed |
+| CLAUDE.md line: search before opening files (README) | in | global CLAUDE.md §8 |
+| `bootstrap` writes a project overview into CLAUDE.md (generators/claude_md.py) | in | eng-project-init architecture map |
+| SessionStart `prep` hook refreshes it (auto_inject.py) | rejected | rewriting CLAUDE.md automatically (Graphify record); an unpinned tool at every session start |
+| Writes into Claude Code's own memory folder and MEMORY.md (memory_files.py) | not adopted | **risky**: a third-party tool writing Claude's memory is a stale-fact and injection path; eng-os reads docs/progress instead |
+| Generated text between markers; user text kept; `clean` removes only its own | in | installer manifest, `restore` |
+| SHA-256 manifest skips unchanged work (manifest.py) | in | install manifest; `verify` drift check |
+| Token counts are tiktoken estimates (tokenizer.py) | in | `eng-os usage` reads billed usage |
+| Median and mean reported; pinned benchmark (benchmarks/) | in | research method; README "Not measured yet" |
+| Tray, overlay, hotkey, local HTTP server on a port (gui.py, http_server.py) | not adopted | a desktop app with a listening port |
+| `pipx install git+…` from the branch head (README) | rejected | pinning rule (global CLAUDE.md §4; MCP-POLICY) |
+| post-commit hook rebuilds an exe (.githooks) | not adopted | not relevant |
+| `llms.txt` summary (llms.txt) | not adopted | not needed |
+
+### mydataschool, "How to save tokens" (2026-04-20)
+| Tip | Status | eng-os file, or the reason |
+|---|---|---|
+| Compress CLI output with RTK | rejected as a default | pilot only (`rtk-oss`, MCP-POLICY §3); rewriting rejected (0.13.0) |
+| Pack the repo into one file (repomix, code2prompt) | not adopted | the opposite of narrow reads: everything enters context and goes stale |
+| A context generator with its own MCP server (codesight) | not adopted | an unreviewed server and index; MCP-POLICY approval |
+| Opus to plan, Sonnet to edit, Haiku for renames | in | §8 subagent models; README §4 |
+| `xhigh` effort wasted on simple work | in | README §4 |
+| `/compact` after exploring, about every 30 turns | in (context note) | the fixed turn count is not adopted: context size, not turns, drives cost |
+| A new session per task | in | global CLAUDE.md §8 |
+| Terse "caveman" prompts | not adopted | the author warns Claude may infer wrongly; user prompts are a tiny share of input |
+| Avoid tokenizer hacks | in | eng-os uses none |
+| Avoid prompt-shortening agents | in | rewriting rejected (0.13.0) |
+| Don't switch providers mid-task | in | global CLAUDE.md §4 (no code to outside services) |
+
+### DeployHQ, "Free GitHub repos for Claude Code" (counts checked 2026-11-03)
+| Tip or repo | Status | eng-os file, or the reason |
+|---|---|---|
+| rtk-ai/rtk; its savings skip Read, Grep and Glob | rejected as a default | already surveyed (pilot); the caveat matches eng-os's measurement |
+| JuliusBrussee/caveman terse replies | not adopted | about 3% fewer output tokens than a plain "be concise" rule, which §8 has; telemetry on by default; a competing pack |
+| `/caveman-compress` rewrites CLAUDE.md and AGENTS.md | not adopted | a model rewrite of instructions can drop rules silently; eng-os keeps budgets and `verify` |
+| tirth8205/code-review-graph | rejected | Graphify's reasons: an upper-bound benchmark against the whole corpus, larger than the diff on small commits |
+| vercel-labs/agent-browser with saved logins | not adopted | saved login state is a credential file; eng-testing/browser.md keeps profiles isolated and deleted |
+| phuryn/claude-usage dashboard | not adopted | `eng-os usage` covers it with no local server |
+| Maciek-roboblog/Claude-Code-Usage-Monitor | not adopted | `eng-os usage`; the official status line has `rate_limits` (README pointer) |
+| Alishahryar1/free-claude-code proxy to other providers | rejected | **risky**: client code goes to third-party providers with their own retention (§4); AGPL |
+| Know where the tokens go | in | research addendum; `eng-os usage` |
+| Trim CLAUDE.md and AGENTS.md | in | budgets |
+| CLIs over MCP servers | in | global CLAUDE.md §8 |
+| Protect saved login state | in | eng-testing/browser.md |
+| Telemetry off (`DO_NOT_TRACK`) | in | MCP-POLICY §4 |
+| Check you installed the right package (another `rtk` crate) | **added** | global CLAUDE.md §4; eng-security supply chain |
+| Check licences | in | global CLAUDE.md §2 |
+| Check provider data retention | in | global CLAUDE.md §4; MCP-POLICY §5 |

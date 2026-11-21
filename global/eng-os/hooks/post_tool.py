@@ -5,6 +5,8 @@ Why: every line a command prints stays in context and is re-read on every later 
 TRIM_AT characters is cut to its first and last lines plus the error-looking lines in between. The full output is
 saved first to a private file that the note names, so nothing is lost (grep or tail it). Colour codes and redrawn
 progress-bar lines are dropped from trimmed output only. Small output passes untouched.
+Current Claude Code keeps output over ~30,000 characters in a file and passes a 2,000-character preview, so on those
+versions this hook seldom has anything to trim; it stays as the fallback for older versions (checked 2026-11-21).
 Switch off with ENG_OS_TRIM_OUTPUT=0. Fail-open: any problem leaves the output as it was. Python 3.9, stdlib only.
 """
 import json

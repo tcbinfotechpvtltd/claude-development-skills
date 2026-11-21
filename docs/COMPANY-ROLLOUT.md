@@ -60,6 +60,8 @@ Other managed keys worth considering (names as they appear in Anthropic's `examp
 
 Managed settings take precedence over user and project settings.
 
+**Prompt-cache lifetime on API keys** (from Claude Code's prompt-caching docs, read 2026-11-21): on a Claude subscription the main conversation's cache lasts an hour; on an API key, usage credits or a cloud provider it lasts five minutes, so a developer who pauses for six minutes pays the whole conversation again. `CLAUDE_CODE_PROMPT_CACHE_TTL=1h` (or the `promptCacheTtl` setting, v2.1.242 or later) gives an hour, but a one-hour cache write costs 2x the base input price against 1.25x for five minutes; reads cost 0.1x either way. eng-os does not set it. An organisation on API keys should decide after a pilot group's `eng-os usage` figures (cache-read share, sessions with long pauses).
+
 ## One command for every employee
 Share this install command (details in [INSTALL.md](../INSTALL.md)):
 ```bash

@@ -1,6 +1,36 @@
 # Changelog
 Material changes to the global system. Every install is also backed up under `~/.claude/eng-os/backups/`.
 
+## 0.17.0 — 2026-11-21
+Six token-efficiency sources read in depth: drona23/claude-token-efficient, awesomo913/Claude-Token-Saver, Anthropic's "Maximizing the value of your Claude Code sessions", mydataschool's "How to save tokens" and DeployHQ's "Free GitHub repos for Claude Code". A Medium article (URL slug "10-tip-to-stop-burning-your-tokens-in-claude-code") returned HTTP 403 to automated fetching and was not read; no workaround was tried. 91 tips: 43 already in eng-os, 16 added (about nine changes), 9 rejected for recorded reasons, 23 not adopted with a reason. Repos were shallow-cloned and read without running their code. Every Claude Code claim was checked in the official docs first. The matrix and the docs facts are in `docs/research/2026-11-tool-survey.md` ("Token-efficiency sources (2026-11-21)").
+
+**Global instructions** (source 9,603 → 10,238 characters, budget 10,500):
+- §8: when Claude Code saves a long output to a file, grep, tail or read a range of it, never all of it; rerun the command only if its output is stale. On this machine 14 of 26 read-backs in 14 days read the whole file.
+- §8: the built-in Explore and Plan subagents use the session's model unless one is passed. `CLAUDE_CODE_SUBAGENT_MODEL` does not reach them (Claude Code docs); 17 Explore runs in 7 days passed no model.
+- §8: a "Compact instructions" line saying what a compaction keeps (task and acceptance criteria, decisions, files changed, verify commands, open failures, next step). The docs say this steers the summary.
+- §3: check APIs, flags, versions and package names in code, docs or the registry rather than recalling them. §4: confirm the exact package name and publisher before adding one (from drona23 and DeployHQ's name-collision warning). `eng-security` supply chain adds model-invented names.
+
+**Policy and docs**:
+- `docs/ENGINEERING-POLICY.md` §7 "Sessions and cost" gains six bullets of habits for people, each checked in the docs: model, effort and fast mode set at the start (`s` for this session only; `opusplan` switches at plan toggles), `/rewind` to drop a wrong turn, `/compact` with a focus or before a break over the cache lifetime, `/rename` before `/clear`, `/context` and `/mcp` at the start, exact files or `@path`, and `/loop` in its own session.
+- `docs/COMPANY-ROLLOUT.md`: on API keys the cache lasts five minutes; `CLAUDE_CODE_PROMPT_CACHE_TTL=1h` doubles the write price (2x against 1.25x), so it is an organisation's call after a pilot. eng-os sets nothing.
+- Project template: the Commands table asks for the quiet form of each command.
+- README corrections:
+  - Current Claude Code saves output over about 30,000 characters to a file with a 2,000-character preview, so eng-os's trim has not fired here since install (its save folder was never created). The trim is documented as the fallback for older versions.
+  - The old `effortLevel` advice is replaced by `/effort` with `s`.
+  - Notes on `/context` and the status line's context fields.
+  - Always-on size updated to about 3.4k tokens.
+
+**CLI**: `eng-os usage` reports how long outputs that Claude Code saved to a file were read back (whole, or by range and grep), and how many Explore or Plan runs passed no model. There are 2 new self-tests (406 in all).
+
+**Not adopted, notably**:
+- terse-output packs and "caveman" prompting: output is 0.5% of tokens here;
+- `MAX_THINKING_TOKENS=0`, which current models ignore;
+- `/autocompact` and one-hour cache defaults, which are personal or organisation choices;
+- repo packers (repomix, code2prompt), code-graph and index servers, and usage dashboards;
+- a pre-compaction auto-commit hook (`git add -A`, `--no-verify`);
+- a proxy to non-Anthropic providers;
+- the docs' own `| tail -n 100` rewrite hook, which hides the exit status.
+
 ## 0.16.0 — 2026-11-20
 Gap audit of eng-os against every repo it learned from, plus eight the user added: 25 repos and 439 ideas. 156 were already in eng-os, 49 stay rejected for recorded reasons, 124 were not adopted (each with a reason), and 110 rows are added here, about 60 distinct changes. Each repo was shallow-cloned and read without running its code; nothing was installed or copied. The full matrix is in `docs/research/2026-11-tool-survey.md` ("Gap audit (2026-11-20)").
 
