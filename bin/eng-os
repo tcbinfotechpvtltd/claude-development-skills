@@ -1050,6 +1050,38 @@ def cmd_test(args):
     ss_cases.append(("context note: silent right after compaction", "context note" not in run_hook("prompt_router.py", {"prompt": "ok", "session_id": "cx4", "transcript_path": tr})))
     ss_cases.append(("output trim: small output untouched", run_hook("post_tool.py", {"tool_name": "Bash", "session_id": "pt1", "tool_response": {"stdout": "ok\n", "stderr": ""}}) == ""))
     ss_cases.append(("output trim: switch off with ENG_OS_TRIM_OUTPUT=0", run_hook("post_tool.py", {"tool_name": "Bash", "session_id": "pt1", "tool_response": {"stdout": big, "stderr": ""}}, {"ENG_OS_TRIM_OUTPUT": "0"}) == ""))
+    # usage (0.17.0): how long outputs Claude Code saved to a file are read back, and Explore/Plan runs without a model
+    uhome = os.path.join(tmp, "usage-home")
+    os.makedirs(os.path.join(uhome, ".claude", "projects", "p"))
+    saved_out = "/x/tool-results/a.txt"
+    def asst(i, name, inp):
+        return {"type": "assistant", "timestamp": "2026-11-21T10:00:0%dZ" % i, "message": {"id": "m%d" % i, "usage": {"input_tokens": 10},
+                "content": [{"type": "tool_use", "id": "t%d" % i, "name": name, "input": inp}]}}
+    recs = [asst(1, "Bash", {"command": "npm test"}),
+            {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t1", "content":
+                "<persisted-output>\nOutput too large (40KB). Full output saved to: %s\n\nPreview (first 2KB):\nok" % saved_out}]}},
+            asst(2, "Read", {"file_path": saved_out}), asst(3, "Read", {"file_path": saved_out, "offset": 10, "limit": 20}),
+            asst(4, "Bash", {"command": "grep -n FAIL " + saved_out}), asst(5, "Read", {"file_path": "/x/other.py"}),
+            asst(6, "Agent", {"subagent_type": "Explore", "prompt": "find"}),
+            asst(7, "Agent", {"subagent_type": "Explore", "model": "haiku", "prompt": "find"}),
+            asst(8, "Agent", {"subagent_type": "general-purpose", "prompt": "do"}),
+            asst(9, "Bash", {"command": "cat " + saved_out}), asst(10, "Bash", {"command": "grep x " + saved_out + ".bak"}),
+            asst(11, "Bash", {"command": "ls /x"}), asst(12, "Read", ["not", "a", "dict"]), asst(13, "Bash", {"command": ["x"]}),
+            {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t5", "content":
+                "a line that quotes 'Full output saved to: %s' outside a saved output"}]}},
+            asst(14, "Bash", {"command": "printf '%s' x"})]
+    with open(os.path.join(uhome, ".claude", "projects", "p", "s.jsonl"), "w") as fh:
+        fh.write("\n".join(json.dumps(r) for r in recs) + "\n")
+    try:
+        u = json.loads(subprocess.run([py, os.path.join(src, "bin", "eng-os-usage.py"), "--json"], capture_output=True, text=True,
+                                      env=dict(os.environ, HOME=uhome), timeout=60).stdout)
+    except ValueError:
+        u = {}
+    um = u.get("main", {})
+    ss_cases.append(("usage: saved-output read-backs: whole (Read, cat) apart from range and grep; other paths, quoted text and odd input ignored",
+                     (um.get("saved_outputs"), um.get("saved_read_whole"), um.get("saved_read_part")) == (1, 2, 2)))
+    ss_cases.append(("usage: Explore run without a model counted, one given a model is not",
+                     u.get("subagents", {}).get("explore_plan_without_model") == 1))
     # verify on a home without the installed CLAUDE.md (for example after an install that stopped early): it reports
     # failed checks and carries on, with no traceback
     def verify_in(home):

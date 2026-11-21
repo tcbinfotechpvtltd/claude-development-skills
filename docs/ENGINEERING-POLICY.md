@@ -40,6 +40,12 @@ For every engineer, on every client and internal project. eng-os makes Claude fo
 ## 7. Sessions and cost
 - One task per session; start a new session for unrelated work. Most of a session's cost is re-reading the whole conversation on every turn. When Claude says the conversation has grown past 200k tokens, finish the task and start fresh: the project's `docs/progress.md` status is read back automatically.
 - Use the cheaper models Claude suggests for mechanical work; do not leave loops or agents running without a reason.
+- Set the model, effort and fast mode when a session starts. Switching model or fast mode mid-conversation (and effort, on older models) reads the whole conversation again without the cache, and `opusplan` switches model at every plan-mode toggle. In the `/model` and `/effort` pickers, `s` applies a choice to this session only; Enter makes it the default for later sessions.
+- To drop a wrong turn, `/rewind` (Esc Esc) to just before it: the earlier part stays cached. `/compact` rewrites the whole conversation, so use it when a stage is done, with a focus (`/compact keep the API decisions`), or before a break of more than an hour, when the cache expires anyway (after five minutes on an API key).
+- Before `/clear`, `/rename` the session so `/resume` finds it later.
+- At the start of a session, `/context` shows what is loaded; switch off connectors and MCP servers you will not use (`/mcp`) then rather than mid-task, because that also resets the cache.
+- Name the exact file or function you mean, or attach it with `@path`, so Claude does not search for it.
+- Run `/loop` in a session of its own: each run re-sends the whole conversation it lives in.
 
 ## 8. Improving the standards
 - A lesson that applies beyond one project (a framework gotcha, a better procedure, a guard false positive) goes back into eng-os as a pull request, so everyone gets it.

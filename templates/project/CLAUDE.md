@@ -10,6 +10,7 @@
 - Runs at: <local URL/port>; services needed: <redis, workers, ...>
 
 ## Commands
+<!-- Give the quiet form (`pytest -q --tb=short`, `npx vitest run --reporter=dot`, `npm ci --silent`): sessions copy these commands as written. -->
 | Purpose | Command |
 |---|---|
 | Setup | `<...>` |

@@ -91,6 +91,13 @@ eng-os studies well-known open-source projects for Claude Code and takes their b
 - **They are attack tools.** Bug-bounty hunting tools for other people's systems are out of scope; only their lessons for checking your own code were kept.
 - **One line does the job.** Heavy machinery, such as a full audit ledger, was reduced to the one rule that matters.
 
+**Six token-saving guides and tools (0.17.0)**: two repos (drona23/claude-token-efficient, awesomo913/Claude-Token-Saver) and four articles (Anthropic's guide to Claude Code sessions, mydataschool, DeployHQ's list of seven repos, and a Medium article that refused automated reading, so it was not read). Of 91 tips, 43 were already in eng-os, 16 were added, 9 stay rejected and 23 were not adopted, each with its reason in the [research record](docs/research/2026-11-tool-survey.md). Every tip about Claude Code itself was checked against its official docs first. Several were wrong or out of date: turning thinking off does nothing on current models, and turning fast mode off is not free. What changed for you:
+- Claude greps, tails or reads part of a long output that Claude Code saved to a file, instead of reading the whole file back. Before this, more than half of those read-backs read the whole file.
+- The built-in Explore and Plan helpers run on your main model unless Claude names a cheaper one. eng-os now says so, and `eng-os usage` counts the runs that did not.
+- A compaction now keeps the task, decisions, changed files, checks, open failures and next step.
+- Claude checks a package, API or flag name before using it. Invented and look-alike package names are a known attack.
+- Section 7 of the engineering policy lists habits that keep the prompt cache warm. Pick the model at the start, `/rewind` instead of `/compact`, compact before a long break, and run `/loop` in its own session.
+
 ## What's inside
 
 ### Global instructions
@@ -102,7 +109,7 @@ eng-os studies well-known open-source projects for Claude Code and takes their b
 5. **Done means verified**: run it and show the evidence. Status is labelled implemented / tested / verified / not verified.
 6. **Skill routing table**: which skill to load for which task. Description matching alone proved unreliable.
 7. **Projects, git and continuity**: read project CLAUDE.md files, record project knowledge, branch and PR, commit under your own name with no Claude co-author lines, keep a progress file for long work.
-8. **Token efficiency**: targeted reads, parallel tool calls, cheaper models for mechanical subagent work, one task per session.
+8. **Token efficiency**: targeted reads (only the needed part of a long output Claude Code saved to a file), parallel tool calls, cheaper models for mechanical subagent work, one task per session, and what a compaction must keep.
 
 ### Thirteen skills, applied automatically
 Ten are the core every company gets. Three are optional packs chosen at install: `frappe-erpnext`, `odoo` and `fintech-lending` (Indian digital lending). A pack that is not installed is never named or inserted.
@@ -484,7 +491,7 @@ Text that loads in every session is paid for in every session, so eng-os keeps t
 
 | Layer | When it is loaded | Approximate cost |
 |---|---|---|
-| Global instructions | every session | 2.3k tokens |
+| Global instructions | every session | 2.4k tokens |
 | Skill list (names and descriptions) | every session | 0.9k tokens |
 | One skill's full text | only when the task needs it | 0.6–2.4k tokens |
 | Reference files (per stack, standards, releases, GitHub, coding standards, test tooling) | only when a skill sends Claude to them | 0.6–1.5k tokens |
@@ -505,9 +512,10 @@ Working habits that cut waste (global instructions section 8):
 - **Context-size note.** At 200k tokens of context, and again every further 200k, Claude is told the size and asked to finish the task and suggest a fresh session or `/compact` for new work. Every turn re-reads the whole conversation, so long sessions cost the most.
 - **Resume brief.** In a project with a filled-in `docs/progress.md`, a new session, or one just compacted, gets its goal, state, next steps, open decisions and latest log entry in a few lines. Starting fresh costs little.
 - **Re-read note.** Reading an unchanged file in full a second time in a session adds a one-line reminder that the copy is already in context. It never blocks: a refused read would cost another round trip at full context size.
-- **Large-output trim.** Output over about 30,000 characters from a Bash command that succeeded is cut to its first 60 and last 40 lines plus the error-looking lines in between. The full output is saved first to a private file (capped, deleted after a day) that the note names. Add `# eng-os:full` to a command to keep everything; switch it off with `ENG_OS_TRIM_OUTPUT=0`. Failing commands are not trimmed, because Claude Code's failure hook cannot replace output.
+- **Large output.** Current Claude Code (seen on 2.1.295 to 2.1.325) keeps any command output over about 30,000 characters in a file and shows Claude a 2,000-character preview with the path; the global instructions say to grep, tail or read a range of that file, never all of it (in the 14 days before 0.17.0, 14 of 26 read-backs read the whole file). eng-os's own trim is the fallback for older versions: output over 30,000 characters from a Bash command that succeeded is cut to its first 60 and last 40 lines plus the error-looking lines in between, with the full output saved first to a private file (capped, deleted after a day) that the note names. On current versions it has not fired on the maintainer's machine (its save folder was never created), so the hook appears to receive only the preview. Add `# eng-os:full` to a command to keep everything; switch it off with `ENG_OS_TRIM_OUTPUT=0`.
 - **Quiet output by habit.** The global instructions ask for quiet test and install flags, `tail`/`grep` on logs and builds, and a short script instead of dumping large JSON or logs.
-- **Measured.** `eng-os usage` reports which tools produce the output and how many turns run above 200k and 400k tokens, so the effect shows up in the numbers.
+- **Measured.** `eng-os usage` reports which tools produce the output, how many turns run above 200k and 400k tokens, how saved long outputs were read back (whole, or by range and grep), and how many Explore or Plan subagents ran without a model, so the effect shows up in the numbers.
+- **Compaction keeps what matters (0.17.0).** The global instructions carry a "Compact instructions" line, which Claude Code's docs say steers what a summary keeps: the task, decisions, files changed, verify commands, open failures and the next step.
 
 These ideas come from a survey of RTK, token-savior, token-saver, claude-mem, context-mode and Serena ([research record](docs/research/2026-11-tool-survey.md)). None of those tools is installed, and the MCP policy says why.
 
@@ -518,13 +526,15 @@ These ideas come from a survey of RTK, token-savior, token-saver, claude-mem, co
 
 `eng-os usage` shows your own numbers, and the monthly review tracks the trend. Not measured yet: the actual reduction after installing, which needs a few weeks of sessions.
 
-**Outside eng-os**: most of a session's starting context (80–90k tokens on the maintainer's machine) is Claude Code's own system prompt, tool definitions, plugins and connectors. Switching off plugins and connectors you don't use, and `/effort medium` for routine work, cut that part.
+**Outside eng-os**: most of a session's starting context (80–90k tokens on the maintainer's machine) is Claude Code's own system prompt, tool definitions, plugins and connectors. `/context` shows it; switching off plugins and connectors you don't use, at the start of a session, and `/effort medium` for routine work cut that part. In the terminal, a status line can show context use all the time (Claude Code passes `context_window.used_percentage` to it; see the status line docs).
+
+**Habits that keep the cache warm (0.17.0)**, from Anthropic's own guidance and the Claude Code docs, are in the engineering policy, section 7 "Sessions and cost": choose model, effort and fast mode when a session starts; `/rewind` rather than `/compact` to drop a wrong turn; `/compact` before a long break; `/rename` before `/clear`; name or `@`-attach the exact file; run `/loop` in its own session.
 
 ## Why it is good
 - **Safety is enforced, not hoped for.** Risky actions are stopped by a hook that runs on every tool call, not by a sentence the model might forget. 126 automated cases cover it, and it was verified live in bypass mode.
 - **Built on current standards, with sources.** 129 standards, frameworks and tool versions are named with their edition and the date each was confirmed on its official site: OWASP, NIST, CIS, MITRE, CISA, SLSA, PCI, ISO, Google SRE and DORA, RBI, DPDP and CERT-In. Nothing is quoted from memory, and a health-check warning plus the monthly review keep them current.
 - **Made from real work.** The stack pitfalls, lending rules and severity examples come from real client projects, audits and incidents, not generic advice. Packs keep that depth out of the way of companies that don't need it.
-- **Cheap to run.** About 3.3k tokens per session. Detail lives in files that load only when needed. The 24-skill pack it replaced was used once in more than 700 sessions.
+- **Cheap to run.** About 3.4k tokens per session. Detail lives in files that load only when needed. The 24-skill pack it replaced was used once in more than 700 sessions.
 - **Honest results.** Claude must show evidence, label what is not verified, and never call anything "secure".
 - **The same standards for everyone.** Each developer still commits under their own name and keeps their own personal instructions. Improvements come in as pull requests.
 - **Safe to install and remove.** Every install that changes anything takes a backup first, validates before writing and rolls back on error. A restore gives back the exact previous setup. A broken settings file is refused, never overwritten.
@@ -553,7 +563,7 @@ Full list: [section 8](#8-limitations-what-claude-code-cannot-guarantee).
 
 | Layer | Live location | Loads | Approx. cost | Purpose |
 |---|---|---|---|---|
-| Global instructions | `~/.claude/CLAUDE.md` | every session, re-read after compaction | ~2.3k tokens | priority order, approval gates, engineering behaviour, security floor, skill routing table, git and token rules |
+| Global instructions | `~/.claude/CLAUDE.md` | every session, re-read after compaction | ~2.4k tokens | priority order, approval gates, engineering behaviour, security floor, skill routing table, git and token rules |
 | Skills (13) | `~/.claude/skills/<name>/SKILL.md` | listing always (~0.9k tokens; `eng-os-review` is user-run and costs nothing); body only when invoked; reference files only when the body sends Claude to them | 0.6–1.5k tokens each when used | procedures: `eng-design` (+`implementation-plans.md`), `eng-security` (+`stacks.md`, `standards.md`), `eng-testing` (+`tooling.md`), `eng-review` (+`coding-standards.md`), `eng-ship` (+`releases.md`, `github.md`), `eng-delivery` (+`erp-implementation.md`), `eng-docs`, `frappe-erpnext`, `odoo`, `custom-apps` (+ one file per stack), `fintech-lending`, `eng-project-init`, `eng-os-review` |
 | Standards register | repo `docs/SOURCES.md` | never in context | 0 | every external standard the skills cite, with edition, publication date, URL and the date it was last confirmed on the official site |
 | Path-scoped rules (9) | `~/.claude/rules/*.md` | only when a matching file is read or edited | ~200–300 tokens each | must-follow invariants for Frappe, Odoo, Next.js, Flutter and CodeIgniter 3 code, DB migrations/SQL, CI/containers/infra, tests and project documents |
@@ -563,7 +573,7 @@ Full list: [section 8](#8-limitations-what-claude-code-cannot-guarantee).
 | Subagents | `~/.claude/agents/` (existing 4 kept) | when spawned | per run | `security-auditor`, `code-reviewer`, `test-engineer`, `web-performance-auditor` are used for fresh-context review; no new agents were needed |
 | CLI + tests | `~/.claude/eng-os/bin`, `tests`, `templates` | never in context | 0 | install/verify/test/usage/eval/restore, project template |
 
-**Always-loaded total added by eng-os: ~3.3k tokens** (CLAUDE.md ~2.3k plus skill listing ~0.9k, 12 listed skills). The installer also removed the ~1.7k-token listing of the 24 unused agent-skills and a SessionStart hook that ran in every session and injected nothing.
+**Always-loaded total added by eng-os: ~3.4k tokens** (CLAUDE.md ~2.4k plus skill listing ~0.9k, 12 listed skills). The installer also removed the ~1.7k-token listing of the 24 unused agent-skills and a SessionStart hook that ran in every session and injected nothing.
 
 ### Instruction hierarchy (conflict resolution)
 1. Safety floor (approval gates + security floor in the global CLAUDE.md, enforced in part by the guard)
@@ -604,7 +614,7 @@ Levers built in:
 Recommended on the maintainer's machine, not applied (check yours with `eng-os usage`):
 - `marketing-skills@marketingskills` is enabled globally (36 skills) but was not invoked in the analysed transcripts. Disable it globally (`"enabledPlugins": {"marketing-skills@marketingskills": false}`) and enable it per project where you do marketing work.
 - The desktop org plugins (marketing, HR, product, sales…) and many claude.ai connectors (Apollo, Canva, Gamma, Gmail, Calendar, Drive…) are listed in every coding session. Toggle them off per session in the app's connector menu when coding.
-- Effort: thinking is always on and the main model is Opus. For routine or mechanical sessions, `/effort medium` (or `"effortLevel": "medium"` in settings) cuts output and thinking tokens. Keep high effort for design, security and hard debugging. This is left as your per-session choice rather than a global default.
+- Effort: thinking is always on and the main model is Opus. For routine or mechanical sessions, `/effort medium` cuts output and thinking tokens; press `s` in the picker to keep it to this session, since Enter saves it as the default (levels are saved per model, and the old top-level `effortLevel` key does not apply to Opus 5.5). Keep high effort for design, security and hard debugging. This is left as your per-session choice rather than a global default.
 - The Homebrew CLI is 2.0.53 (the app bundles 2.1.317) and its OAuth login expired in July: `brew upgrade claude-code` then `claude /login` to use the terminal and `eng-os eval --run`.
 
 ## 5. Project-level instructions
